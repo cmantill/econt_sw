@@ -144,7 +144,7 @@ class econ_interface():
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
         cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)
-        self._logger.info('Read addresses from config')
+        self._logger.debug('Read addresses from config')
         return cfgRead
 
     def __read_fr_cache(self):

@@ -87,10 +87,70 @@ class zmqController:
 
 
 class i2cController(zmqController):    
-    def __init__(self,ip,port,fname=None):
+    def __init__(self,ip,port,fname=None,addr=0x20,forceLocal=False):        
+        self._islocal_ = forceLocal
+        if forceLocal and not ip=='localhost':
+            self.logger.error('forceLocal=True option (skipping sending over socket) is not valid when ip is anything but "localhost"')
+            self._islocal_=False
+
+
         super(i2cController, self).__init__(ip,port,fname)
-        
-    def initialize(self,fname=None):
+
+        if self._islocal_:
+            import sys
+            sys.path.append('zmq_i2c')
+            from econ_interface import econ_interface
+            self.board = econ_interface(addr)
+
+    def initialize(self,fname):
+        if self._islocal_:
+            return self._initialize_local(fname)
+        else:
+            return self._initialize_socket(fname)
+
+    def read_and_compare(self,access="RW"):
+        if self._islocal_:
+            return self._read_and_compare_local(access)
+        else:
+            return self._read_and_compare_socket(access)
+
+    def read_config(self,fname=None,key=None,yamlNode=None):
+        if self._islocal_:
+            return self._read_config_local(fname,key,yamlNode)
+        else:
+            return self._read_config_socket(fname,key,yamlNode)
+
+    def _initialize_local(self,fname=None):
+        self.board.reset_cache()
+        self.board.configure()
+        return
+    
+    def _read_and_compare_local(self,access="RW"):
+        ans = self.board.compare(access)
+        return ans
+
+    def _read_config_local(self,fname=None,key=None,yamlNode=None):
+        if fname:
+            with open(fname) as fin:
+                config = yaml.safe_load(fin)
+            if key is not None:
+                config_dict = yaml.dump(config[key])
+            else:
+                config_dict = yaml.dump(config)
+        elif yamlNode:
+            config_dict = yamlNode
+        else:
+            return
+        ans_yaml = self.board.read(config_dict)
+        return ans_yaml
+        # ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
+
+        #     self.socket.send_string( "" )
+        # recv = self.socket.recv_string()
+        # yamlread = yaml.safe_load( recv ) 
+        # return( yamlread )
+
+    def _initialize_socket(self,fname=None):
         self.socket.send_string("initialize")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
@@ -98,7 +158,7 @@ class i2cController(zmqController):
         else:
             return None
     
-    def read_and_compare(self,access="RW"):
+    def _read_and_compare_socket(self,access="RW"):
         if access=="RW":
             self.socket.send_string("compare-rw")
         else:
@@ -106,7 +166,7 @@ class i2cController(zmqController):
         rep = self.socket.recv_string()
         return rep
 
-    def read_config(self,fname=None,key=None,yamlNode=None):
+    def _read_config_socket(self,fname=None,key=None,yamlNode=None):
         self.socket.send_string("read")
         try:
             rep = self.socket.recv_string()
