@@ -10,7 +10,7 @@ import argparse,os,pickle,pprint
 import numpy as np
 import sys,copy
 
-i2cClient=I2C_Client()
+i2cClient=I2C_Client(forceLocal=True)
         
 def qc_i2c(i2c_address=0x20):
     sys.path.append( 'zmq_i2c/')
