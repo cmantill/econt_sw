@@ -86,7 +86,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
     verbose=True
     def setAlignment(snapshotBX=None, delay=None):
         if snapshotBX is not None:
-            call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
+            i2cClient.call(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
         if delay is not None:
             signals.set_delay(delay)
         fc.request('link_reset_roct')
@@ -96,14 +96,18 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
     delay=emulator_delay
     orbsyncVal=bcr
 
-    call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
-             args_value='0', args_i2c='ASIC,emulator')
-    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
-             args_value=f'0,1,1',args_i2c='ASIC,emulator')
-    call_i2c(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
-             args_value=f'{match_pattern},0',
-             args_i2c='ASIC,emulator')
+    # i2cClient.call(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
+    # i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
+    #          args_value='0', args_i2c='ASIC,emulator')
+    # i2cClient.call(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
+    #          args_value=f'0,1,1',args_i2c='ASIC,emulator')
+    # i2cClient.call(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+    #          args_value=f'{match_pattern},0',
+    #          args_i2c='ASIC,emulator')
+
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_per_ch_align_en,CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en,ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+                   args_value=f'[1]*12,[0]*12,[0]*12,[0]*12,0,1,1,{match_pattern},0',
+                   args_i2c='ASIC,emulator')
 
     fc.configure_fc()
     fc.set_bx("link_reset_roct",3500)
