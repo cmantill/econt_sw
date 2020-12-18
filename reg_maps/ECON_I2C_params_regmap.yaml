@@ -3,43 +3,47 @@ econ:
   RW:
    tx_sync_word:
     register: 0x03a9
-    reg_mask: 0x00
-    param_mask: 0xff
-    param_shift: 0
-    default: 0x4321
+    reg_offset: 0x00
+    size_byte: 2
+    default: 0x070F
    buff_t1:
     register: 0x03a9
-    reg_mask: 0x02
-    param_mask: 0xff
-    param_shift: 0
-    default: 0x8765
+    reg_offset: 0x02
+    size_byte: 2
+    default: 0x0030
    buff_t2:
     register: 0x03a9
-    reg_mask: 0x04
-    param_mask: 0xff
-    param_shift: 0
-    default: 0xcba9
+    reg_offset: 0x04
+    size_byte: 2
+    default: 0x01ff
    buff_t3:
     register: 0x03a9
-    reg_mask: 0x06
-    param_mask: 0xff
-    param_shift: 0
-    default: 0xed
+    reg_offset: 0x06
+    size_byte: 1
+    default: 0x00
    eporttx_numen:
     register: 0x03a9
-    reg_mask: 0x07
+    reg_offset: 0x07
+    size_byte: 1
     param_mask: 0x0f
     param_shift: 4
     default: 13
    use_sum:
     register: 0x03a9
-    reg_mask: 0x07
+    reg_offset: 0x07
+    size_byte: 1
     param_mask: 0x01
     param_shift: 2
     default: 0
    stc_type:
     register: 0x03a9 
-    reg_mask: 0x07
+    reg_offset: 0x07
+    size_byte: 1
     param_mask: 0x03
     param_shift: 0
     default: 0
+   mask_ae:
+    register: 0x03a9
+    reg_offset: 0x08
+    size_byte: 18
+    default: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff

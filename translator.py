@@ -19,24 +19,34 @@ class Translator():
         Convert an input config dict to address: value pairs
         Case 1: One parameter value has one register
         Case 2: Several parameter values share same register
+        TODO : Add cache/ read old values?
         """
         cfg_str = dump(cfg)
         pairs = {}
         for block in cfg:
             for access in cfg[block]:
                 for param, paramDict in  cfg[block][access].items():
-                    addr = paramDict['register'] + paramDict['reg_mask']
-                    if addr in pairs: prev_regVal = pairs[addr]
-                    # elif addr in writeCache: prev_regVal = writeCache[addr]
+                    addr = paramDict['register'] + paramDict['reg_offset']
+                    if addr in pairs:
+                        if paramDict['size_byte'] > 1: prev_regVal =int.from_bytes(pairs[addr], 'little')
+                        else: prev_regVal = pairs[addr][0]
                     else:
                         prev_regVal = 0
-                        # prev_regVal = list(roc.read([[{addr:0}]]).values())[0]
                     # convert parameter value (from config) into register value
                     paramVal = paramDict['default']
-                    val = (paramVal & paramDict['param_mask']) << paramDict['param_shift']
-                    pairs[addr] = prev_regVal + val
-                    
-        for p,pp in pairs.items():
-            print(hex(p), hex(pp))
+                    if 'param_mask' in paramDict:
+                        paramVal = paramVal & paramDict['param_mask']
+                    if 'param_shift' in paramDict:
+                        paramVal <<= paramDict['param_shift']
+                    val = prev_regVal + paramVal
+
+                    if paramDict['size_byte'] > 1:
+                        pairs[addr] = list(val.to_bytes(paramDict['size_byte'], 'little'))
+                    else:
+                        pairs[addr] = [val]
+
+        for p,lpp in pairs.items():
+            for pp in lpp:
+                print(hex(p), hex(pp))
 
 Translator()
