@@ -1,0 +1,45 @@
+econ:
+ FMTBUF_ALL:
+  RW:
+   tx_sync_word:
+    register: 0x03a9
+    reg_mask: 0x00
+    param_mask: 0xff
+    param_shift: 0
+    default: 0x4321
+   buff_t1:
+    register: 0x03a9
+    reg_mask: 0x02
+    param_mask: 0xff
+    param_shift: 0
+    default: 0x8765
+   buff_t2:
+    register: 0x03a9
+    reg_mask: 0x04
+    param_mask: 0xff
+    param_shift: 0
+    default: 0xcba9
+   buff_t3:
+    register: 0x03a9
+    reg_mask: 0x06
+    param_mask: 0xff
+    param_shift: 0
+    default: 0xed
+   eporttx_numen:
+    register: 0x03a9
+    reg_mask: 0x07
+    param_mask: 0x0f
+    param_shift: 4
+    default: 13
+   use_sum:
+    register: 0x03a9
+    reg_mask: 0x07
+    param_mask: 0x01
+    param_shift: 2
+    default: 0
+   stc_type:
+    register: 0x03a9 
+    reg_mask: 0x07
+    param_mask: 0x03
+    param_shift: 0
+    default: 0
