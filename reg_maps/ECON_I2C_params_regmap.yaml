@@ -54,18 +54,21 @@ econ:
     register: 0x0454
     reg_offset: 0x00
     size_byte: 1
+    param_mask: 0x7
+    param_shift: 0
     default: 0
+   algo_density:
+    register: 0x0454
+    reg_offset: 0x00
+    size_byte: 1
+    param_mask: 0x1
+    param_shift: 3
+    default: 1
    drop_lsb:
     register: 0x04e5
     reg_offset: 0x00
     size_byte: 1
-    #default: 0
     default: 3
-   #threshold_value_0:
-   # register: 0x0455
-   # reg_offset: 0x00
-   # size_byte: 3
-   # default: 47
    threshold_values:
     register: 0x0455
     reg_offset: 0x00
@@ -88,39 +91,39 @@ econ:
               303, 290, 302, 315, 329, 316, 328, 340,
               263, 276, 274, 261, 289, 302, 300, 287,
               286, 299, 298, 286, 261, 274, 274, 262]
-   # mux_selects:
-   #  register: 0x03c4
-   #  reg_offset: 0x00
-   #  reg_shift: 1
-   #  size_byte: 1
-   #  default: [ 7,  4,  5,  6,  3,  1,  0,  2,
-   #             8,  9, 10, 11, 14, 13, 12, 15,
-   #             23, 20, 21, 22, 19, 17, 16, 18,
-   #             25, 24, 26, 27, 30, 31, 28, 29,
-   #             38, 37, 39, 46, 36, 34, 33, 35,
-   #             40, 32, 41, 42, 47, 45, 43, 44]
-   # orbsyn_cnt_max_val:
-   #  register: 0x0380
-   #  reg_offset: 0x12
-   #  size_byte: 2
-   #  default: 3563
-   # orbsyn_cnt_load_val:
-   #  register: 0x0380
-   #  reg_offset: 0x14
-   #  size_byte: 2
-   #  default: 10
-   # orbsyn_cnt_snapshot:
-   #  register: 0x0380
-   #  reg_offset: 0x16
-   #  size_byte: 2
-   #  default: 0
-   # match_pattern_val:
-   #  register: 0x0380
-   #  reg_offset:	0x01
-   #  size_byte: 8
-   #  default: 0x9cccccccaccccccc
-   # match_mask_val:
-   #  register: 0x0380
-   #  reg_offset: 0x09
-   #  size_byte: 8
-   #  default: 0x0000000000000000
+   mux_selects:
+    register: 0x03c4
+    reg_offset: 0x00
+    reg_shift: 1
+    size_byte: 1
+    default: [ 7,  4,  5,  6,  3,  1,  0,  2,
+               8,  9, 10, 11, 14, 13, 12, 15,
+               23, 20, 21, 22, 19, 17, 16, 18,
+               25, 24, 26, 27, 30, 31, 28, 29,
+               38, 37, 39, 46, 36, 34, 33, 35,
+               40, 32, 41, 42, 47, 45, 43, 44]
+   orbsyn_cnt_max_val:
+    register: 0x0380
+    reg_offset: 0x12
+    size_byte: 2
+    default: 3563
+   orbsyn_cnt_load_val:
+    register: 0x0380
+    reg_offset: 0x14
+    size_byte: 2
+    default: 10
+   orbsyn_cnt_snapshot:
+    register: 0x0380
+    reg_offset: 0x16
+    size_byte: 2
+    default: 0
+   match_pattern_val:
+    register: 0x0380
+    reg_offset:	0x01
+    size_byte: 8
+    default: 0x9cccccccaccccccc
+   match_mask_val:
+    register: 0x0380
+    reg_offset: 0x09
+    size_byte: 8
+    default: 0x0000000000000000
