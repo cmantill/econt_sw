@@ -6,13 +6,28 @@ class Translator():
 
     def __init__(self):
         self.paramMap = self.__load_param_map("reg_maps/ECON_I2C_params_regmap.yaml")
-        #self.pairs_from_cfg(self.paramMap['econ'],{})
 
     def __load_param_map(self, fname):
         """ Load a yaml register map into cache (as a dict). """
         with open(fname) as fin:
             paramMap = safe_load(fin)
         return paramMap
+
+    def cfg_from_pairs(self, pairs):
+        """
+        Convert from {addr:val} pairs to {param:param_val} config.
+        We can only recover a parameter from a pair when it is in the common cache.
+        However, when we read (or write) a param the common cache is populated in advance.
+        """
+        cfg = nested_dict()
+        for param, param_regs in self.__regs_from_paramMap.cache.items():
+            for reg_id, reg in param_regs.items():
+                addr = (reg["R0"], reg["R1"])
+                if addr in pairs.keys():
+                    prev_regVal = cfg[param[0]][param[1]][param[2]] if cfg[param[0]][param[1]][param[2]]!={} else 0
+                    paramVal = self.__paramVal_from_regVal(reg, pairs[addr], prev_regVal)
+                    cfg[param[0]][param[1]][param[2]] = paramVal
+        return cfg.to_dict()
 
     def pairs_from_cfg(self, cfg, writeCache):
         """
@@ -66,3 +81,7 @@ class Translator():
         '''
         return pairs
     
+    @memoize
+    def __regs_from_paramMap(self, block, blockId, name):
+        """ (block, blockId, name) -> (R0, R1, defval_mask, param_mask, param_minbit, reg_mask, reg_id) """
+        return self.paramMap[block][blockId][name]
