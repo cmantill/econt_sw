@@ -8,11 +8,12 @@ from translator import Translator
 # Define pairs from Translator
 translator = Translator()
 writeCaches = {}
-pairs = translator.pairs_from_cfg(translator.paramMap['econ'],writeCaches)
+pairs = translator.pairs_from_cfg(translator.paramMap['ECON-T'],writeCaches)
 writeCaches.update(pairs)
 
 # Write and Read
 for addr,val in writeCaches.items():
-    i2c.write(0x20, addr, val)
-    readback = i2c.read(0x20, addr, 1)
-    print("0x%02x"%tuple(readback))
+    print(addr, val) 
+    #i2c.write(0x20, addr, val)
+    #readback = i2c.read(0x20, addr, 1)
+    #print("0x%02x"%tuple(readback))

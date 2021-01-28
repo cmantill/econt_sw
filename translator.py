@@ -1,5 +1,16 @@
+import functools
 from yaml import safe_load, load, dump
 import math
+
+def memoize(fn):
+    """ Readable memoize decorator. """
+    fn.cache = {}
+    @functools.wraps(fn)
+    def inner(inst, *key):
+        if key not in fn.cache:
+            fn.cache[key] = fn(inst, *key)
+        return fn.cache[key]
+    return inner
 
 class Translator():
     """ Translate between (human-readable) config and corresponding address/register values. """
@@ -34,28 +45,50 @@ class Translator():
         Convert an input config dict to address: value pairs
         Case 1: One parameter value has one register
         Case 2: Several parameter values share same register
-        TODO : Add cache/ read old values?
+        Case 3: A block of registers is `repeated` for the number of channels (*)
+        Case 4: A block of paramaters for a given register is `repeated` for the number of channels (*)
         """
         cfg_str = dump(cfg)
         pairs = {}
-        for block in cfg:
-            for access in cfg[block]:
-                for param, paramDict in  cfg[block][access].items():
-                    address = paramDict['register'] + paramDict['reg_offset']
+        nchannels = cfg['nchannels']
+        for access in cfg:
+            if access=='nchannels': continue
+            for block in cfg[access]:
+                block_shift = cfg[access][block]['block_shift'] if 'block_shift' in cfg[access][block] else 0
+                addr_base = cfg[access][block]['addr_base']
+                    
+                for param, paramDict in  cfg[access][block]['params'].items():
+                    print(access,block,param,paramDict)
+                    addr_offset = paramDict['addr_offset'] if 'addr_offset' in paramDict else 0
+                    size_byte = paramDict['size_byte'] if 'size_byte' in paramDict else 1
+                    
+                    address = addr_base + addr_offset
                     values = paramDict['default']
-                    if 'reg_shift' in paramDict:
-                        addrList = [address + i*paramDict['reg_shift'] for i in range(len(values))]
+                    
+                    # make list of addresses and values
+                    if '*' in param:
                         try:
+                            #paramList = [param.replace('*',i) for i in range(len(values))]
+                            addrList = [address + i*paramDict['addr_shift'] for i in range(len(values))]
                             valList = values
                         except:
-                            print('list of addresses but not values')
+                            print('list of parameters but no shift of address')
+                            raise
+                    elif '*' in block:
+                        try:
+                            #paramList[block] = [param]
+                            addrList = [address + i*block_shift for i in range(nchannels)]
+                            valList = [values for i in range(nchannels)]
+                        except:
+                            print('no block shift in block dictionary')
                     else:
                         addrList = [address]
                         valList = [values]
+
                     for i,addr in enumerate(addrList):
-                        # previous register value
+                        # check for previous register value
                         if addr in pairs:
-                            if paramDict['size_byte'] > 1: prev_regVal = int.from_bytes(pairs[addr], 'little')
+                            if size_byte > 1: prev_regVal = int.from_bytes(pairs[addr], 'little')
                             else: prev_regVal = pairs[addr][0]
                         elif addr in writeCache:
                             prev_paramVal = writeCache[addr][0]
@@ -64,21 +97,21 @@ class Translator():
                             
                         # convert parameter value (from config) into register value
                         paramVal = valList[i]
-                        if 'param_mask' in paramDict: paramVal = paramVal & paramDict['param_mask']
-                        if 'param_shift' in paramDict: paramVal <<= paramDict['param_shift']
+                        #if 'params' in paramDict:
+                        #    paramVal = paramVal & paramDict['param_mask']
+                        #    paramVal <<= paramDict['param_shift']
                         val = prev_regVal + paramVal
-                        if paramDict['size_byte'] > 1:
-                            pairs[addr] = list(val.to_bytes(paramDict['size_byte'], 'little'))
+                        if size_byte > 1:
+                            pairs[addr] = list(val.to_bytes(size_byte, 'little'))
                         else:
                             pairs[addr] = [val]
 
         # testing
-        '''
         for p,lpp in pairs.items():
             print(p,lpp)
             for pp in lpp:
                 print(hex(p), hex(pp))
-        '''
+                
         return pairs
     
     @memoize
