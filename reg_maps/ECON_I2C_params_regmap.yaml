@@ -215,21 +215,22 @@ ECON-T:
    params:
     config:
      default: 0x21
-     reset_b_fc_counters:
-      param_mask: 0x01
-      param_shift: 5
-     force_fc_error:
-      param_mask: 0x01
-      param_shift: 4
-     invert_command_rx:
-      param_mask: 0x01
-      param_shift: 3
-     PreL1AOffset:
-      param_mask: 0x03
-      param_shift: 1
-     EdgeSel_T1:
-      param_mask: 0x01
-      param_shift: 0
+     params:
+      reset_b_fc_counters:
+       param_mask: 0x01
+       param_shift: 5
+      force_fc_error:
+       param_mask: 0x01
+       param_shift: 4
+      invert_command_rx:
+       param_mask: 0x01
+       param_shift: 3
+      PreL1AOffset:
+       param_mask: 0x03
+       param_shift: 1
+      EdgeSel_T1:
+       param_mask: 0x01
+       param_shift: 0
 
   FMTBUF_ALL:
    addr_base: 0x03a9
@@ -396,13 +397,13 @@ ECON-T:
       invert_data:
        param_mask: 0x01
        param_shift: 0
-     config_mux_*:
-      size_byte: 2
-      addr_shift: 2
-      addr_offset: 0x1a
-      default: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
-      params:
-       pre_emphasis_strength:
+    config_mux_*:
+     size_byte: 2
+     addr_shift: 2
+     addr_offset: 0x1a
+     default: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
+     params:
+      pre_emphasis_strength:
        param_mask: 0x07
        param_shift: 9
       pre_emphasis_width:
@@ -622,15 +623,16 @@ ECON-T:
    params:
     status:
      default: 0
-     locked:
-      param_mask: 0x01
-      param_shift: 2
-     fc_error:
-      param_mask: 0x01
-      param_shift: 1
-     command_rx_inverted:
-      param_mask: 0x01
-      param_shift: 0
+     params:
+      locked:
+       param_mask: 0x01
+       param_shift: 2
+      fc_error:
+       param_mask: 0x01
+       param_shift: 1
+      command_rx_inverted:
+       param_mask: 0x01
+       param_shift: 0
     fc_error_count:
      addr_offset: 0x01
      default: 0
