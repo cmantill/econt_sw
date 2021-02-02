@@ -21,8 +21,9 @@ elif args.q:
 else:
     loglevel = getattr(logging, args.log.upper())
 
-logging.basicConfig(level=loglevel)
+logging.basicConfig(level=loglevel, format='%(levelname)s:%(asctime)s: %(message)s')
 
+logging.info("Finding relevant device files")
 uio_name_to_addr = {"fast control encoder": (0x80040000, 4096),
                     "fast control decoder": (0x80050000, 4096),
                     "eLink outputs stream": (0x80060000, 4096),
@@ -114,52 +115,6 @@ Use_sum = 0
 STC_type = 0
 i2c.write(0x20, 0x03a9 + 0x7, [((TX_en & 0xf) << 4) | ((Use_sum & 0x1) << 2) | (STC_type & 0x3)])
 
-# Output buffer threshold T1
-Buff_T1 = 52
-i2c.write(0x20, 0x03a9 + 0x02, Buff_T1.to_bytes(2, 'little'))
-
-# Output buffer threshold T2
-Buff_T2 = 52
-i2c.write(0x20, 0x03a9 + 0x04, Buff_T2.to_bytes(2, 'little'))
-
-# Output buffer threshold T3
-Buff_T3 = 25
-i2c.write(0x20, 0x03a9 + 0x06, Buff_T3.to_bytes(1, 'little'))
-
-# Drop LSB
-Drop_LSB = 3
-i2c.write(0x20, 0x04e5, Drop_LSB.to_bytes(1, 'little'))
-
-# Got the thresholds used in the software ECONT simulation [https://github.com/dnoonan08/ECONT_Emulator]
-thresholds = [47, 47, 47, 47, 47, 47, 47, 47,
-              47, 47, 47, 47, 47, 47, 47, 47,
-              47, 47, 47, 47, 47, 47, 47, 47,
-              47, 47, 47, 47, 47, 47, 47, 47,
-              47, 47, 47, 47, 47, 47, 47, 47,
-              47, 47, 47, 47, 47, 47, 47, 47]
-for i in range(48):
-    i2c.write(0x20, 0x0455 + 3*i, thresholds[i].to_bytes(3, 'little'))
-
-# Got the calibration values used in the software ECONT simulation [https://github.com/dnoonan08/ECONT_Emulator]
-calvalues = [348, 347, 335, 336, 347, 348, 335, 335,
-             323, 323, 311, 311, 325, 324, 312, 314,
-             307, 293, 304, 318, 280, 267, 279, 291,
-             303, 290, 302, 315, 329, 316, 328, 340,
-             263, 276, 274, 261, 289, 302, 300, 287,
-             286, 299, 298, 286, 261, 274, 274, 262]
-for i in range(48):
-    i2c.write(0x20, 0x03f4 + 2*i, calvalues[i].to_bytes(2, 'little'))
-
-# Got the MUX selections used in the software ECONT simulation [https://github.com/dnoonan08/ECONT_Emulator]
-mux_selects = [ 7,  4,  5,  6,  3,  1,  0,  2,
-                8,  9, 10, 11, 14, 13, 12, 15,
-               23, 20, 21, 22, 19, 17, 16, 18,
-               25, 24, 26, 27, 30, 31, 28, 29,
-               38, 37, 39, 46, 36, 34, 33, 35,
-               40, 32, 41, 42, 47, 45, 43, 44]
-for i in range(48):
-    i2c.write(0x20, 0x03c4 + i, [mux_selects[i]])
-
 # Set the maximum bunch counter value to 3563, the number of bunch crossings in one orbit (minus one)
 BX_max = 3563
 i2c.write(0x20, 0x0380 + 0x12, BX_max.to_bytes(2, 'little'))
@@ -238,23 +193,21 @@ with numpy.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
 
 try:
     assert numpy.all(status == 0x03)
+    logging.info('All ECON-T channels aligned')
 except AssertionError:
     logging.error(f'Failed to align ECON-T channels {(status != 0x03).nonzero()[0]}')
     raise
-finally:
-    logging.info('All ECON-T channels aligned')
 
 logging.info("Check link capture alignment status")
 LC_alignment = LCs[:,8]
 logging.debug(f"Links aligned {LC_alignment}")
 try:
     assert numpy.all((LC_alignment & 0x1) == 0x1)
+    logging.info("All links are word-aligned")
 except AssertionError: 
     for i in range(LCs.shape[0]):
         if (LC_alignment[i] & 0x1) != 0x1:
             logging.warning(f'Link capture channel {i+1} is not aligned')
-finally:
-    logging.info("All links are word-aligned")
 
 logging.info("Reading out captured data")
 FIFO_occupancy = numpy.copy(lc.reshape(-1, 16)[1:14][:,0xe])
@@ -279,10 +232,9 @@ logging.debug(f'BX0 sync word found on columns {BX0_cols}')
 try:
     assert numpy.all(BX0_rows == BX0_rows[0])
     assert numpy.all(BX0_cols == numpy.arange(13))
+    logging.info('All link capture channels are fully aligned')
 except AssertionError:
     logging.error('Relative alignment of links failed; check latency buffer settings')
     with numpy.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
         logging.debug(f'Captured data snippet: {outdata[BX0_rows[0]]}')
     raise
-finally:
-    logging.info('All link capture channels are fully aligned')
