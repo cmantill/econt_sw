@@ -1,5 +1,6 @@
 import functools
 from yaml import safe_load, load, dump
+from nested_dict import nested_dict
 import math
 
 def memoize(fn):
@@ -31,13 +32,9 @@ class Translator():
         However, when we read (or write) a param the common cache is populated in advance.
         """
         cfg = nested_dict()
+        #print(self.__regs_from_paramMap.items())
         for param, param_regs in self.__regs_from_paramMap.cache.items():
-            for reg_id, reg in param_regs.items():
-                addr = (reg["R0"], reg["R1"])
-                if addr in pairs.keys():
-                    prev_regVal = cfg[param[0]][param[1]][param[2]] if cfg[param[0]][param[1]][param[2]]!={} else 0
-                    paramVal = self.__paramVal_from_regVal(reg, pairs[addr], prev_regVal)
-                    cfg[param[0]][param[1]][param[2]] = paramVal
+            print(param,param_regs)
         return cfg.to_dict()
 
     def pairs_from_cfg(self, cfg, writeCache):
@@ -58,7 +55,7 @@ class Translator():
                 addr_base = cfg[access][block]['addr_base']
                     
                 for param, paramDict in  cfg[access][block]['params'].items():
-                    print(access,block,param,paramDict)
+                    #print(access,block,param,paramDict)
                     addr_offset = paramDict['addr_offset'] if 'addr_offset' in paramDict else 0
                     size_byte = paramDict['size_byte'] if 'size_byte' in paramDict else 1
                     
@@ -81,10 +78,13 @@ class Translator():
                             valList = [values for i in range(nchannels)]
                         except:
                             print('no block shift in block dictionary')
+                            raise
                     else:
                         addrList = [address]
                         valList = [values]
 
+                    par_regs = self.__regs_from_paramMap(access, block, param)
+                    #print('par_regs ',par_regs)
                     for i,addr in enumerate(addrList):
                         # check for previous register value
                         if addr in pairs:
@@ -97,9 +97,6 @@ class Translator():
                             
                         # convert parameter value (from config) into register value
                         paramVal = valList[i]
-                        #if 'params' in paramDict:
-                        #    paramVal = paramVal & paramDict['param_mask']
-                        #    paramVal <<= paramDict['param_shift']
                         val = prev_regVal + paramVal
                         if size_byte > 1:
                             pairs[addr] = list(val.to_bytes(size_byte, 'little'))
@@ -107,14 +104,29 @@ class Translator():
                             pairs[addr] = [val]
 
         # testing
+        '''
         for p,lpp in pairs.items():
             print(p,lpp)
             for pp in lpp:
                 print(hex(p), hex(pp))
-                
+                '''
+        print(self.paramMap['ECON-T']['RW']['PLL_ALL']['params'])
         return pairs
     
     @memoize
-    def __regs_from_paramMap(self, block, blockId, name):
-        """ (block, blockId, name) -> (R0, R1, defval_mask, param_mask, param_minbit, reg_mask, reg_id) """
-        return self.paramMap[block][blockId][name]
+    def __regs_from_paramMap(self, access, block, param):
+        return self.paramMap['ECON-T'][access][block]['params'][param]
+    
+    def __regVal_from_paramVal(self, reg, param_value, prev_param_value=0):
+        """ Convert parameter value (from config) into register value (1 byte). """
+        reg_value = param_value & reg["param_mask"]
+        reg_value <<= reg["param_shift"]
+        reg_value = prev_param_value + reg_value
+        return reg_value
+
+    def __paramVal_from_regVal(self, reg, reg_value, prev_reg_value=0):
+        """ Convert register value into (part of) parameter value. """
+        param_val = (reg_value >> reg["param_shift"])
+        param_val &= reg["param_mask"]
+        param_val += prev_reg_value
+        return param_val
