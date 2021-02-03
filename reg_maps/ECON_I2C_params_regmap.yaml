@@ -2,7 +2,7 @@ ECON-T:
  nchannels: 12
  RW:
   CH_ALIGNER_*_ALL:
-   block_shift: 64
+   block_shift: 0x40
    addr_base: 0x0000
    params:
     config:
