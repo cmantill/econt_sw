@@ -115,6 +115,10 @@ Use_sum = 0
 STC_type = 0
 i2c.write(0x20, 0x03a9 + 0x7, [((TX_en & 0xf) << 4) | ((Use_sum & 0x1) << 2) | (STC_type & 0x3)])
 
+# Output buffer threshold T1
+Buff_T1 = 52 # This must be at least 52 for the econ-t emulator to work
+i2c.write(0x20, 0x03a9 + 0x02, Buff_T1.to_bytes(2, 'little'))
+
 # Set the maximum bunch counter value to 3563, the number of bunch crossings in one orbit (minus one)
 BX_max = 3563
 i2c.write(0x20, 0x0380 + 0x12, BX_max.to_bytes(2, 'little'))
@@ -228,6 +232,15 @@ BX0_Sync_32 = (BX0_Sync_16 << 16) | BX0_Sync_16
 BX0_rows, BX0_cols = (outdata == BX0_Sync_32).nonzero()
 logging.debug(f'BX0 sync word found on rows    {BX0_rows}')
 logging.debug(f'BX0 sync word found on columns {BX0_cols}')
+
+try:
+    assert len(BX0_rows) > 0
+except AssertionError:
+    logging.error('BX0 sync word not found anywhere')
+    with numpy.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
+        logging.debug(f'Captured data: {outdata[:30]}')
+    raise
+
 
 try:
     assert numpy.all(BX0_rows == BX0_rows[0])
