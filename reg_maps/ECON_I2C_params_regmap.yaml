@@ -1,12 +1,36 @@
+###########################################################################
+# ECON-T i2C register map with default values
+###########################################################################
+# The structure is the following:
+# access:
+#  block:
+#   addr_base:       # base address of the block
+#   registers:
+#    register_name:
+#     addr_offset:    # address offset, by default it is 0.
+#     size_byte:      # register size (in bytes), by default it is 1.
+#     value:          # register value, by default it is 0.
+#    
+# For registers with similar definitions across blocks/channels an `*` is used.
+# The number of channels is indicated in nchannels.
+# For a set of registers in a block repeated across channels:
+#  block_shift:      # indicates the shift to the next block's base address
+# For a register in a given block repeated across channels:
+#  addr_shift:       # indicates the shift to the next register's offset address
+#
+# For registers that comprise different parameters:
+# params:
+###########################################################################
 ECON-T:
- nchannels: 12
+ ninput: 12
+ noutput: 13
  RW:
   CH_ALIGNER_*_ALL:
    block_shift: 0x40
    addr_base: 0x0000
-   params:
+   registers:
     config:
-     default: 0
+     value: 0
      params:
       force_ch_outputs:
        param_mask: 0x01
@@ -31,34 +55,34 @@ ECON-T:
        param_shift: 0
     sel_override_val:
      addr_offset: 0x01
-     default: 0x00
+     value: 0x00
     seed_in:
      addr_offset: 0x02
      size_byte: 2
-     default: 0x0000
+     value: 0x0000
     user_word_0:
      addr_offset: 0x04
      size_byte: 4
-     default: 0x00000000
+     value: 0x00000000
     user_word_1:
      addr_offset: 0x08
      size_byte: 4
-     default: 0x00000000
+     value: 0x00000000
     user_word_2:
      addr_offset: 0x0c
      size_byte: 4
-     default: 0x00000000
+     value: 0x00000000
     user_word_3:
      addr_offset: 0x10
      size_byte: 4
-     default: 0x00000000
+     value: 0x00000000
 
   CH_ERR_*_ALL:
    block_shift: 4
    addr_base: 0x0300
-   params:
+   registers:
     config:
-     default: 0
+     value: 0
      params:
       wren_mask:
        param_mask: 0x01
@@ -73,9 +97,9 @@ ECON-T:
   CH_EPRXGRP_*_ALL:
    block_shift: 4
    addr_base: 0x0340
-   params:
+   registers:
     config:
-     default: 0
+     value: 0
      params:
       phaseSelect:
        param_mask: 0x0f
@@ -92,9 +116,9 @@ ECON-T:
 
   ALIGNER_ALL:
    addr_base: 0x0380
-   params:
+   registers:
     config:
-     default: 0x02
+     value: 0x02
      params:
       dbg_fc_cnt_clr:
        param_mask: 0x01
@@ -111,14 +135,14 @@ ECON-T:
     match_pattern_val:
      addr_offset: 0x01
      size_byte: 8
-     default: 0x000000009ccccccc
+     value: 0x000000009ccccccc
     match_mask_val:
      addr_offset: 0x09
      size_byte: 8
-     default: 0xffffffff00000000
+     value: 0xffffffff00000000
     orbsyn_hdr:
      addr_offset: 0x11
-     default: 0x09
+     value: 0x09
      params:
       mask:
        param_mask: 0x0f
@@ -129,18 +153,18 @@ ECON-T:
     orbsyn_cnt_max_val:
      addr_offset: 0x12
      size_byte: 2
-     default: 0x0deb
+     value: 0x0deb
     orbsyn_cnt_load_val:
      addr_offset: 0x14
      size_byte: 2
-     default: 0x0db9
+     value: 0x0db9
     orbsyn_cnt_snapshot:
      addr_offset: 0x16
      size_byte: 2
-     default: 0x0002
+     value: 0x0002
     idle_hdr:
      addr_offset: 0x18
-     default: 0x0a
+     value: 0x0a
      params:
       mask:
        param_mask: 0x0f
@@ -151,9 +175,9 @@ ECON-T:
     
   ERRTOP_ALL:
    addr_base: 0x039a
-   params:
+   registers:
     config:
-     default: 0
+     value: 0
      params:
       wren_msk_top:
        param_mask: 0x01
@@ -167,17 +191,17 @@ ECON-T:
     wr_data_top:
      addr_offset: 0x01
      size_byte: 2
-     default: 0
+     value: 0
     err_wr_data:
      addr_offset: 0x03
-     default: 1
+     value: 1
 
   EPRXGRP_TOP_ALL:
    addr_base: 0x03a2
-   params:
+   registers:
     config:
      size_byte: 3
-     default: 0x00a498
+     value: 0x00a498
      params:
       enableReInit:
        param_mask: 0x01
@@ -212,9 +236,9 @@ ECON-T:
 
   FCTRL_ALL:
    addr_base: 0x03a5
-   params:
+   registers:
     config:
-     default: 0x21
+     value: 0x21
      params:
       reset_b_fc_counters:
        param_mask: 0x01
@@ -234,24 +258,24 @@ ECON-T:
 
   FMTBUF_ALL:
    addr_base: 0x03a9
-   params:
+   registers:
     tx_sync_word:
      size_byte: 2
-     default: 0x070f
+     value: 0x070f
     buff_t1:
      addr_offset: 0x02
      size_byte: 2
-     default: 0x0030
+     value: 0x0030
     buff_t2:
      addr_offset: 0x04
      size_byte: 2
-     default: 0x01ff
+     value: 0x01ff
     buff_t3:
      addr_offset: 0x06
-     default: 0x00
+     value: 0x00
     config:
      addr_offset: 0x07
-     default: 0x25
+     value: 0x25
      params:
       eporttx_numen:
        param_mask: 0x0f
@@ -266,16 +290,16 @@ ECON-T:
     mask_ae:
      addr_offset: 0x08
      size_byte: 18
-     default: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
 
   MFC_MUX_SELECT:
    addr_base: 0x03c4
-   params:
+   registers:
     mux_select_*:
      addr_shift: 1
      param_mask: 0x3f
      param_shift: 0
-     default: [ 0,  1,   2,  3,  4,  5,  6,  7,
+     value: [ 0,  1,   2,  3,  4,  5,  6,  7,
                 8,  9,  10, 11, 12, 13, 14, 15,
                 16, 17, 18, 19, 10, 21, 22, 23,
                 24, 25, 26, 27, 28, 29, 30, 31,
@@ -284,13 +308,13 @@ ECON-T:
 
   MFC_CAL_VAL:
    addr_base: 0x03f4
-   params:
+   registers:
     cal_*:
      addr_shift: 2
      size_byte: 2
      param_mask: 0xfff
      param_shift: 0
-     default: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+     value: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
                2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
                2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
                2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
@@ -299,9 +323,9 @@ ECON-T:
 
   MFC_ALGORITHM_SEL_DENSITY:
    addr_base: 0x0454
-   params:
+   registers:
     algo:
-     default: 0x0
+     value: 0x0
      params:
       select:
        param_mask: 0x07
@@ -312,11 +336,11 @@ ECON-T:
 
   ALGO_THRESHOLD_VAL:
    addr_base: 0x0455
-   params:
+   registers:
     threshold_val_*:
      addr_shift: 3
      size_byte: 3
-     default: [0, 0, 0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0, 0, 0,
@@ -325,16 +349,16 @@ ECON-T:
 
   ALGO_DROPLSB:
    addr_base: 0x04e5
-   params:
+   registers:
     drop_lsb:
-     default: 0x0
+     value: 0x0
      
   ERX_ALL:
    addr_base: 0x04e6
-   params:
+   registers:
     config_ch_*:
      addr_shift: 1
-     default: [0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+     value: [0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
                0x05, 0x05, 0x05, 0x05, 0x05, 0x05]
      params:
       set_common_mode:
@@ -355,7 +379,7 @@ ECON-T:
     config_mux_*:
      addr_shift: 1
      addr_offset: 0x0c
-     default: [0x05, 0x05, 0x05]
+     value: [0x05, 0x05, 0x05]
      params:
       set_common_mode:
        param_mask: 0x01
@@ -375,11 +399,11 @@ ECON-T:
        
   ETX_ALL:
    addr_base: 0x04f5
-   params:
+   registers:
     config_ch_*:
      size_byte: 2
      addr_shift: 2
-     default: [0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606,
+     value: [0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606,
                0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606]
      params:
       pre_emphasis_strength:
@@ -401,7 +425,7 @@ ECON-T:
      size_byte: 2
      addr_shift: 2
      addr_offset: 0x1a
-     default: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
+     value: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
      params:
       pre_emphasis_strength:
        param_mask: 0x07
@@ -424,56 +448,56 @@ ECON-T:
 
   PLL_ALL:
    addr_base: 0x0517
-   params:
+   registers:
     pll_bytes_1to0:
      size_byte: 2
-     default: 0x0e00
+     value: 0x0e00
     pll_bytes_4to2:
      addr_offset: 0x02
      size_byte: 3
-     default: 0xffffff
+     value: 0xffffff
     pll_bytes_8to5:
      addr_offset: 0x05
      size_byte: 4
-     default: 0x3dfaaaae
+     value: 0x3dfaaaae
     pll_bytes_12to9:
      addr_offset: 0x09
      size_byte: 4
-     default: 0x34550555
+     value: 0x34550555
     pll_bytes_17to13:
      addr_offset: 0x0d
      size_byte: 5
-     default: 0x7c70d84558
+     value: 0x7c70d84558
     pll_bytes_21to18:
      addr_offset: 0x13
      size_byte: 4
-     default: 0x0188c888
+     value: 0x0188c888
     pll_bytes_24to22:
      addr_offset: 0x17
      size_byte: 3
-     default: 0x000e00
+     value: 0x000e00
     pll_bytes_26to25:
      addr_offset: 0x1a
      size_byte: 2
-     default: 0x0038
+     value: 0x0038
     pll_bytes_27:
      addr_offset: 0x1c
      size_byte: 1
-     default: 0x00
+     value: 0x00
 
   AUTOENCODER_*:
    block_shift: 143
    addr_base: 0x0538
-   params:
+   registers:
     weights:
      size_byte: 143
-     default: 0
+     value: 0
 
   MISC_ALL:
    addr_base: 0x0bec
-   params:
+   registers:
     misc_rw_0:
-     default: 0
+     value: 0
      params:
       run:
        param_mask: 0x01
@@ -486,9 +510,9 @@ ECON-T:
   CH_ALIGNER_*_ALL:
    block_shift: 64
    addr_base: 0x0014
-   params:
+   registers:
     status:
-     default: 0
+     value: 0
      params:
       prbs_chk_err:
        param_mask: 0x01
@@ -516,28 +540,28 @@ ECON-T:
        param_shift: 0
     select:
      addr_offset: 0x01
-     default: 0
+     value: 0
     snapshot:
      addr_offset: 0x02
      size_byte: 24
-     default: 0
+     value: 0
     hdr_mm_cntr:
      addr_offset: 0x1a
      size_byte: 2
-     default: 0
+     value: 0
     
   CH_ERR_*_ALL:
    block_shift: 4
    addr_base: 0x0301
-   params:
+   registers:
     raw_error:
-     default: 0
+     value: 0
     error_mask:
      addr_offset: 0x01
-     default: 0
+     value: 0
     error_data:
      addr_offset: 0x02
-     default: 0
+     value: 0
      params:
       err_out:
        param_mask: 0x01
@@ -549,9 +573,9 @@ ECON-T:
   CH_EPRXGRP_*_ALL:
    block_shift: 4
    addr_base: 0x0341
-   params:
+   registers:
     status:
-     default: 0
+     value: 0
      params:
       channelLocked:
        param_mask: 0x01
@@ -567,7 +591,7 @@ ECON-T:
        param_shift: 0
     dllstatus:
      addr_offset: 0x01
-     default: 0x01
+     value: 0x01
      params:
       dllLossOfLockCount:
        param_mask: 0x1f
@@ -581,9 +605,9 @@ ECON-T:
 
   ALIGNER_ALL:
    addr_base: 0x0399
-   params:
+   registers:
     status:
-     default: 0
+     value: 0
      params:
       dbg_fc_cnt:
        param_mask: 0x1f
@@ -600,16 +624,16 @@ ECON-T:
      
   ERRTOP_ALL:
    addr_base: 0x039e
-   params:
+   registers:
     msk_dat_top:
      size_byte: 2
-     default: 0
+     value: 0
      param_mask: 0x1fff
      param_shift: 0
     err_dat_top:
      addr_offset: 0x02
      size_byte: 2
-     default: 0
+     value: 0
      params:
       err_out_top:
        param_mask: 0x01
@@ -620,9 +644,9 @@ ECON-T:
      
   FCTRL_ALL:
    addr_base: 0x03a6
-   params:
+   registers:
     status:
-     default: 0
+     value: 0
      params:
       locked:
        param_mask: 0x01
@@ -635,194 +659,194 @@ ECON-T:
        param_shift: 0
     fc_error_count:
      addr_offset: 0x01
-     default: 0
+     value: 0
     lock_count:
      addr_offset: 0x02
-     default: 0
+     value: 0
 
   FMTBUF_ALL:
    addr_base: 0x03c3
-   params:
+   registers:
     buffer_out_err:
      param_mask: 0x01
      param_shift: 0
-     default: 0
+     value: 0
      
   PLL_ALL:
    addr_base: 0x0533
-   params:
+   registers:
     pll_read_bytes_2to0:
      size_byte: 3
-     default: 0x000000
+     value: 0x000000
     pll_read_bytes_4to3:
      addr_offset: 0x03
      size_byte: 2
-     default: 0x0000
+     value: 0x0000
 
   MISC_ALL:
    addr_base: 0x0bed
-   params:
+   registers:
     misc_ro_0:
-     default: 0
+     value: 0
      
   MISC_ERR_CNT_SINGLE:
    addr_base: 0x0bee
-   params:
+   registers:
     rw_ecc_err_in_re_cnt_single_chan_aligner_*:
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_err_12:
      addr_offset: 0x24
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_aligner:
      addr_offset: 0x25
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_err_top:
      addr_offset: 0x26
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_eprxgrp_top:
      addr_offset: 0x27
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_fast_ctrl_decoder:
      addr_offset: 0x28
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_formatter_buffer:
      addr_offset: 0x29
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_mux_fix_calib:
      addr_offset: 0x2a
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_algorithm:
      addr_offset: 0x2b
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_erx:
      addr_offset: 0x2c
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_etx:
      addr_offset: 0x2d
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_pll:
      addr_offset: 0x2e
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_single_misc:
      addr_offset: 0x2f
-     default: 0
+     value: 0
 
   MISC_ERR_CNT_DOUBLE:
    addr_base: 0x0c1e
-   params:
+   registers:
     rw_ecc_err_in_re_cnt_double_chan_aligner_*:
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_err_12:
      addr_offset: 0x24
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_aligner:
      addr_offset: 0x25
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_err_top:
      addr_offset: 0x26
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_eprxgrp_top:
      addr_offset: 0x27
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_fast_ctrl_decoder:
      addr_offset: 0x28
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_formatter_buffer:
      addr_offset: 0x29
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_mux_fix_calib:
      addr_offset: 0x2a
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_algorithm:
      addr_offset: 0x2b
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_erx:
      addr_offset: 0x2c
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_etx:
      addr_offset: 0x2d
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_pll:
      addr_offset: 0x2e
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_double_misc:
      addr_offset: 0x2f
-     default: 0
+     value: 0
 
   MISC_ERR_CNT_PARITY:
    addr_base: 0x0c4e
-   params:
+   registers:
     rw_ecc_err_in_re_cnt_parity_chan_aligner_*:
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
-     default: [0, 0, 0, 0, 0, 0,
+     value: [0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_err_12:
      addr_offset: 0x24
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_aligner:
      addr_offset: 0x25
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_err_top:
      addr_offset: 0x26
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_eprxgrp_top:
      addr_offset: 0x27
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_fast_ctrl_decoder:
      addr_offset: 0x28
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_formatter_buffer:
      addr_offset: 0x29
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_mux_fix_calib:
      addr_offset: 0x2a
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_algorithm:
      addr_offset: 0x2b
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_erx:
      addr_offset: 0x2c
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_etx:
      addr_offset: 0x2d
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_pll:
      addr_offset: 0x2e
-     default: 0
+     value: 0
     rw_ecc_err_in_re_cnt_parity_misc:
      addr_offset: 0x2f
-     default: 0
+     value: 0
