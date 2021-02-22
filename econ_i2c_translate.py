@@ -7,16 +7,19 @@ from translator import Translator
 
 # Define pairs from Translator
 translator = Translator('ECON-T')
+paramMap = translator.load_param_map("reg_maps/ECON_I2C_params_test.yaml")['ECON-T']
+
+# read all default registers
+pairs = translator.pairs_from_cfg()
+
+# now get registers from paramMap
 writeCaches = {}
-pairs = translator.pairs_from_cfg(translator.paramMap,writeCaches)
-writeCaches.update(pairs)
+newpairs = translator.pairs_from_cfg(paramMap,writeCaches)
+print(newpairs)
 
 # config from pairs
-#translator.cfg_from_pairs(writeCaches)
-
-# read other parammap
-paramMap = translator.load_param_map("reg_maps/ECON_I2C_params_test.yaml")['ECON-T']
-translator.pairs_from_cfg(paramMap,writeCaches)
+newcfg = translator.cfg_from_pairs(newpairs)
+print(newcfg)
 
 # Write and Read
 #for addr,val in writeCaches.items():

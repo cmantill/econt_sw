@@ -25,7 +25,7 @@ ECON-T:
  ninput: 12
  noutput: 13
  RW:
-  CH_ALIGNER_*_ALL:
+  CH_ALIGNER_*INPUT_ALL:
    block_shift: 0x40
    addr_base: 0x0000
    registers:
@@ -297,14 +297,15 @@ ECON-T:
    registers:
     mux_select_*:
      addr_shift: 1
+     n_iterations: 48
      param_mask: 0x3f
      param_shift: 0
      value: [ 0,  1,   2,  3,  4,  5,  6,  7,
-                8,  9,  10, 11, 12, 13, 14, 15,
-                16, 17, 18, 19, 10, 21, 22, 23,
-                24, 25, 26, 27, 28, 29, 30, 31,
-                32, 33, 34, 35, 36, 37, 38, 39,
-                40, 41, 42, 43, 44, 45, 46, 47]
+              8,  9,  10, 11, 12, 13, 14, 15,
+              16, 17, 18, 19, 10, 21, 22, 23,
+              24, 25, 26, 27, 28, 29, 30, 31,
+              32, 33, 34, 35, 36, 37, 38, 39,
+              40, 41, 42, 43, 44, 45, 46, 47]
 
   MFC_CAL_VAL:
    addr_base: 0x03f4
@@ -312,14 +313,15 @@ ECON-T:
     cal_*:
      addr_shift: 2
      size_byte: 2
+     n_iterations: 48
      param_mask: 0xfff
      param_shift: 0
      value: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
-               2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
-               2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
-               2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
-               2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
-               2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
 
   MFC_ALGORITHM_SEL_DENSITY:
    addr_base: 0x0454
@@ -340,12 +342,13 @@ ECON-T:
     threshold_val_*:
      addr_shift: 3
      size_byte: 3
+     n_iterations: 48
      value: [0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0]
 
   ALGO_DROPLSB:
    addr_base: 0x04e5
@@ -358,8 +361,9 @@ ECON-T:
    registers:
     config_ch_*:
      addr_shift: 1
+     n_iterations: 12
      value: [0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
-               0x05, 0x05, 0x05, 0x05, 0x05, 0x05]
+             0x05, 0x05, 0x05, 0x05, 0x05, 0x05]
      params:
       set_common_mode:
        param_mask: 0x01
@@ -379,6 +383,7 @@ ECON-T:
     config_mux_*:
      addr_shift: 1
      addr_offset: 0x0c
+     n_iterations: 3
      value: [0x05, 0x05, 0x05]
      params:
       set_common_mode:
@@ -403,8 +408,9 @@ ECON-T:
     config_ch_*:
      size_byte: 2
      addr_shift: 2
+     n_iterations: 12
      value: [0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606,
-               0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606]
+             0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606]
      params:
       pre_emphasis_strength:
        param_mask: 0x07
@@ -425,6 +431,7 @@ ECON-T:
      size_byte: 2
      addr_shift: 2
      addr_offset: 0x1a
+     n_iterations: 4
      value: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
      params:
       pre_emphasis_strength:
@@ -694,18 +701,21 @@ ECON-T:
    registers:
     rw_ecc_err_in_re_cnt_single_chan_aligner_*:
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_single_chan_err_12:
      addr_offset: 0x24
      value: 0
@@ -748,18 +758,21 @@ ECON-T:
    registers:
     rw_ecc_err_in_re_cnt_double_chan_aligner_*:
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_double_chan_err_12:
      addr_offset: 0x24
      value: 0
@@ -802,18 +815,21 @@ ECON-T:
    registers:
     rw_ecc_err_in_re_cnt_parity_chan_aligner_*:
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_err_*:
      addr_offset: 0x01
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_eprxgrp_*:
      addr_offset: 0x02
      addr_shift: 3
+     n_iterations: 12
      value: [0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0]
+             0, 0, 0, 0, 0, 0]
     rw_ecc_err_in_re_cnt_parity_chan_err_12:
      addr_offset: 0x24
      value: 0
