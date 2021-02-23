@@ -29,36 +29,14 @@ class Translator():
             paramMap = safe_load(fin)
         return paramMap
 
-    def cfg_from_pairs(self, pairs):
-        """
-        Convert from {addr:val} pairs to {param:{'addr':,'val':,'size_byte':}} config.
-        We can only recover a parameter from a pair when it is in the common cache.
-        """
-        cfg = nested_dict()
-        for access, accessDict in self.__regs_from_paramMap.cache[()].items():
-            for block, blockDict in accessDict.items():
-                for param, paramDict in blockDict.items():
-                    addr = paramDict['addr']
-                    if addr in pairs:
-                        paramVal = int.from_bytes(pairs[addr], 'little')
-                        cfg[access][block][param]['addr'] = addr
-                        cfg[access][block][param]['val'] = paramVal
-                        cfg[access][block][param]['size_byte'] = paramDict['size_byte']                    
-        return cfg.to_dict()
-
     def pairs_from_cfg(self, cfg=None, prevCache={}):
         """
-        Convert an input config dict to {address: value} pairs
-        Case 1: One parameter value has one register
-        Case 2: Several parameter values share same register
-        Case 3: A block of registers is `repeated` for the number of input channels (*)
-        Case 4: A block of parameters for a given register is `repeated` for the number of input channels (*)
+        Convert an input config dict to pairs of
+        {address: [value, size_byte]}
         """
         pairs = {}
-        # default map
-        par_regs = self.__regs_from_paramMap()
-        # new config
-        par_regs_cfg = self.__expandVal_paramMap(cfg) if cfg else par_regs
+        par_regs = self.__regs_from_paramMap() # default map
+        par_regs_cfg = self.__expandVal_paramMap(cfg) if cfg else par_regs # new config, if any
 
         for access,accessDict in par_regs_cfg.items():
             for block,blockDict in accessDict.items():
@@ -83,7 +61,7 @@ class Translator():
                         elif 'params' in cfgDict:
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
-                            prev_regVal = int.from_bytes(prevCache[addr], 'little') if addr in prevCache else 0
+                            prev_regVal = prevCache[addr] if addr in prevCache else 0
                             for par, reg in defaultDict['params'].items():
                                 # get parameter values from previous register value 
                                 tmpVal = self.__paramVal_from_regVal(reg, prev_regVal)
@@ -97,7 +75,8 @@ class Translator():
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
-                    pairs[addr] = paramVal.to_bytes(size_byte, 'little')
+                    pairs[addr] = [paramVal,size_byte]
+                                   
         return pairs
     
     @memoize
@@ -151,7 +130,13 @@ class Translator():
         return self.regDict
 
     def __expandVal_paramMap(self, cfg):
-        """ Expand parameter values json into dictionary """
+        """ 
+        Expand parameter values json into dictionary        
+        Case 1: One parameter value has one register
+        Case 2: Several parameter values share same register
+        Case 3: A block of registers is `repeated` for the number of channels (*)
+        Case 4: A block of parameters for a given register is `repeated` for the number of channels (*) 
+        """
         regDict = nested_dict()
         for access,accessDict in cfg.items():
             if not isinstance(accessDict, dict): continue
