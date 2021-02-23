@@ -31,10 +31,9 @@ class Translator():
 
     def cfg_from_pairs(self, pairs):
         """
-        Convert from {addr:val} pairs to {param:param_val} config.
+        Convert from {addr:val} pairs to {param:{'addr':,'val':,'size_byte':}} config.
         We can only recover a parameter from a pair when it is in the common cache.
         """
-        print(pairs.keys())
         cfg = nested_dict()
         for access, accessDict in self.__regs_from_paramMap.cache[()].items():
             for block, blockDict in accessDict.items():
@@ -42,8 +41,9 @@ class Translator():
                     addr = paramDict['addr']
                     if addr in pairs:
                         paramVal = int.from_bytes(pairs[addr], 'little')
-                        cfg[access][block][param] = paramVal
-                    
+                        cfg[access][block][param]['addr'] = addr
+                        cfg[access][block][param]['val'] = paramVal
+                        cfg[access][block][param]['size_byte'] = paramDict['size_byte']                    
         return cfg.to_dict()
 
     def pairs_from_cfg(self, cfg=None, prevCache={}):
@@ -124,7 +124,7 @@ class Translator():
                                                                          }
                         except:
                             pass
-                            #raise
+
                     elif '*' in block:
                         try:
                             nchannels = self.nInputChannels if '*INPUT' in block else self.nOutputChannels
@@ -137,9 +137,9 @@ class Translator():
                                                                               'params': parDict,
                                                                               }
                         except:
+                            print('no block shift in block dictionary') 
                             pass
-                            #print('no block shift in block dictionary')
-                            #raise
+
                     else:
                         self.regDict[access][block][param] = {'addr': address,
                                                               'size_byte': size_byte,
