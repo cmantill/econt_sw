@@ -1,0 +1,6 @@
+<node>    
+  <node id="output_select" address="0x0" mask="0x0f"       permission="rw" description="Select source. Options are; 0: RAM, 1: PRBS"/>
+  <node id="n_idle_words"  address="0x1" mask="0x0000ffff" permission="rw" description="Number of idle words in the link reset pattern"/>
+  <node id="idle_word"     address="0x2" mask="0xffffffff" permission="rw" description="Idle word sent for almost all of the link reset pattern (default pattern 0xaccccccc)"/>
+  <node id="idle_word_BX0" address="0x3" mask="0xffffffff" permission="rw" description="Idle word sent on BX0 during the link reset pattern (default pattern 0x9ccccccc)"/>
+</node>
