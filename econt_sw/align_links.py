@@ -5,6 +5,7 @@ import logging
 import time
 import mmap
 import numpy
+import os
 from econ_i2c import econ_i2c
 
 parser = argparse.ArgumentParser(description="Set up ECON-T emulator system and align all links")
@@ -24,52 +25,36 @@ else:
 logging.basicConfig(level=loglevel, format='%(levelname)s:%(asctime)s: %(message)s')
 
 logging.info("Finding relevant device files")
-uio_name_to_addr = {"fast control encoder": (0x80040000, 4096),
-                    "fast control decoder": (0x80050000, 4096),
-                    "eLink outputs stream": (0x80060000, 4096),
-                    "eLink outputs switch": (0x80030000, 4096),
-                    "to econt IO":          (0x80080000, 65536),
-                    "from econt IO":        (0x80070000, 65536),
-                    "link capture FIFO":    (0x80000000, 65536),
-                    "link capture control": (0x80010000, 4096),
-                    "eLink 00 bram":        (0x82000000, 32768),
-                    "eLink 01 bram":        (0x82010000, 32768),
-                    "eLink 02 bram":        (0x82020000, 32768),
-                    "eLink 03 bram":        (0x82030000, 32768),
-                    "eLink 04 bram":        (0x82040000, 32768),
-                    "eLink 05 bram":        (0x82050000, 32768),
-                    "eLink 06 bram":        (0x82060000, 32768),
-                    "eLink 07 bram":        (0x82070000, 32768),
-                    "eLink 08 bram":        (0x82080000, 32768),
-                    "eLink 09 bram":        (0x82090000, 32768),
-                    "eLink 10 bram":        (0x820a0000, 32768),
-                    "eLink 11 bram":        (0x820b0000, 32768),
-                   }
 
-uio_addr_to_N = dict()
-for uio_N in range(24):
-    with open(f'/sys/class/uio/uio{uio_N}/maps/map0/addr') as uiof:
-        addr = int(uiof.readline().split()[0], 16)
-        uio_addr_to_N[addr] = uio_N
+label_to_uio = {}
+label_to_size = {}
+for uio in os.listdir('/sys/class/uio'):
+    try:
+        with open(f'/sys/class/uio/{uio}/device/of_node/label') as label_file:
+            label = label_file.read().split('\x00')[0]
+        with open(f'/sys/class/uio/{uio}/maps/map0/size') as size_file:
+            size = int(size_file.read(), 16)
+            
+        label_to_uio[label] = uio
+        label_to_size[label] = size
+        logging.debug(f'UIO device /dev/{uio} has label {label} and is 0x{size:x} bytes')
+    except FileNotFoundError:
+        pass
 
-uio_name_to_N = dict()
-for name, (addr, width) in uio_name_to_addr.items():
-    uio_name_to_N[name] = (uio_addr_to_N[addr], width)
-
-def uio_open(name):
-    with open(f'/dev/uio{uio_name_to_N[name][0]}', 'r+b') as uio_file:
-        return numpy.frombuffer(mmap.mmap(uio_file.fileno(), uio_name_to_N[name][1], access=mmap.ACCESS_WRITE, offset=0), numpy.uint32)
+def uio_open(label):
+    with open(f'/dev/{label_to_uio[label]}', 'r+b') as uio_dev_file:
+        return numpy.frombuffer(mmap.mmap(uio_dev_file.fileno(), label_to_size[label], access=mmap.ACCESS_WRITE, offset=0), numpy.uint32)
 
 logging.info("Open all of the relevant device files")
-lc_mem = uio_open("link capture FIFO")
-lc = uio_open("link capture control")
+lc_mem = uio_open("link-capture-AXI-Full-IPIF-0")
+lc = uio_open("link-capture-link-capture-AXI-0")
 LCs = lc.reshape(-1, 16)[1:14]
-fc = uio_open("fast control encoder")
-fromIO = uio_open("from econt IO")[:4*14].reshape(14,4)
-toIO = uio_open("to econt IO")[:4*13].reshape(13,4)
-out_switch = uio_open("eLink outputs switch")
-out_stream = uio_open("eLink outputs stream")
-out_brams = [uio_open(f"eLink {i:02d} bram") for i in range(12)]
+fc = uio_open("FastControl-fastcontrol-axi-0")
+fromIO = uio_open("from-ECONT-IO-axi-to-ipif-mux-0")[:4*14].reshape(14,4)
+toIO = uio_open("to-ECONT-IO-axi-to-ipif-mux-0")[:4*13].reshape(13,4)
+out_switch = uio_open("eLink-outputs-0-ipif-switch-mux")
+out_stream = uio_open("eLink-outputs-0-ipif-stream-mux")
+out_brams = [uio_open(f"eLink-outputs-0-out-block{i:02d}-bram-ctrl") for i in range(12)]
 i2c = econ_i2c(1)
 
 logging.info("Setting up the eLink output to send the link reset pattern and stream one complete orbit from RAM")
