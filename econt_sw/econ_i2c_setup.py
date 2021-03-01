@@ -89,6 +89,12 @@ else:
     readback = i2c.read(0x20, 0x380 + 0x1, 8)
     print("Current value 0x380 + 0x1: ",hex(0x380 + 0x1), readback)
     
+    # Set the match pattern and mask for the word aligner
+    match_val = (patt_BX0 << 32) | patt_BX1
+    i2c.write(0x20, 0x380 + 0x1, match_val.to_bytes(8, 'little'))
+    readback = i2c.read(0x20, 0x380 + 0x1, 8)
+    print("Current value: ",hex(0x380 + 0x1), "0x%02x"%tuple(readback))
+    
     match_mask = 0x0000000000000000
     i2c.write(0x20, 0x380 + 0x9, match_mask.to_bytes(8, 'little'))
     readback = i2c.read(0x20, 0x380 + 0x9, 8)
