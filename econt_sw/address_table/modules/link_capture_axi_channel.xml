@@ -1,0 +1,40 @@
+<node>
+  <!-- Based on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/LinkCapture_v0.3/src/hdl/link_capture.v for offsets between links (see link_capture_axi.xml) 
+       and on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/LinkCapture_v0.3/src/hdl/AXI_decode.v for link register addresses
+  -->
+  <node id="delay" address="0x0">
+    <node id="in"                   mask="0x1ff"   permission="rw" description="indicates the link is aligned"/>
+    <node id="idelay_error_offset"  mask="0x3fe00" permission="rw" description="offset between the P and N side bitslice (for expert only)"/>
+    <node id="set"                  mask="0x40000" permission="rw" description="when delay_mode is 0: toggle it to 1 to programe a delay_in value (then back to 0)"/>
+    <node id="mode"                 mask="0x80000" permission="rw" description="delay mode : manually:0 ; automatic:1 ; default is 0"/>
+  </node>
+  
+  <node id="align_pattern"         address="0x1" mask="0xffffffff" permission="rw" description="expected alignment word on the e-links (default pattern 0xaccccccc)"/>
+  <node id="capture_mode_in"       address="0x2" mask="0x3"        permission="rw" description="The mode used to capture data to the BRAM. Options are; Immediate (0x0): starts writing data to BRAM without delay, BX (0x1): Writes data starting on a specific BX count, and L1A, (0x2): save link data to BRAM on next L1A. (0x0 is idle), (0x3): capture with autodaq mode"/>
+  <node id="L1A_offset_or_BX"      address="0x3" mask="0xfff"      permission="rw" description="offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode"/>
+  <node id="fifo_latency"          address="0x3" mask="0x1ff0000"  permission="rw" description="fifo latency"/>
+  <node id="aquire"                address="0x4" mask="0x1"        permission="rw" description="set this bit high to initiate the block to start a capture. This is edge sensitive, so after setting it high, it can be returned low at any time."/>
+  <node id="aquire_length"         address="0x5" mask="0x00003fff" permission="rw" description="The number of 32 bit words to save per acquisition (the mask will depend on how the bram length is parametrized in vivado)"/>
+  <node id="total_length"          address="0x5" mask="0x3fff0000" permission="rw" description="Total number of 32 bit words used in a batch of acquisitions; number of acquisitions will be int(total_length/aquire_length). (if 0, only one event is acquired) (the mask will depend on how the bram length is parametrized in vivado)"/>
+  <node id="explicit_align"        address="0x6" mask="0x1"        permission="rw" description="Force the word aligner state machine to try to align (the firmware should autoalign when it sees a Link_reset signal from the FC."/>
+  <node id="explicit_resetb"       address="0x7" mask="0x1"        permission="rw" description="Reset the link capture block.  (Active low signal, toggle this low and back to high for reset)"/>
+  <node id="explicit_rstb_acquire" address="0x7" mask="0x2"        permission="rw" description="Reset the acquire state machine and spy FIFO"/>
+  <node id="reset_counters"        address="0x7" mask="0x4"        permission="rw" description="Reset the word_errors and bit_align_errors counters"/>
+  <node id="link_align_inhibit"    address="0x7" mask="0x8"        permission="rw" description="Set to 1 to ignore link reset requests"/>
+  
+  <node id="status" address="0x8">
+    <node id="link_aligned"     mask="0x1" permission="r" description="indicates the link is aligned"/>
+    <node id="delay_ready"      mask="0x2" permission="r" description="indicates the IDELAY setting is properly set"/>
+    <node id="waiting_for_trig" mask="0x4" permission="r" description="block is waiting for a trigger"/>
+    <node id="writing"          mask="0x8" permission="r" description="data is being written to BRAM"/>
+  </node>
+  
+  <node id="delay_out"            address="0x9" mask="0x1ff"   permission="r" description="The delay setting currently set in the IDELAY block"/>
+  <node id="delay_out_N"          address="0x9" mask="0x3fe00" permission="r" description="In manual delay_mode : value of the N-side IDELAY setting. In automatic mode : width of the eye in units of IDELAY taps"/>
+  <node id="link_aligned_count"   address="0xa" mask="0xff"  permission="r" description="Counts the number of times the correct alignment word was seen during link alignment.  This will never be larger than 128 as it considers the link properly aligned after seeing 128 aligned words.  This will NOT increment if the link alignment state machine is in idle state"/>
+  <node id="link_error_count"     address="0xb" mask="0xff"  permission="r" description="Counts the number of incorrect alignment words seen after the first correct alignment word during link alignment. This will never be larger than 256 as the block assumes the link alignment has failed if 256 incorrectly aligned words are seen. This will NOT increment if the link alignment state machine is in idle state"/>
+  <node id="walign_state"         address="0xc" mask="0x3"   permission="r" description="The state of the word aligner state machine. Of particular note are states 0: Idle, and 3: waiting for alignment word."/>
+  <node id="bit_align_errors"     address="0xd" mask="0x0000ffff"   permission="r" description="counts number of errors in the data words : check idle patterns for DAQ links and 0xAA or 0x9A for trig links"/>
+  <node id="word_errors"          address="0xd" mask="0xffff0000"   permission="r" description="bit alignment errors counters"/>
+  <node id="fifo_occupancy"       address="0xe"                     permission="r" description="Occupancy of the spy FIFO"/>
+</node>

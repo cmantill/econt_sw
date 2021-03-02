@@ -1,3 +1,0 @@
-<node>
-  <node id="header"   address="0x0" permission="rw" description="header (default: 0xa0000000)"/>
-</node>

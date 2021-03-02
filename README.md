@@ -19,4 +19,14 @@ Then, in the top level directory of this repository, run:
 
 ```python3 -m pep517.build .```
 
-
+Installing ibpus software. Visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
+```
+sudo yum install boost boost-devel
+sudo yum -y install epel-release
+sudo yum install pugixml-devel pugixml
+git clone https://gitlab.cern.ch/asteen/ipbus-software.git
+cd ipbus-software
+git checkout asteen/UIO-hgcal-dev #should be useless since this should be the default branch of this repo
+make -j2 Set=uhal
+make install -j2 Set=uhal
+```

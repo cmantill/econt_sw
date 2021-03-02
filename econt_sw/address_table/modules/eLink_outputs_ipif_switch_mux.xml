@@ -1,3 +1,4 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/master/data_mux/hdl/data_mux.sv#L129-134 -->
 <node>    
   <node id="output_select" address="0x0" mask="0x0f"       permission="rw" description="Select source. Options are; 0: RAM, 1: PRBS"/>
   <node id="n_idle_words"  address="0x1" mask="0x0000ffff" permission="rw" description="Number of idle words in the link reset pattern"/>
