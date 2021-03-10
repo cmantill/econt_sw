@@ -2,7 +2,7 @@
 <node id="TOP">
   <node id="from_ECONT_IO_axi_to_ipif"     module="file://modules/IO_axi_to_ipif.xml"                address="0x80070000"/>
   <node id="to_ECONT_IO_axi_to_ipif"       module="file://modules/IO_axi_to_ipif.xml"                address="0x80080000"/>
-  <node id="eLink_outputs_ctrl"            module="file://modules/eLink_outputs_ctrl.xml"            address="0x82000000"/>
+  <node id="eLink_outputs_bram_ctrl"       module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x82000000"/>
   <node id="fastcontrol_axi"               module="file://modules/fastcontrol_axi.xml"               address="0x80040000"/>
   <node id="fastcontrol_recv_axi"          module="file://modules/fastcontrol_recv_axi.xml"          address="0x80050000"/>
   <node id="eLink_outputs_ipif_stream_mux" module="file://modules/eLink_outputs_ipif_stream_mux.xml" address="0x80060000"/>
