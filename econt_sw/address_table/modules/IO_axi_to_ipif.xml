@@ -13,5 +13,5 @@
   <node id="link8"   address="0x24" module="file://IO_axi_to_ipif_channel.xml" description="link 8 IO control"/>
   <node id="link9"   address="0x28" module="file://IO_axi_to_ipif_channel.xml" description="link 9 IO control"/>
   <node id="link10"  address="0x2c" module="file://IO_axi_to_ipif_channel.xml" description="link 10 IO control"/>
-  <node id="link11"  address="0x30" module="file://IO_axi_to_ipif_channel.xml" description="link 12 IO control"/>
+  <node id="link11"  address="0x30" module="file://IO_axi_to_ipif_channel.xml" description="link 11 IO control"/>
 </node>

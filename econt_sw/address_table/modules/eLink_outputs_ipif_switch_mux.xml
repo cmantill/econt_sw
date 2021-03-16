@@ -1,7 +1,14 @@
-<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/master/data_mux/hdl/data_mux.sv#L129-134 -->
-<node>    
-  <node id="output_select" address="0x0" mask="0x0f"       permission="rw" description="Select source. Options are; 0: RAM, 1: PRBS"/>
-  <node id="n_idle_words"  address="0x1" mask="0x0000ffff" permission="rw" description="Number of idle words in the link reset pattern"/>
-  <node id="idle_word"     address="0x2" mask="0xffffffff" permission="rw" description="Idle word sent for almost all of the link reset pattern (default pattern 0xaccccccc)"/>
-  <node id="idle_word_BX0" address="0x3" mask="0xffffffff" permission="rw" description="Idle word sent on BX0 during the link reset pattern (default pattern 0x9ccccccc)"/>
+<node>
+  <node id="link0"   address="0x00" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 0 ipif switch"/>
+  <node id="link1"   address="0x04" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 1 ipif switch"/>
+  <node id="link2"   address="0x08" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 2 ipif switch"/>
+  <node id="link3"   address="0x0c" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 3 ipif switch"/>
+  <node id="link4"   address="0x10" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 4 ipif switch"/>
+  <node id="link5"   address="0x14" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 5 ipif switch"/>
+  <node id="link6"   address="0x18" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 6 ipif switch"/>
+  <node id="link7"   address="0x1c" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 7 ipif switch"/>
+  <node id="link8"   address="0x20" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 8 ipif switch"/>
+  <node id="link9"   address="0x24" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 9 ipif switch"/>
+  <node id="link10"  address="0x28" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 10 ipif switch"/>
+  <node id="link11"  address="0x2c" module="file://eLink_outputs_ipif_switch_mux_channel.xml" description="link 11 ipif switch"/>
 </node>

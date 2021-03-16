@@ -43,5 +43,6 @@
     <node id="external_debounce"     mask="0x000f000" permission="rw" description="flags to indicate if external L1A should be debounced (generally a fine idea)"/>
     <node id="l1a_burst_len"         mask="0x3ff0000" permission="rw" description="L1A burst length, every L1A source will trigger this make consequitive L1A in a row"/>
   </node>
-  <node id="log_l1a_rand_bx_period" address="0x8" mask="0x3f" permission="rw" description="LOG2(random period) (bigger numbers -> slower trigger rate)"/>
+  <node id="log_l1a_rand_bx_period" address="0x8" mask="0x3f"  permission="rw" description="LOG2(random period) (bigger numbers -> slower trigger rate)"/>
+  <node id="bx_link_reset"          address="0xc" mask="0xfff" permission="rw" description="BX for link reset"/>
 </node>

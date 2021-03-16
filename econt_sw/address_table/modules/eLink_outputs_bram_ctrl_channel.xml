@@ -1,4 +1,0 @@
-<!-- uHAL size property is in 32-bit words so need to divide number of bytes by 4 -->
-
-<!-- RAM pages are 32 KiB or 8 KiWords -->
-<node mode="non-incremental" size="0x1000" permission="rw"/>
