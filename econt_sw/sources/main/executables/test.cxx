@@ -14,6 +14,10 @@
 #include <boost/program_options.hpp>
 
 #include <uhal/uhal.hpp>
+
+#include "LinkAligner.h"
+#include "FastControlManager.h"
+
 int main(int argc,char** argv)
 {
   std::string m_connectionfile, m_devicename,m_configFile,m_runtype,m_outFname;
@@ -29,7 +33,7 @@ int main(int argc,char** argv)
       ("devicename,d", po::value<std::string>(&m_devicename)->default_value("mylittlememory"), "name of ipbus connection file")
       ("runtype,r", po::value<std::string>(&m_runtype)->default_value("align_links"), "type of run, available options : align_links, find_offset, pedestal, link_alignment_debug")
       ("nevent,N", po::value<int>(&m_nevent)->default_value(1000), "number of events (-1 == run until ctrl-c)")
-      ("numberOfRocLinks,n", po::value<int>(&m_nChip)->default_value(3), "number of roc i.e. link blocks")
+      ("numberOfRocLinks,n", po::value<int>(&m_nChip)->default_value(12), "number of roc i.e. link blocks")
       ("outFname,o", po::value<std::string>(&m_outFname)->default_value("toto.raw"), "out file name (only used if a file is created. Eg: link_alignment_debug)")
       ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(4), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug");
 
@@ -68,5 +72,9 @@ int main(int argc,char** argv)
   uhal::ConnectionManager manager( "file://" + m_connectionfile );
   uhal::HwInterface m_ipbushw = manager.getDevice(m_devicename);
   uhal::HwInterface* m_ipbushwptr(&m_ipbushw);
+
+  FastControlManager* fcptr = new FastControlManager( m_ipbushwptr );
+  LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
+
 
 }

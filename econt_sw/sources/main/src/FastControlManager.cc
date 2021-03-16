@@ -17,8 +17,21 @@ void FastControlManager::resetFC()
   m_uhalHW->getNode("fastcontrol_axi.command.enable_calib_l1a").write(0x0);
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_A").write(0x0);
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_B").write(0x0);
-
   m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x1);
+}
+void FastControlManager::clear_ink_reset_l1a()
+{
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_fast_ctrl_stream").write(0x1);
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_orbit_sync").write(0x1);
+  m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x0);
+  m_uhalHW->getNode("fastcontrol_axi.bx_A.l1a").write(0x0);
+}
+void FastControlManager::send_link_reset_l1a()
+{
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_fast_ctrl_stream").write(0x1);
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_orbit_sync").write(0x1);
+  m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x1);
+  m_uhalHW->getNode("fastcontrol_axi.bx_A.l1a").write(0x1);
 }
 
 void FastControlManager::enable_FC_stream(int val)
@@ -45,6 +58,14 @@ void FastControlManager::enable_periodic_l1a_A(int val)
 void FastControlManager::enable_periodic_l1a_B(int val)
 {
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_B").write(val);
+}
+
+void FastControlManager::enable_external_l1a(int val)
+{
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_external_l1a_1").write((val & 0x1)?1:0);
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_external_l1a_2").write((val & 0x2)?1:0);
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_external_l1a_3").write((val & 0x4)?1:0);
+  m_uhalHW->getNode("fastcontrol_axi.command.enable_external_l1a_4").write((val & 0x8)?1:0);
 }
 
 void FastControlManager::gen_calib_cycle(int val)
@@ -132,10 +153,26 @@ void FastControlManager::set_l1a_min_bx(int val)
   m_uhalHW->getNode("fastcontrol_axi.l1a_settings.bx_spacing").write(val);
 }
 
+void FastControlManager::set_l1a_burst_len(int val)
+{
+  m_uhalHW->getNode("fastcontrol_axi.l1a_settings.l1a_burst_len").write(val);
+}
+
+void FastControlManager::set_l1a_ext_debounce(int val)
+{
+  m_uhalHW->getNode("fastcontrol_axi.l1a_settings.external_debounce").write(val);
+}
+
+void FastControlManager::set_link_reset_bx(int val)
+{
+  m_uhalHW->getNode("fastcontrol_axi.bx_link_reset").write(val);
+}
+
 void FastControlManager::enable_random_l1a(int val)
 {
   m_uhalHW->getNode("fastcontrol_axi.command.enable_random_l1a").write(val);
 }
+
 
 const uint32_t FastControlManager::getRegister( std::string reg )
 {
