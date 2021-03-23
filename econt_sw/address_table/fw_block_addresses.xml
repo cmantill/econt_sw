@@ -3,8 +3,10 @@
   <node id="link_capture_axi"                module="file://modules/link_capture_axi.xml"              address="0x80010000"/>
   <node id="from_ECONT_IO_axi_to_ipif"       module="file://modules/IO_axi_to_ipif.xml"                address="0x80070000"/>
   <node id="to_ECONT_IO_axi_to_ipif"         module="file://modules/IO_axi_to_ipif.xml"                address="0x80080000"/>
-  <node id="eLink_outputs_ipif_switch_mux"   module="file://modules/eLink_outputs_ipif_switch_mux.xml" address="0x80030000"/>
   <node id="eLink_outputs_ipif_stream_mux"   module="file://modules/eLink_outputs_ipif_stream_mux.xml" address="0x80060000"/>
+  <node id="eLink_outputs_ipif_switch_mux"   module="file://modules/eLink_outputs_ipif_switch_mux.xml" address="0x80030000"/>
+  <node id="fastcontrol_axi"                 module="file://modules/fastcontrol_axi.xml"               address="0x80040000"/>
+  <node id="fastcontrol_recv_axi"            module="file://modules/fastcontrol_recv_axi.xml"          address="0x80050000"/>
   <node id="eLink_outputs_block0_bram_ctrl"  module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x82000000"/>
   <node id="eLink_outputs_block1_bram_ctrl"  module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x82010000"/>
   <node id="eLink_outputs_block2_bram_ctrl"  module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x82020000"/>
@@ -17,6 +19,4 @@
   <node id="eLink_outputs_block9_bram_ctrl"  module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x82090000"/>
   <node id="eLink_outputs_block10_bram_ctrl" module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x820A0000"/>
   <node id="eLink_outputs_block11_bram_ctrl" module="file://modules/eLink_outputs_bram_ctrl.xml"       address="0x820B0000"/>
-  <node id="fastcontrol_axi"                 module="file://modules/fastcontrol_axi.xml"               address="0x80040000"/>
-  <node id="fastcontrol_recv_axi"            module="file://modules/fastcontrol_recv_axi.xml"          address="0x80050000"/>
 </node>

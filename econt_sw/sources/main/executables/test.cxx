@@ -17,6 +17,7 @@
 
 #include "LinkAligner.h"
 #include "FastControlManager.h"
+//#include "eLinkOutputsBlockHandler.h"
 
 int main(int argc,char** argv)
 {
@@ -35,8 +36,7 @@ int main(int argc,char** argv)
       ("nevent,N", po::value<int>(&m_nevent)->default_value(1000), "number of events (-1 == run until ctrl-c)")
       ("numberOfRocLinks,n", po::value<int>(&m_nChip)->default_value(12), "number of roc i.e. link blocks")
       ("outFname,o", po::value<std::string>(&m_outFname)->default_value("toto.raw"), "out file name (only used if a file is created. Eg: link_alignment_debug)")
-      ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(4), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug");
-
+      ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(6), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug");
 
     po::options_description cmdline_options;
     cmdline_options.add(generic_options);
@@ -76,5 +76,13 @@ int main(int argc,char** argv)
   FastControlManager* fcptr = new FastControlManager( m_ipbushwptr );
   LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
 
+  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link0-ram_range").write(0x1);
+  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link0.ram_range").write(0x1); 
+  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link1.ram_range").write(0x1);
+
+  //eLinkOutputsBlockHandler out( m_ipbushwptr,
+  //                              std::string("eLink_outputs_ipif_stream_mux")
+  //                              );
+  //out.setStreamRegister("link0","ram_range",0x1);
 
 }

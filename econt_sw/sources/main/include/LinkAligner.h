@@ -7,6 +7,7 @@
 
 #include <FastControlManager.h>
 #include <LinkCaptureBlockHandler.h>
+#include <IOBlockHandler.h>
 #include <eLinkOutputsBlockHandler.h>
 
 class LinkAligner
