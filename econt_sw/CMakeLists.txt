@@ -18,7 +18,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -lzmq -lyaml-cpp -Wall -fPIC")
 
-option( BUILD_ANALYSIS "Build and compile analysis tools" OFF )
+option( BUILD_ANALYSIS "Build and compile analysis tools" ON )
 option( MONGOOSE_WEB_TOOL "Build and compile mongoose tool" OFF )
 
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})

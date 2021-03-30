@@ -32,8 +32,26 @@ cd ../
 source env.sh
 ```
 
-
 ## Testing
 ```
-./bin/test -f address_table/connection.xml 
+./bin/zmq-server  -f address_table/connection.xml
 ```
+
+## Running server and client
+
+e.g. in i2c:
+Run server (on testing board - zynq - but for now zynq localhost):
+```
+python3 ./zmq_server.py
+```
+
+Then run client (on remote PC - but for now zynq localhost):
+```
+python3 ./zmq_client.py
+```
+
+for both daq and i2c, we will do scripts such as:
+```
+python3 ./zmq_align.py
+```
+that will act as the client

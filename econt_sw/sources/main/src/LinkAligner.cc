@@ -27,6 +27,8 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
     std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
     outputBrams.push_back(bramname);
   }
+  m_eLinks = eLinks;
+  m_outputBrams = outputBrams;
 
   // eLinkOutputs
   eLinkOutputsBlockHandler out( m_uhalHW,
@@ -35,26 +37,44 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 				outputBrams
                                 );
 
-  for(auto eLink : eLinks){
-    // Select the stream from RAM as the source
-    out.setSwitchRegister(eLink,"output_select",0);
-    // Send 255 words in the link reset pattern
-    out.setSwitchRegister(eLink,"n_idle_words",255);
-    // Send this word for almost all of the link reset pattern
-    out.setSwitchRegister(eLink,"idle_word",0xaccccccc);
-    // Send this word on BX0 during the link reset pattern
-    out.setSwitchRegister(eLink,"idle_word_BX0",0x9ccccccc);
-  }
+  // link capture
+  LinkCaptureBlockHandler lchandler( m_uhalHW,
+                                     std::string("link_capture_axi")
+				     );
+  
+  // IO
+  IOBlockHandler fromIOhandler( m_uhalHW,
+                                std::string("from_ECONT_IO_axi_to_ipif")
+                                );
+  IOBlockHandler toIOhandler( m_uhalHW,
+                              std::string("from_ECONT_IO_axi_to_ipif")
+                              );
+  m_out = out;
+  m_link_capture = lchandler;
+  m_fromIO = fromIOhandler;
+  m_toIO = toIOhandler;
+}
 
-  for(auto eLink : eLinks){
+void LinkAligner::align() {
+
+  for(auto eLink : m_eLinks){
+    // Select the stream from RAM as the source
+    m_out.setSwitchRegister(eLink,"output_select",0);
+    // Send 255 words in the link reset pattern
+    m_out.setSwitchRegister(eLink,"n_idle_words",255);
+    // Send this word for almost all of the link reset pattern
+    m_out.setSwitchRegister(eLink,"idle_word",0xaccccccc);
+    // Send this word on BX0 during the link reset pattern
+    m_out.setSwitchRegister(eLink,"idle_word_BX0",0x9ccccccc);
+
     // Stream one complete orbit from RAM before looping
-    out.setStreamRegister(eLink,"sync_mode",1);
+    m_out.setStreamRegister(eLink,"sync_mode",1);
     // Determine pattern length in orbits: 1
-    out.setStreamRegister(eLink,"ram_range",1);
+    m_out.setStreamRegister(eLink,"ram_range",1);
   }
 
   // setting up the output RAMs
-  for(auto bram : outputBrams){
+  for(auto bram : m_outputBrams){
     uint32_t size_bram = 8192;
     std::vector<uint32_t> outData;
     // special header for BX0
@@ -62,21 +82,15 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
     // almost all words get this header
     for(size_t i=1; i!= size_bram; ++i) 
       outData.push_back(static_cast<uint32_t>(0xa0000000));
-    out.setData(bram, outData, size_bram);
+    m_out.setData(bram, outData, size_bram);
   }
 
   // switching on IO
-  IOBlockHandler fromIOhandler( m_uhalHW,
-				std::string("from_ECONT_IO_axi_to_ipif")
-				);
-  IOBlockHandler toIOhandler( m_uhalHW,
-			      std::string("from_ECONT_IO_axi_to_ipif")
-			      );
-  for(auto eLink : eLinks){
-    toIOhandler.setRegister(eLink,"reg0",0b110);
-    toIOhandler.setRegister(eLink,"reg0",0b101);
-    fromIOhandler.setRegister(eLink,"reg0",0b110);
-    fromIOhandler.setRegister(eLink,"reg0",0b101);
+  for(auto eLink : m_eLinks){
+    m_toIO.setRegister(eLink,"reg0",0b110);
+    m_toIO.setRegister(eLink,"reg0",0b101);
+    m_fromIO.setRegister(eLink,"reg0",0b110);
+    m_fromIO.setRegister(eLink,"reg0",0b101);
   }
 
   // Sending 3 link resets to get IO delays set up properly
@@ -90,29 +104,25 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
     //std::cout << "link reset " << m_fcMan->getRegister("command.link_reset") << std::endl;
   }
 
-  // Setting up link capture
-  LinkCaptureBlockHandler lchandler( m_uhalHW,
-				     std::string("link_capture_axi")
-				     );
   // reset all links
-  lchandler.setRegister("global","explicit_resetb",0);
+  m_link_capture.setRegister("global","explicit_resetb",0);
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  lchandler.setRegister("global","explicit_resetb",1);
+  m_link_capture.setRegister("global","explicit_resetb",1);
   // for all links
-  for(auto eLink : eLinks){                           
+  for(auto eLink : m_eLinks){                           
     // set the alignment pattern for all links
-    lchandler.setRegister(eLink,"align_pattern",0b00100100010);
+    m_link_capture.setRegister(eLink,"align_pattern",0b00100100010);
     // set the capture mode of all 13 links to 2 (L1A)
-    lchandler.setRegister(eLink,"capture_mode_in",2);
+    m_link_capture.setRegister(eLink,"capture_mode_in",2);
     // set the BX offset of all 13 links
-    uint32_t bx_offset = lchandler.getRegister(eLink,"L1A_offset_or_BX");
-    lchandler.setRegister(eLink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
+    uint32_t bx_offset = m_link_capture.getRegister(eLink,"L1A_offset_or_BX");
+    m_link_capture.setRegister(eLink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
     // set the acquire length of all 13 links
-    lchandler.setRegister(eLink,"aquire_length", 256);
+    m_link_capture.setRegister(eLink,"aquire_length", 256);
     // set the latency buffer based on the IO delays
-    //lchandler.setRegister(eLink,"fifo_latency", 0x1ff);
+    //m_link_capture.setRegister(eLink,"fifo_latency", 0x1ff);
     // tell link capture to do an acquisition
-    lchandler.setRegister(eLink,"aquire", 1);
+    m_link_capture.setRegister(eLink,"aquire", 1);
   }
 
   // sending a link reset and L1A together, to capture the reset sequence
@@ -124,5 +134,4 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
   // clear the link reset and L1A request bits
   m_fcMan->clear_ink_reset_l1a();
-
 }

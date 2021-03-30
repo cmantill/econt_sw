@@ -16,15 +16,21 @@ class LinkAligner
   LinkAligner(uhal::HwInterface* uhalHWInterface, FastControlManager* fc);
   ~LinkAligner(){;}
 
+  void align();
+
  private:
 
  protected:
   uhal::HwInterface* m_uhalHW;
   FastControlManager* m_fcMan;
-  int m_idelaystep;
-  int m_port;
 
-  std::vector<LinkCaptureBlockHandler> m_link_capture_block_handlers;
+  eLinkOutputsBlockHandler m_out;
+  LinkCaptureBlockHandler m_link_capture;
+  IOBlockHandler m_fromIO;
+  IOBlockHandler m_toIO;
+
+  std::vector<std::string> m_eLinks;
+  std::vector<std::string> m_outputBrams;
 };
 
 #endif
