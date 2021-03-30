@@ -25,6 +25,7 @@ class Translator():
 
     def load_param_map(self, fname):
         """ Load a yaml register map into cache (as a dict). """
+        print('Translator::Loading ',fname)
         with open(fname) as fin:
             paramMap = safe_load(fin)
         return paramMap
@@ -38,6 +39,7 @@ class Translator():
         par_regs = self.__regs_from_paramMap() # default map
         par_regs_cfg = self.__expandVal_paramMap(cfg) if cfg else par_regs # new config, if any
 
+        print('Translator::Converting config into pairs')
         for access,accessDict in par_regs_cfg.items():
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
@@ -75,6 +77,7 @@ class Translator():
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
+                    print('addr ',hex(addr), ' val ',paramVal, ' size_byte  ', size_byte)
                     pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
                                    
         return pairs

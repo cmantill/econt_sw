@@ -1,0 +1,7 @@
+ECON-T:
+ RO:
+  CH_ALIGNER_*INPUT_ALL:
+   registers:
+    - status
+    - select
+    - snapshot

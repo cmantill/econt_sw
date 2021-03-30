@@ -77,7 +77,7 @@ ECON-T:
      size_byte: 4
      value: 0x00000000
 
-  CH_ERR_*_ALL:
+  CH_ERR_*INPUT_ALL:
    block_shift: 4
    addr_base: 0x0300
    registers:
@@ -94,7 +94,7 @@ ECON-T:
        param_mask: 0x01
        param_shift: 0
     
-  CH_EPRXGRP_*_ALL:
+  CH_EPRXGRP_*INPUT_ALL:
    block_shift: 4
    addr_base: 0x0340
    registers:
@@ -492,7 +492,7 @@ ECON-T:
      size_byte: 1
      value: 0x00
 
-  AUTOENCODER_*:
+  AUTOENCODER_*INPUT:
    block_shift: 143
    addr_base: 0x0538
    registers:
@@ -514,7 +514,7 @@ ECON-T:
        param_shift: 0
 
  RO:
-  CH_ALIGNER_*_ALL:
+  CH_ALIGNER_*INPUT_ALL:
    block_shift: 64
    addr_base: 0x0014
    registers:
@@ -557,7 +557,7 @@ ECON-T:
      size_byte: 2
      value: 0
     
-  CH_ERR_*_ALL:
+  CH_ERR_*INPUT_ALL:
    block_shift: 4
    addr_base: 0x0301
    registers:
@@ -577,7 +577,7 @@ ECON-T:
        param_mask: 0x3f
        param_shift: 0
 
-  CH_EPRXGRP_*_ALL:
+  CH_EPRXGRP_*INPUT_ALL:
    block_shift: 4
    addr_base: 0x0341
    registers:

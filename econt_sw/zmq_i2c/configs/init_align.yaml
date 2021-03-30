@@ -30,7 +30,7 @@ ECON-T:
      params:
       select:
        # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)   
-       param_value: 0
+       param_value: 3
       density:
        # 1: high density
        param_value: 1
@@ -43,6 +43,11 @@ ECON-T:
       param_value: 1
      snapshot_arm:
       param_value: 1
+    match_pattern_val:
+     # patt_BX1 = 0xaccccccc
+     # patt_BX0 = 0x9ccccccc
+     # match_val = (patt_BX0 << 32) | patt_BX1
+     value: 0x9cccccccaccccccc
     match_mask_val:
      # mask for the word aligner
      value: 0x0000000000000000
