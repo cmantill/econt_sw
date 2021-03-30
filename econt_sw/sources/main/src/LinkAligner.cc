@@ -6,6 +6,8 @@
 #include <cstring>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface, 
 			 FastControlManager* fc)
@@ -17,16 +19,20 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 
   // input eLinks
   std::vector<std::string> eLinks;
+  std::vector<std::string> outputBrams;
   auto base = std::string("link");
   for( int i=0; i<12; i++ ){
     std::string name=buildname(base,i);
     eLinks.push_back(name);
+    std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
+    outputBrams.push_back(bramname);
   }
 
   // eLinkOutputs
   eLinkOutputsBlockHandler out( m_uhalHW,
                                 std::string("eLink_outputs_ipif_stream_mux"),
-				std::string("eLink_outputs_ipif_switch_mux")
+				std::string("eLink_outputs_ipif_switch_mux"),
+				outputBrams
                                 );
 
   for(auto eLink : eLinks){
@@ -47,6 +53,18 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
     out.setStreamRegister(eLink,"ram_range",1);
   }
 
+  // setting up the output RAMs
+  for(auto bram : outputBrams){
+    uint32_t size_bram = 8192;
+    std::vector<uint32_t> outData;
+    // special header for BX0
+    outData.push_back(static_cast<uint32_t>(0x90000000));
+    // almost all words get this header
+    for(size_t i=1; i!= size_bram; ++i) 
+      outData.push_back(static_cast<uint32_t>(0xa0000000));
+    out.setData(bram, outData, size_bram);
+  }
+
   // switching on IO
   IOBlockHandler fromIOhandler( m_uhalHW,
 				std::string("from_ECONT_IO_axi_to_ipif")
@@ -64,6 +82,7 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   // Sending 3 link resets to get IO delays set up properly
   for( int i=0; i<3; i++ ){
     m_fcMan->resetFC(); // send a link reset
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     m_fcMan->clear_ink_reset_l1a(); // clear the link reset and L1A request bits                                                                                                                    
     //std::cout << "enable_FC_stream " << m_fcMan->getRegister("command.enable_fast_ctrl_stream") << std::endl;
     //std::cout << "orbit sync " << m_fcMan->getRegister("command.enable_orbit_sync") << std::endl;
@@ -77,6 +96,7 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 				     );
   // reset all links
   lchandler.setRegister("global","explicit_resetb",0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
   lchandler.setRegister("global","explicit_resetb",1);
   // for all links
   for(auto eLink : eLinks){                           
@@ -101,6 +121,7 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   m_fcMan->set_l1a_A_bx(3549); // BX on which L1A will be sent
   // send a link reset fast command and an L1A 
   m_fcMan->send_link_reset_l1a(); 
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
   // clear the link reset and L1A request bits
   m_fcMan->clear_ink_reset_l1a();
 

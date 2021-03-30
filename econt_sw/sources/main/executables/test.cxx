@@ -17,7 +17,6 @@
 
 #include "LinkAligner.h"
 #include "FastControlManager.h"
-//#include "eLinkOutputsBlockHandler.h"
 
 int main(int argc,char** argv)
 {
@@ -75,14 +74,5 @@ int main(int argc,char** argv)
 
   FastControlManager* fcptr = new FastControlManager( m_ipbushwptr );
   LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
-
-  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link0-ram_range").write(0x1);
-  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link0.ram_range").write(0x1); 
-  //m_ipbushwptr->getNode("eLink_outputs_ipif_stream_mux.link1.ram_range").write(0x1);
-
-  //eLinkOutputsBlockHandler out( m_ipbushwptr,
-  //                              std::string("eLink_outputs_ipif_stream_mux")
-  //                              );
-  //out.setStreamRegister("link0","ram_range",0x1);
 
 }
