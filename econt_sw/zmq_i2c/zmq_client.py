@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import zmq
 from yaml import safe_load, dump
 

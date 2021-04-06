@@ -57,6 +57,7 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 
 void LinkAligner::align() {
 
+  std::cout << "LinkAligner:: align " << std::endl;
   for(auto eLink : m_eLinks){
     // Select the stream from RAM as the source
     m_out.setSwitchRegister(eLink,"output_select",0);
@@ -73,6 +74,8 @@ void LinkAligner::align() {
     m_out.setStreamRegister(eLink,"ram_range",1);
   }
 
+  std::cout << "LinkAligner:: wrote stream/switch " << std::endl;
+
   // setting up the output RAMs
   for(auto bram : m_outputBrams){
     uint32_t size_bram = 8192;
@@ -85,6 +88,8 @@ void LinkAligner::align() {
     m_out.setData(bram, outData, size_bram);
   }
 
+  std::cout << "LinkAligner:: output RAMSs " << std::endl;
+
   // switching on IO
   for(auto eLink : m_eLinks){
     m_toIO.setRegister(eLink,"reg0",0b110);
@@ -92,6 +97,7 @@ void LinkAligner::align() {
     m_fromIO.setRegister(eLink,"reg0",0b110);
     m_fromIO.setRegister(eLink,"reg0",0b101);
   }
+  std::cout << "LinkAligner:: IO " << std::endl;
 
   // Sending 3 link resets to get IO delays set up properly
   for( int i=0; i<3; i++ ){
@@ -103,6 +109,8 @@ void LinkAligner::align() {
     // maybe we can't read link reset because it is write only?                                                                                                                                         
     //std::cout << "link reset " << m_fcMan->getRegister("command.link_reset") << std::endl;
   }
+
+  std::cout << "LinkAligner:: FC " << std::endl;
 
   // reset all links
   m_link_capture.setRegister("global","explicit_resetb",0);
@@ -120,10 +128,14 @@ void LinkAligner::align() {
     // set the acquire length of all 13 links
     m_link_capture.setRegister(eLink,"aquire_length", 256);
     // set the latency buffer based on the IO delays
+    //elay_out = (fromIO[1:,3] >> 1) & 0x1ff
+    //LCs[:,3] = (LCs[:,3] & 0xffff) | ((1*(delay_out < 0x100)) << 16)
     //m_link_capture.setRegister(eLink,"fifo_latency", 0x1ff);
     // tell link capture to do an acquisition
     m_link_capture.setRegister(eLink,"aquire", 1);
   }
+
+  std::cout << "LinkAligner:: link capture  " << std::endl;
 
   // sending a link reset and L1A together, to capture the reset sequence
   // set the BX on which link reset will be sent
@@ -134,4 +146,14 @@ void LinkAligner::align() {
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
   // clear the link reset and L1A request bits
   m_fcMan->clear_ink_reset_l1a();
+  std::cout << "LinkAligner:: clear link reset " << std::endl;
+
+  // check alignment status
+  for(auto eLink : m_eLinks){
+    std::cout << "Status " << m_link_capture.getRegister(eLink,"status.link_aligned") << std::endl;
+  }
+
+  // reading out captured data
+  
+
 }

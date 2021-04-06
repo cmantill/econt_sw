@@ -25,10 +25,32 @@ class Translator():
 
     def load_param_map(self, fname):
         """ Load a yaml register map into cache (as a dict). """
-        print('Translator::Loading ',fname)
-        with open(fname) as fin:
-            paramMap = safe_load(fin)
+        # print('Translator::Loading ',fname)
+        if isinstance(fname, dict):
+            paramMap = fname
+        else:
+            with open(fname) as fin:
+                paramMap = safe_load(fin)
         return paramMap
+
+    def cfg_from_pairs(self, pairs):
+        """
+        Convert from {addr:[val,size_byte]} pairs to {param:param_val} config.
+        We can only recover a parameter from a pair when it is in the common cache.
+        However, when we read (or write) a param the common cache is populated in advance.
+        """
+        #print('Translator::cfg form pairs')
+        cfg = nested_dict()
+        for access,accessDict in self.__regs_from_paramMap.cache[()].items():
+            for block,blockDict in accessDict.items():
+                for param, paramDict in blockDict.items():
+                    addr = paramDict['addr']
+                    if addr in pairs.keys():
+                        if isinstance(pairs[addr][0],list):
+                            cfg[access][block][param] = int.from_bytes(pairs[addr][0], 'little')
+                        else:
+                            cfg[access][block][param] = int.from_bytes(pairs[addr], 'little')
+        return cfg.to_dict()
 
     def pairs_from_cfg(self, cfg=None, prevCache={}):
         """
@@ -39,7 +61,7 @@ class Translator():
         par_regs = self.__regs_from_paramMap() # default map
         par_regs_cfg = self.__expandVal_paramMap(cfg) if cfg else par_regs # new config, if any
 
-        print('Translator::Converting config into pairs')
+        # print('Translator::Converting config into pairs')
         for access,accessDict in par_regs_cfg.items():
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
@@ -56,7 +78,9 @@ class Translator():
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
+                        # print('no cfgDict')
                         pass
+
                     if is_incfg and cfgDict is not None:
                         if 'val' in cfgDict:
                             paramVal = cfgDict['val']
@@ -66,6 +90,7 @@ class Translator():
                             prev_regVal = int.from_bytes(prevCache[addr], 'little') if addr in prevCache else 0
                             for par, reg in defaultDict['params'].items():
                                 # get parameter values from previous register value 
+                                # TODO: does this do something?
                                 tmpVal = self.__paramVal_from_regVal(reg, prev_regVal)
                                 # get parameter values from new dict
                                 if par in cfgDict['params']:
@@ -77,9 +102,9 @@ class Translator():
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
-                    print('addr ',hex(addr), ' val ',paramVal, ' size_byte  ', size_byte)
+                    # print('addr ',hex(addr), ' val ',paramVal, ' size_byte  ', size_byte)
                     pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
-                                   
+
         return pairs
     
     @memoize
@@ -144,7 +169,7 @@ class Translator():
         for access,accessDict in cfg.items():
             if not isinstance(accessDict, dict): continue
             for block,blockDict in accessDict.items():
-                for param, paramDict in blockDict['registers'].items():
+                 for param, paramDict in blockDict['registers'].items():
                     values = paramDict['value'] if 'value' in paramDict else None
                     parDict = nested_dict()
                     if 'params' in paramDict:

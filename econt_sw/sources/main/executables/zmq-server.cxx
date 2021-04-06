@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <iomanip>
+
 #include <signal.h>
 
 #include <unordered_map>
@@ -12,6 +13,9 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/program_options.hpp>
+#include <boost/timer/timer.hpp>
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp> 
 
 #include <zmq.hpp>
 #include <yaml-cpp/yaml.h>
@@ -123,5 +127,92 @@ int main(int argc,char** argv)
   os << "tcp://*:" << m_serverport;
   m_socket.bind(os.str().c_str()); 
 
+  signal(SIGINT, zmq_server::interrupt_handler);
+
+  auto reply = [&m_socket](std::string repstr){
+    uint16_t size=repstr.size();
+    zmq::message_t _reply(size);
+    std::memcpy(_reply.data(), repstr.c_str(), size);
+    m_socket.send(_reply);
+  };
+
+  auto receive = [&m_socket](bool wait=0){
+    zmq::message_t message;
+    if(!wait)
+      m_socket.recv(&message,ZMQ_DONTWAIT);
+    else
+      m_socket.recv(&message);    
+    std::string cmd;
+    if( message.size()>0 )
+      cmd = std::string(static_cast<char*>(message.data()), message.size());
+    return cmd;
+  };
+
+  auto align = [&linkaligner, reply](){ 
+    boost::timer::cpu_timer timer;
+    timer.start();
+    linkaligner->align();
+    timer.stop();
+    std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
+    reply("align_done");
+  };
+
+
+  YAML::Node m_config;
+  zmq_server::LinkStatusFlag m_linkstatus = zmq_server::LinkStatusFlag::NOT_READY;
+  auto configure = [&m_config, &linkaligner, &m_linkstatus, receive, reply](){
+    boost::timer::cpu_timer timer;
+    timer.start();
+    reply("ReadyForConfig");
+    auto configstr = receive(true);
+    m_linkstatus = zmq_server::LinkStatusFlag::NOT_READY;
+    try{
+      m_config = YAML::Load(configstr)["daq"];
+      std::cout << m_config << std::endl;
+      auto otua = m_config["L1A_A"]["BX"].as<uint32_t>(); // just testing that the node contains something to force to try/catch something
+      (void)otua;
+    }
+    catch( std::exception& e){
+      std::cerr << "Exception : " 
+      << e.what() << " yaml config file probably does not contain the expected 'daq' field" << std::endl; 
+      reply("ConfigError");
+      return;
+    }
+    //if( linkaligner->configure( m_config ) ) 
+    //  reply("Configured");
+    //else
+   //  reply("ConfigError");
+    timer.stop();
+    std::cout << "\t\t configure ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
+  };
+
+  const std::unordered_map<std::string,std::function<void()> > actionMap = {
+    {"align",     [&](){ align(); }},
+    {"configure", [&](){ configure(); }}
+  };
+
+  while(1){
+    if(zmq_server::InterruptSIG==true){
+      m_socket.close();
+      break;
+    }
+    
+    std::string cmdstr = receive();
+    if( cmdstr.empty()==true ){
+      boost::this_thread::sleep( boost::posix_time::microseconds(100) );
+    }
+    else{
+      std::transform(cmdstr.begin(), cmdstr.end(), cmdstr.begin(), 
+		     [](const char& c){ return std::tolower(c);} );
+      auto it = actionMap.find( cmdstr );
+      if( it!=actionMap.end() )
+	it->second();
+      else{
+	std::ostringstream os( std::ostringstream::ate );
+	os.str(""); os << "Error " << cmdstr << " does not correspond to any entry in the action map";
+	reply(os.str());
+      }
+    }
+  }
 
 }

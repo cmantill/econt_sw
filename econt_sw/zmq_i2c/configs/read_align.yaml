@@ -2,6 +2,9 @@ ECON-T:
  RO:
   CH_ALIGNER_*INPUT_ALL:
    registers:
-    - status
-    - select
-    - snapshot
+     status:
+      value: 0
+     select: 
+      value: 0
+     snapshot: 
+      value: 0

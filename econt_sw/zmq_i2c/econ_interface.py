@@ -16,21 +16,17 @@ class econ_interface():
         # read all default register:address pairs into a default dict
         default = self.translator.pairs_from_cfg()
 
-        print('read all default ')
         if cfg:
-            print('load cfg ',cfg)
             # load and expand config
             paramMap = self.translator.load_param_map(cfg)['ECON-T']
             pairs = self.translator.pairs_from_cfg(paramMap)
 
             # read previous values of addresses 
             self.writeCache = self.read_pairs(pairs)
-            print('previous values ',self.writeCache)
+
             # get new default values
             writePairs = self.translator.pairs_from_cfg(paramMap,prevCache=self.writeCache)
-            print('new values ',writePairs)
         else:
-            print('writing default')
             # read previous values of addresses
             self.writeCache = self.read_pairs(default)
             
@@ -38,9 +34,7 @@ class econ_interface():
             writePairs = self.translator.pairs_from_cfg(prevCache=self.writeCache)
         
         # write registers
-        print('write registers ')
         self.write_pairs(writePairs)
-
         return "ECON Configured"
 
     def read(self, cfg=None):
@@ -50,6 +44,7 @@ class econ_interface():
 
     def read_pairs(self, pairs):
         """ Read addresses in addr:val pairs """
+        # print('read_pairs ',pairs)
         pairs_read = {}
         for addr,vals in pairs.items():
             size_byte = vals[1]
@@ -66,17 +61,17 @@ class econ_interface():
 
     def __read_fr_cfg(self, cfg):
         """ Read addresses (=keys) in cfgs from rocs. """
+        #print('read cfg')
         # TODO: make this for multiple cfgs?
         paramMap = self.translator.load_param_map(cfg)['ECON-T']
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
-        print('read pairs ')
         rd_pairs = self.read_pairs(pairs)
-        print(rd_pairs)
-        # TODO: should translate this into a config
-        return rd_pairs
+        cfg = self.translator.cfg_from_pairs(rd_pairs)
+        return cfg
 
     def __read_fr_cache(self):
         """ Read addresses in write_param cache. """
+        # print('read fr cache ')
         rd_pairs = self.read_pairs(self.writeCache)
         return rd_pairs
 

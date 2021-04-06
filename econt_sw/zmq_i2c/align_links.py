@@ -41,6 +41,8 @@ for uio in os.listdir('/sys/class/uio'):
     except FileNotFoundError:
         pass
 
+print(label_to_uio)
+print(label_to_size)
 def uio_open(label):
     with open(f'/dev/{label_to_uio[label]}', 'r+b') as uio_dev_file:
         return numpy.frombuffer(mmap.mmap(uio_dev_file.fileno(), label_to_size[label], access=mmap.ACCESS_WRITE, offset=0), numpy.uint32)
@@ -56,6 +58,8 @@ out_switch = uio_open("eLink-outputs-0-ipif-switch-mux")
 out_stream = uio_open("eLink-outputs-0-ipif-stream-mux")
 out_brams = [uio_open(f"eLink-outputs-0-out-block{i:02d}-bram-ctrl") for i in range(12)]
 i2c = econ_i2c(1)
+
+print(out_stream)
 
 logging.info("Setting up the eLink output to send the link reset pattern and stream one complete orbit from RAM")
 patt_BX1 = 0xaccccccc

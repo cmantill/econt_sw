@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import zmq
 import yaml
 import econ_interface
@@ -11,7 +13,6 @@ print('[ZMQ] Server started')
 def redirect(fn):
     socket.send_string('READY')
     cfg_str  = socket.recv_string()
-    print('redirect ',cfg_str)
     cfg_yaml = yaml.safe_load(cfg_str)
     ans_yaml = fn(cfg_yaml)
     ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
