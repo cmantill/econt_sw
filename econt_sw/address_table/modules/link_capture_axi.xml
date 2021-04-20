@@ -14,5 +14,6 @@
     <node id="link8"   address="0x90" module="file://link_capture_axi_channel.xml" description="link 8  capture control"/>
     <node id="link9"   address="0xa0" module="file://link_capture_axi_channel.xml" description="link 9  capture control"/>
     <node id="link10"  address="0xb0" module="file://link_capture_axi_channel.xml" description="link 10 capture control"/>
-    <node id="link11"  address="0xc0" module="file://link_capture_axi_channel.xml" description="link 12 capture control"/>
+    <node id="link11"  address="0xc0" module="file://link_capture_axi_channel.xml" description="link 11 capture control"/>
+    <node id="link12"  address="0xd0" module="file://link_capture_axi_channel.xml" description="link 12 capture control"/>
 </node>

@@ -1,0 +1,3 @@
+<!-- RAM pages are 8192 32 bit-Words -->
+<node mode="non-incremental" size="0x2000" permission="rw"/>
+
