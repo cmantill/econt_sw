@@ -10,6 +10,10 @@
 #include <IOBlockHandler.h>
 #include <eLinkOutputsBlockHandler.h>
 
+#define ALIGN_PATTERN 0xACCCCCCC
+#define SYNC_WORD 0b00100100010
+#define BX0_WORD 0xf9220000
+
 class LinkAligner
 {
  public:
@@ -31,6 +35,7 @@ class LinkAligner
 
   std::vector<std::string> m_eLinks;
   std::vector<std::string> m_outputBrams;
+  std::vector<std::string> m_eLinksOutput;
 };
 
 #endif

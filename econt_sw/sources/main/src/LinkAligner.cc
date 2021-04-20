@@ -30,6 +30,14 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   m_eLinks = eLinks;
   m_outputBrams = outputBrams;
 
+  // output eLinks
+  std::vector<std::string> eLinksOutput;
+  for( int i=0; i<13; i++ ){
+    std::string name=buildname(base,i);
+    eLinksOutput.push_back(name);
+  }
+  m_eLinksOutput = eLinksOutput;
+
   // eLinkOutputs
   eLinkOutputsBlockHandler out( m_uhalHW,
                                 std::string("eLink_outputs_ipif_stream_mux"),
@@ -39,7 +47,8 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 
   // link capture
   LinkCaptureBlockHandler lchandler( m_uhalHW,
-                                     std::string("link_capture_axi")
+                                     std::string("link_capture_axi"),
+				     std::string("link_capture_axi_full_ipif")
 				     );
   
   // IO
@@ -94,6 +103,8 @@ void LinkAligner::align() {
   for(auto eLink : m_eLinks){
     m_toIO.setRegister(eLink,"reg0",0b110);
     m_toIO.setRegister(eLink,"reg0",0b101);
+  }
+  for(auto eLink : m_eLinksOutput){
     m_fromIO.setRegister(eLink,"reg0",0b110);
     m_fromIO.setRegister(eLink,"reg0",0b101);
   }
@@ -112,14 +123,16 @@ void LinkAligner::align() {
 
   std::cout << "LinkAligner:: FC " << std::endl;
 
+  // enable all 13 links
+  m_link_capture.setRegister("global","link_enable",1);
   // reset all links
   m_link_capture.setRegister("global","explicit_resetb",0);
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
   m_link_capture.setRegister("global","explicit_resetb",1);
   // for all links
-  for(auto eLink : m_eLinks){                           
+  for(auto eLink : m_eLinksOutput){
     // set the alignment pattern for all links
-    m_link_capture.setRegister(eLink,"align_pattern",0b00100100010);
+    m_link_capture.setRegister(eLink,"align_pattern",SYNC_WORD);
     // set the capture mode of all 13 links to 2 (L1A)
     m_link_capture.setRegister(eLink,"capture_mode_in",2);
     // set the BX offset of all 13 links
@@ -128,6 +141,7 @@ void LinkAligner::align() {
     // set the acquire length of all 13 links
     m_link_capture.setRegister(eLink,"aquire_length", 256);
     // set the latency buffer based on the IO delays
+    uint32_t delay_out = m_fromIO.getRegister(eLink,"delay_out");
     //elay_out = (fromIO[1:,3] >> 1) & 0x1ff
     //LCs[:,3] = (LCs[:,3] & 0xffff) | ((1*(delay_out < 0x100)) << 16)
     //m_link_capture.setRegister(eLink,"fifo_latency", 0x1ff);
@@ -154,6 +168,14 @@ void LinkAligner::align() {
   }
 
   // reading out captured data
-  
+  std::cout << "LinkAligner:: reading captured data " << std::endl;
+  auto linksdata = std::vector< std::vector<uint32_t> >(m_eLinksOutput.size());
+  int id=0;
+  for( auto eLink : m_eLinksOutput){
+    m_link_capture.getData( eLink, linksdata[id], 256 );
+    int nBX0 = (int)std::count( linksdata[id].begin(), linksdata[id].end(), BX0_WORD );
+    std::cout << "iElink " << id << " BX0 found " << nBX0 << std::endl;
+    id++;
+  }
 
 }

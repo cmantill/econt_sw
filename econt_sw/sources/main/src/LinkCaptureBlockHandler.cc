@@ -7,8 +7,10 @@
 #include <stdio.h>
 
 LinkCaptureBlockHandler::LinkCaptureBlockHandler(uhal::HwInterface* uhalHW,
-						 std::string link_capture_block_name): m_uhalHW(uhalHW),
-										       m_link_capture_block_name(link_capture_block_name)
+						 std::string link_capture_block_name,
+						 std::string bram_name): m_uhalHW(uhalHW),
+									 m_link_capture_block_name(link_capture_block_name),
+									 m_bram_name(bram_name)
 {
 }
 
@@ -44,4 +46,17 @@ const uint32_t LinkCaptureBlockHandler::getGlobalRegister(std::string regName)
   uhal::ValWord<uint32_t> val=m_uhalHW->getNode(buf).read();
   m_uhalHW->dispatch();
   return (uint32_t)val;
+}
+
+void LinkCaptureBlockHandler::getData(std::string elink, std::vector<uint32_t> &data, uint32_t size)
+{
+  if( data.size()!=size )
+    data = std::vector<uint32_t>(size,0);
+
+  char buf[200];
+  sprintf(buf,"%s.%s",m_bram_name.c_str(),elink.c_str());
+  uhal::ValVector<uint32_t> vec=m_uhalHW->getNode(buf).readBlock(size);
+  m_uhalHW->dispatch();
+  std::copy( vec.begin(), vec.end(), data.begin() );
+   
 }
