@@ -10,7 +10,7 @@ class FastControlManager
   ~FastControlManager(){;}
   void resetFC();
   void link_reset_l1a();
-  void clear_ink_reset_l1a();
+  void clear_link_reset_l1a();
   void send_link_reset_l1a();
 
   void enable_FC_stream(int val);
