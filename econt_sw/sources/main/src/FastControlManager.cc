@@ -19,19 +19,11 @@ void FastControlManager::resetFC()
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_B").write(0x0);
   m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x1);
 }
-void FastControlManager::clear_link_reset_l1a()
+void FastControlManager::clear_link_reset()
 {
   m_uhalHW->getNode("fastcontrol_axi.command.enable_fast_ctrl_stream").write(0x1);
   m_uhalHW->getNode("fastcontrol_axi.command.enable_orbit_sync").write(0x1);
   m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x0);
-  m_uhalHW->getNode("fastcontrol_axi.bx_A.l1a").write(0x0);
-}
-void FastControlManager::send_link_reset_l1a()
-{
-  m_uhalHW->getNode("fastcontrol_axi.command.enable_fast_ctrl_stream").write(0x1);
-  m_uhalHW->getNode("fastcontrol_axi.command.enable_orbit_sync").write(0x1);
-  m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x1);
-  m_uhalHW->getNode("fastcontrol_axi.bx_A.l1a").write(0x1);
 }
 
 void FastControlManager::enable_FC_stream(int val)

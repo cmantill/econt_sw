@@ -9,9 +9,7 @@ class FastControlManager
   FastControlManager(uhal::HwInterface* uhalHW);
   ~FastControlManager(){;}
   void resetFC();
-  void link_reset_l1a();
-  void clear_link_reset_l1a();
-  void send_link_reset_l1a();
+  void clear_link_reset();
 
   void enable_FC_stream(int val);
   void enable_orbit_sync(int val);

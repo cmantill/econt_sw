@@ -11,6 +11,7 @@
 #include <eLinkOutputsBlockHandler.h>
 
 #define ALIGN_PATTERN 0xACCCCCCC
+#define BX0_PATTERN 0x9CCCCCCC
 #define SYNC_WORD 0b00100100010
 #define BX0_WORD 0xf922f922
 
