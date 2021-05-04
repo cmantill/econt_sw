@@ -149,6 +149,16 @@ int main(int argc,char** argv)
     }
   }
  
+  auto align = [&linkaligner]()->bool{
+    boost::timer::cpu_timer timer;
+    timer.start();
+    linkaligner->align();
+    timer.stop();
+    std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
+    if( !linkaligner->checkLinks() )
+      return false;
+    return true;
+  };
 
   zmq::context_t m_context(1);
   zmq::socket_t m_socket(m_context,ZMQ_REP);
@@ -178,17 +188,6 @@ int main(int argc,char** argv)
     return cmd;
   };
 
-  auto align = [&linkaligner, reply](){ 
-    std::cout << " start alignment " << std::endl;
-    boost::timer::cpu_timer timer;
-    timer.start();
-    linkaligner->align();
-    timer.stop();
-    std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
-    reply("align_done");
-  };
-
-
   YAML::Node m_config;
   zmq_server::LinkStatusFlag m_linkstatus = zmq_server::LinkStatusFlag::NOT_READY;
   auto configure = [&m_config, &linkaligner, &m_linkstatus, receive, reply](){
@@ -217,9 +216,22 @@ int main(int argc,char** argv)
     std::cout << "\t\t configure ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
   };
 
+  auto start = [&m_linkstatus,reply,align](){
+    switch( m_linkstatus ){
+    case zmq_server::LinkStatusFlag::NOT_READY :
+    if( align() )
+      m_linkstatus = zmq_server::LinkStatusFlag::ALIGNED;
+    else {
+      reply("Can't Start");
+      break;
+    }
+    reply("Aligned, running");
+    }
+  };
+
   const std::unordered_map<std::string,std::function<void()> > actionMap = {
-    {"align",     [&](){ align(); }},
-    {"configure", [&](){ configure(); }}
+    {"configure", [&](){ configure(); }},
+    {"start",     [&](){ start();     }}
   };
 
   while(1){

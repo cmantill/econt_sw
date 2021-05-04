@@ -22,6 +22,7 @@ class LinkAligner
   ~LinkAligner(){;}
 
   void align();
+  bool checkLinks();
 
  private:
 
