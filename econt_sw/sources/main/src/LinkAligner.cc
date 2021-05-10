@@ -244,22 +244,22 @@ bool LinkAligner::checkLinks()
   }
 
   // another link capture
-  m_link_capture.setRegister("global","explicit_resetb",0x0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  m_link_capture.setRegister("global","explicit_resetb",0x1);
-
   for(auto eLink : m_eLinksOutput){
     // set the capture mode of all 13 links to 2 (L1A)
     m_link_capture.setRegister(eLink,"capture_mode_in",2);
     // set the acquire length of all 13 links
-    m_link_capture.setRegister(eLink,"aquire_length", 256);
+    m_link_capture.setRegister(eLink,"aquire_length", 512);
     // tell link capture to do an acquisition
     m_link_capture.setRegister(eLink,"aquire", 1);
   }
 
   // send a l1a
-  m_fcMan->resetFC();
+  std::cout << "LinkAligner:: LinkCapture, l1a counter before new " << m_fcMan->getRecvRegister("l1a_count");
+  //m_fcMan->set_l1a_A_bx(1);
+  m_fcMan->set_l1a_A_bx(3549);
   m_fcMan->l1a_A(0x1);
+  std::cout << " l1a counter after " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
+  m_fcMan->clear_link_reset();
 
   // check the captured data
   auto linksdata_new = std::vector< std::vector<uint32_t> >(m_eLinksOutput.size());
