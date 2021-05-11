@@ -10,21 +10,17 @@ daqPort = "6677"
 # port of the zynq waiting for I2C config and commands (initialize/configure)
 i2cPort = "5555"
 
-# port of the client PC (localhost for the moment) waiting for daq config and commands (configure/start/stop)
-# clientPort = "6001"
-
-daq_socket = zmqctrl.daqController(remoteIP, daqPort, "configs/init.yaml")
-i2c_socket = zmqctrl.i2cController(remoteIP, i2cPort, "configs/init.yaml")
-# client_socket = zmqctrl.daqController("localhost", clientPort, "configs/init.yaml")
+daq_socket = zmqctrl.daqController(remoteIP, daqPort, "configs/init_data.yaml")
+i2c_socket = zmqctrl.i2cController(remoteIP, i2cPort, "configs/init_data.yaml")
 
 # i2c 
-#print('initialize i2c')
 i2c_socket.initialize()
 
 # daq
-daq_socket.align()
+daq_socket.configure()
+daq_socket.start()
 
 #i2c_socket.read_config("configs/init.yaml")
 i2c_socket.read_config("zmq_i2c/configs/read_align.yaml")
-# print( yaml.dump(i2csocket.read_config()) )
+#print( yaml.dump(i2csocket.read_config("zmq_i2c/configs/read_align.yaml")) )
 

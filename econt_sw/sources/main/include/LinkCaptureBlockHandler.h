@@ -10,10 +10,14 @@ class LinkCaptureBlockHandler
   LinkCaptureBlockHandler(){;}
   LinkCaptureBlockHandler(uhal::HwInterface* uhalHW,
 			  std::string link_capture_block_name,
-			  std::string bram_name);
+			  std::string bram_name,
+			  std::vector<std::string> & elinks
+			  );
   ~LinkCaptureBlockHandler(){;}
 
   const std::string name() const { return m_link_capture_block_name; }
+  const std::string bramName() const { return m_bram_name; }
+  const std::vector< std::string > & getElinks() const {return m_elinks; }
 
   void setRegister(std::string elink, std::string regName, uint32_t value);
   void setGlobalRegister(std::string regName, uint32_t value);
@@ -25,6 +29,7 @@ class LinkCaptureBlockHandler
   uhal::HwInterface* m_uhalHW;
   std::string m_link_capture_block_name; //same names as in the address_table/fw_block_addresses.xml file 
   std::string m_bram_name;
+  std::vector< std::string > m_elinks;
 };
 
 #endif

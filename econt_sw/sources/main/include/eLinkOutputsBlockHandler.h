@@ -1,5 +1,5 @@
 #ifndef ELINKOUTPUTSBLOCKHANDLER
-#define ELINKOUTPUSBLOCKHANDLER 1
+#define ELINKOUTPUSBLOCKHANDLER 
 
 #include <uhal/uhal.hpp>
 #include <yaml-cpp/yaml.h>

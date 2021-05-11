@@ -34,19 +34,8 @@ void eLinkOutputsBlockHandler::setSwitchRegister(std::string elink,std::string r
 
 void eLinkOutputsBlockHandler::setData(std::string bram_name, std::vector<uint32_t> data, uint32_t size)
 {
-
-  // tested reading
-  // std::cout << " size " << m_uhalHW->getNode("eLink_outputs_block0_bram_ctrl").getSize() << std::endl;
-  // uhal::ValVector<uint32_t> vec=m_uhalHW->getNode("eLink_outputs_block0_bram_ctrl").readBlock(m_uhalHW->getNode("eLink_outputs_block0_bram_ctrl").getSize());
-  // m_uhalHW->dispatch();
-  // std::cout << "... success!" << std::endl << "Contents of memory block " << std::endl;
-  // for (uhal::ValVector<uint32_t>::const_iterator lIt = vec.begin(); lIt != vec.end(); lIt++)
-  //   std::cout << "  0x" << std::hex << *lIt << std::endl;
-
   if( data.size()!=size )
     return;
   m_uhalHW->getNode(bram_name).writeBlock(data);
-  // N.B. Depending on the size of the memory block some/all of the values will only be sent to the device when the dispatch method is called
   m_uhalHW->dispatch();
-
 }

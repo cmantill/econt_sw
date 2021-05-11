@@ -39,7 +39,7 @@ ECON-T:
     buff_t1:
      # Output buffer threshold T1 
      # This must be at least 52 for the econ-t emulator to work
-     value: 52
+     value: 156
     config:
      params:
       eporttx_numen:

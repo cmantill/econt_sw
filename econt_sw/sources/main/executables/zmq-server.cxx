@@ -23,6 +23,7 @@
 
 #include "LinkAligner.h"
 #include "FastControlManager.h"
+#include "eventDAQ.h"
 
 namespace zmq_server{
   volatile static bool InterruptSIG = false;
@@ -40,7 +41,7 @@ namespace zmq_server{
 int main(int argc,char** argv)
 {
   bool m_printArgs = false;
-  std::string m_input,m_connectionfile, m_devicename, m_serverport;
+  std::string m_connectionfile, m_devicename, m_serverport;
   int m_uhalLogLevel;
   try { 
     /** Define and parse the program options 
@@ -52,7 +53,6 @@ int main(int argc,char** argv)
       ("serverport,I", po::value<std::string>(&m_serverport)->default_value("6000"), "port of the zmq server where it listens to commands")
       ("connectionfile,f", po::value<std::string>(&m_connectionfile)->default_value("address_table/connection.xml"), "name of ipbus connection file")
       ("devicename,d", po::value<std::string>(&m_devicename)->default_value("mylittlememory"), "name of ipbus connection file")
-      ("input,i", po::value<std::string>(&m_input)->default_value("/home/HGCAL_dev/src/econt_sw/econt_sw/EPORTRX_data.csv"), "input file name")
       ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(0), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug")
       ("printArgs", po::bool_switch(&m_printArgs)->default_value(true), "turn me on to print used arguments");
     
@@ -75,7 +75,6 @@ int main(int argc,char** argv)
     }
 
     if( m_printArgs ){ 
-      if( vm.count("input") )          std::cout << "input = "          << m_input        << std::endl;
       if( vm.count("connectionfile") ) std::cout << "connectionfile = " << m_connectionfile << std::endl;
       if( vm.count("devicename") )     std::cout << "devicename = "     << m_devicename     << std::endl;
       if( vm.count("serverport") )     std::cout << "serverport = "     << m_serverport     << std::endl;
@@ -121,34 +120,8 @@ int main(int argc,char** argv)
 
   FastControlManager* fcptr = new FastControlManager( m_ipbushwptr );
   LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
+  eventDAQ* thedaq = new eventDAQ(m_ipbushwptr, fcptr);
 
-  // input file
-  std::ifstream infile{ m_input.c_str() };
-  std::vector<std::vector<uint32_t> > dataList;
-  if(infile.is_open()){
-    std::string line;
-    // skip the first four lines
-    std::getline(infile, line);
-    std::getline(infile, line);
-    std::getline(infile, line);
-    std::getline(infile, line);
-    while (getline(infile, line)){
-      if (line.empty() || line[0] == '#')
-	continue;
-      std::stringstream ss(line);
-      std::vector<uint32_t> vec;
-      uint32_t val;
-      ss.ignore();
-      ss.ignore();
-      while(ss >> val){
-	vec.push_back(val);
-	if(ss.peek() == ',') ss.ignore();
-	//printf("%i %x\n",val,val);
-      }
-      dataList.push_back(vec);
-    }
-  }
- 
   auto align = [&linkaligner]()->bool{
     boost::timer::cpu_timer timer;
     timer.start();
@@ -190,7 +163,7 @@ int main(int argc,char** argv)
 
   YAML::Node m_config;
   zmq_server::LinkStatusFlag m_linkstatus = zmq_server::LinkStatusFlag::NOT_READY;
-  auto configure = [&m_config, &linkaligner, &m_linkstatus, receive, reply](){
+  auto configure = [&m_config, &linkaligner, &thedaq, &m_linkstatus, receive, reply](){
     boost::timer::cpu_timer timer;
     timer.start();
     reply("ReadyForConfig");
@@ -199,8 +172,8 @@ int main(int argc,char** argv)
     try{
       m_config = YAML::Load(configstr)["daq"];
       std::cout << m_config << std::endl;
-      auto otua = m_config["L1A_A"]["BX"].as<uint32_t>(); // just testing that the node contains something to force to try/catch something
-      (void)otua;
+      auto inputfile = m_config["input_file"].as< std::string >(); // just testing that the node contains something to force to try/catch something
+      (void)inputfile;
     }
     catch( std::exception& e){
       std::cerr << "Exception : " 
@@ -208,15 +181,16 @@ int main(int argc,char** argv)
       reply("ConfigError");
       return;
     }
-    //if( linkaligner->configure( m_config ) ) 
-    //  reply("Configured");
-    //else
-   //  reply("ConfigError");
+    if( thedaq->configure( m_config ) )
+      reply("Configured");
+    else
+      reply("ConfigError");
+
     timer.stop();
     std::cout << "\t\t configure ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
   };
 
-  auto start = [&m_linkstatus,reply,align](){
+  auto start = [&m_linkstatus,&thedaq,reply,align](){
     switch( m_linkstatus ){
     case zmq_server::LinkStatusFlag::NOT_READY :
     if( align() )
@@ -225,9 +199,13 @@ int main(int argc,char** argv)
       reply("Can't Start");
       break;
     }
-    reply("Aligned, running");
+    //case zmq_server::LinkStatusFlag::READY :
+    std::cout << "acquire " << std::endl;
+    thedaq->acquire();
+    reply("Running");
     }
   };
+
 
   const std::unordered_map<std::string,std::function<void()> > actionMap = {
     {"configure", [&](){ configure(); }},

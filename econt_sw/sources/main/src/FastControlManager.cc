@@ -17,7 +17,6 @@ void FastControlManager::resetFC()
   m_uhalHW->getNode("fastcontrol_axi.command.enable_calib_l1a").write(0x0);
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_A").write(0x0);
   m_uhalHW->getNode("fastcontrol_axi.command.enable_periodic_l1a_B").write(0x0);
-  m_uhalHW->getNode("fastcontrol_axi.command.link_reset").write(0x1);
 }
 void FastControlManager::clear_link_reset()
 {
