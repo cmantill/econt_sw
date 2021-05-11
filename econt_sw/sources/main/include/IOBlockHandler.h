@@ -9,10 +9,12 @@ class IOBlockHandler
  public:
   IOBlockHandler(){;}
   IOBlockHandler(uhal::HwInterface* uhalHW,
-		 std::string IO_block_name);
+		 std::string IO_block_name,
+		 std::vector<std::string> & elinks);
   ~IOBlockHandler(){;}
 
   const std::string name() const { return m_IO_block_name; }
+  const std::vector< std::string > & getElinks() const {return m_elinks; }
 
   void setRegister(std::string elink, std::string regName, uint32_t value);
   void setGlobalRegister(std::string regName, uint32_t value);
@@ -22,6 +24,7 @@ class IOBlockHandler
  private:
   uhal::HwInterface* m_uhalHW;
   std::string m_IO_block_name; //same names as in the address_table/fw_block_addresses.xml file 
+  std::vector< std::string > m_elinks;
 };
 
 #endif

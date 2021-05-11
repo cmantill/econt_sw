@@ -35,11 +35,6 @@ class eventDAQ
 
   eLinkOutputsBlockHandler m_out;
   LinkCaptureBlockHandler m_lchandler;
-  IOBlockHandler m_fromIO;
-  IOBlockHandler m_toIO;
-  std::vector<std::string> m_eLinksInput;
-  std::vector<std::string> m_eLinksOutput;
-  std::vector<std::string> m_outputBrams;
 
 };
 

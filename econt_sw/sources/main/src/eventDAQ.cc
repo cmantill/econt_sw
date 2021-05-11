@@ -22,7 +22,6 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
     std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
     brams.push_back(bramname);
   }
-  m_eLinksInput = elinksInput;
 
   // output links
   std::vector<std::string> eLinksOutput;
@@ -30,24 +29,15 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
     std::string name=buildname(base,i);
     eLinksOutput.push_back(name);
   }
-  m_eLinksOutput = eLinksOutput;
 
   // eLinkOutputs block (programmable data)
   eLinkOutputsBlockHandler outhandler( m_uhalHW,
 				       std::string("eLink_outputs_ipif_stream_mux"),
 				       std::string("eLink_outputs_ipif_switch_mux"),
-				       brams
+				       brams,
+				       elinksInput
 				       );
 
-  // IO blocks 
-  // toIO (input data)
-  IOBlockHandler toIOhandler( m_uhalHW,
-                              std::string("from_ECONT_IO_axi_to_ipif")
-                              );
-  // fromIO (output data)
-  IOBlockHandler fromIOhandler( m_uhalHW,
-                                std::string("from_ECONT_IO_axi_to_ipif")
-                                );
   // link capture
   LinkCaptureBlockHandler lchandler( m_uhalHW,
                                      std::string("link_capture_axi"),
@@ -57,14 +47,12 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
 
   m_lchandler = lchandler;
   m_out = outhandler;
-  m_fromIO = fromIOhandler;
-  m_toIO = toIOhandler;
 }
 
 bool eventDAQ::configure( const YAML::Node& config )
 {
   // configuring programmable data
-  for(auto elink : m_eLinksInput){
+  for(auto elink : m_out.getElinks()){
     // select the stream from RAM as the source 
     m_out.setSwitchRegister(elink,"output_select",0);
     // send 255 words in the link reset pattern 
@@ -120,7 +108,8 @@ bool eventDAQ::configure( const YAML::Node& config )
       }
       std::cout << std::endl;
     }
-
+    
+    /*
     std::cout << "Input data hex " << std::endl;
     for(unsigned int i=0; i!=dataList.at(0).size(); i++) {
       for(auto elink : dataList){
@@ -128,82 +117,67 @@ bool eventDAQ::configure( const YAML::Node& config )
       }
       std::cout << std::endl;
     }
+    */
   }
 
   // set data to eLinkOutputs block
   int il=0; // elink iterator
   uint32_t size_bram = 8192;
-  for(auto bram : m_outputBrams){
+  for(auto bram : m_out.getElinks()){
     m_out.setData(bram, dataList.at(il), size_bram);
     il++;
-  }
-
-  // switching on IO
-  for(auto elink : m_eLinksInput){
-    m_toIO.setRegister(elink,"reg0",0b110);
-    m_toIO.setRegister(elink,"reg0",0b101);
-  }
-  for(auto elink : m_eLinksOutput){
-    m_fromIO.setRegister(elink,"reg0",0b110);
-    m_fromIO.setRegister(elink,"reg0",0b101);
   }
 
   // fc
   m_fcMan->enable_FC_stream(0x1);
   m_fcMan->enable_orbit_sync(0x1);
-  //m_fcMan->enable_periodic_l1a_A(0x0);
-  //m_fcMan->enable_periodic_l1a_B(0x0);
-  //m_fcMan->enable_periodic_calib_req(0x0);
-  //m_fcMan->enable_calib_l1a(0x0);
-  //m_fcMan->enable_random_l1a(0x0);
-
+  
+  return true;
+}
+void eventDAQ::configurelinks()
+{
   // link capture
-  for(auto elink : m_lchandler.getElinks()){
-    //m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0);
-    //m_lchandler.setRegister(elink,"explicit_rstb_acquire", 1);
+  m_lchandler.setGlobalRegister("aquire",0x1);
 
+  for(auto elink : m_lchandler.getElinks()){
+    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0x0);
+    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0x1);
     // set the capture mode of all 13 links to 2 (L1A)
     m_lchandler.setRegister(elink,"capture_mode_in",2);
     // set the acquire length of all 13 links
     m_lchandler.setRegister(elink,"aquire_length", 256);
     // tell link capture to do an acquisition
     m_lchandler.setRegister(elink,"aquire", 1);
-
-    //uint32_t bx_offset = m_lchandler.getRegister(elink,"L1A_offset_or_BX");
-    //m_lchandler.setRegister(elink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
   }
-
-  return true;
 }
 
 void eventDAQ::acquire()
 {
+  configurelinks();
+
   //m_fcMan->set_l1a_A_bx(3549);
-  //m_fcMan->set_l1a_A_bx(0);
-  std::cout << "link reset counter before: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
-  std::cout << "l1a counter before: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
-  //m_fcMan->enable_periodic_l1a_A(0x1);
+  m_fcMan->set_l1a_A_bx(0);
   m_fcMan->l1a_A(0x1);
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  std::cout << " l1a counter after: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
-  std::cout << "link reset counter after: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
 
-  //m_fcMan->enable_FC_stream(0x1);
-  //m_fcMan->enable_orbit_sync(0x1);
-  //m_fcMan->link_reset(0x0);
+  m_fcMan->enable_FC_stream(0x1);
+  m_fcMan->enable_orbit_sync(0x1);
 
-  auto linksdata = std::vector< std::vector<uint32_t> >(m_eLinksOutput.size());
+  auto linksdata = std::vector< std::vector<uint32_t> >(NUM_OUTPUTLINKS);
   int id=0;
-  for( auto elink : m_eLinksOutput){
+  for( auto elink : m_lchandler.getElinks()){
     uint32_t fifo_occupancy =  m_lchandler.getRegister(elink,"fifo_occupancy");
-    std::cout << "fifo occ " << fifo_occupancy << std::endl;
     m_lchandler.getData( elink, linksdata[id], fifo_occupancy );
+    //std::cout << "elink " << elink << " ";
+    //for(auto datavec : linksdata[id]){
+    //  std::cout << datavec << " ";
+    // }
+    //std::cout << std::endl;
     id++;
   }
   
   bool printData = true;
   if(printData){
-    std::cout << "Captured data " << std::endl;
     for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
       std::cout << "i " << i << " ";
       for(auto elink : linksdata){
@@ -211,14 +185,21 @@ void eventDAQ::acquire()
       }
       std::cout << std::endl;
     }
+    auto posit = std::find( linksdata.at(12).begin(), linksdata.at(12).end(), 4179818786 );
+    if (posit !=  linksdata.at(12).end()){
+      std::cout << "found 4179818786 in elink 12 pos " << posit - linksdata.at(12).begin() << std::endl;
+    }
 
     // hex
+    /*
     std::cout << "Captured data hex size " << linksdata.at(0).size() << std::endl;
     for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
       std::cout << "i " << i << " ";
       for(auto elink : linksdata){
-	std::cout << std::hex << std::uppercase << elink.at(i) << std::nouppercase << std::dec << " ";                                                                                                 
+	std::cout << std::hex << std::uppercase << elink.at(i) << std::nouppercase << std::dec << " ";
       }
+      std::cout << std::endl;
     }
+    */
   }
 }

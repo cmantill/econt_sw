@@ -20,6 +20,13 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   auto buildname = [](std::string base, int val)->std::string{ return base+std::to_string(val); };
   auto base = std::string("link");
 
+  // input links
+  std::vector<std::string> elinksInput;
+  for( int i=0; i<NUM_INPUTLINKS; i++ ){
+    std::string name=buildname(base,i);
+    elinksInput.push_back(name);
+  }
+
   // output links                                                                                                                                                            
   std::vector<std::string> elinksOutput;
   for( int i=0; i<NUM_OUTPUTLINKS; i++ ){
@@ -33,17 +40,32 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 				     std::string("link_capture_axi_full_ipif"),
 				     elinksOutput
 				     );
-  
-  // fromIO
+  // toIO (input data)
+  IOBlockHandler toIOhandler( m_uhalHW,
+                              std::string("from_ECONT_IO_axi_to_ipif"),
+			      elinksInput
+                              );
+  // fromIO (output data)
   IOBlockHandler fromIOhandler( m_uhalHW,
-                                std::string("from_ECONT_IO_axi_to_ipif")
+                                std::string("from_ECONT_IO_axi_to_ipif"),
+				elinksOutput
                                 );
   m_lchandler = lchandler;
   m_fromIO = fromIOhandler;
-
+  m_toIO = toIOhandler;
 }
 
 void LinkAligner::align() {
+  // switching on IO
+  for(auto elink : m_toIO.getElinks()){
+    m_toIO.setRegister(elink,"reg0",0b110);
+    m_toIO.setRegister(elink,"reg0",0b101);
+  }
+  for(auto elink : m_fromIO.getElinks()){
+    m_fromIO.setRegister(elink,"reg0",0b110);
+    m_fromIO.setRegister(elink,"reg0",0b101);
+  }
+
   // sending 3 link resets to get IO delays set up properly
   m_fcMan->resetFC();
   for( int i=0; i<3; i++ ){
@@ -99,6 +121,7 @@ bool LinkAligner::checkLinks()
       std::cout << "Error :  " << elink << " is not aligned" << std::endl;
       return false;
     }
+    m_lchandler.setRegister(elink,"aquire", 1);
   }
 
   // check data integrity
@@ -119,6 +142,9 @@ bool LinkAligner::checkLinks()
       return false;
     }
     id++;
+    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0);
+    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 1);
+    m_lchandler.setGlobalRegister("interrupt_enable", 0x0);
   }
   if ( !std::equal(positions.begin() + 1, positions.end(), positions.begin()) ){
     std::cout << "Error: " << " not all alignments patterns are in the same position " << std::endl;

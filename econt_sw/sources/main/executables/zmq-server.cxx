@@ -199,7 +199,9 @@ int main(int argc,char** argv)
       reply("Can't Start");
       break;
     }
-    //case zmq_server::LinkStatusFlag::READY :
+    case zmq_server::LinkStatusFlag::ALIGNED :
+    m_linkstatus = zmq_server::LinkStatusFlag::READY;
+    case zmq_server::LinkStatusFlag::READY :
     std::cout << "acquire " << std::endl;
     thedaq->acquire();
     reply("Running");

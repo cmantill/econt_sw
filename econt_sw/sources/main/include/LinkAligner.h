@@ -33,7 +33,7 @@ class LinkAligner
 
   LinkCaptureBlockHandler m_lchandler;
   IOBlockHandler m_fromIO;
-
+  IOBlockHandler m_toIO;
   std::vector<std::string> m_eLinks;
   std::vector<std::string> m_outputBrams;
 };

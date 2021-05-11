@@ -9,10 +9,12 @@
 eLinkOutputsBlockHandler::eLinkOutputsBlockHandler(uhal::HwInterface* uhalHW,
 						   std::string stream_block_name,
 						   std::string switch_block_name,
-						   std::vector<std::string> bram_names): m_uhalHW(uhalHW),
-											 m_stream_block_name(stream_block_name),
-											 m_switch_block_name(switch_block_name),
-											 m_bram_names(bram_names)
+						   std::vector<std::string> bram_names,
+						   std::vector<std::string> & elinks): m_uhalHW(uhalHW),
+										       m_stream_block_name(stream_block_name),
+										       m_switch_block_name(switch_block_name),
+										       m_bram_names(bram_names),
+										       m_elinks(elinks)
 {
 }
 

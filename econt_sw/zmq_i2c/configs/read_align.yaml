@@ -1,4 +1,14 @@
 ECON-T:
+ RW: 
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       param_value: 0
+      density:
+       param_shift: 0
+
  RO:
   CH_ALIGNER_*INPUT_ALL:
    registers:
