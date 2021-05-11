@@ -107,6 +107,7 @@ bool LinkAligner::checkLinks()
   std::vector<int> positions;
   for( auto elink : m_lchandler.getElinks() ){
     uint32_t fifo_occupancy =  m_lchandler.getRegister(elink,"fifo_occupancy");
+    std::cout << "fifo link aligner " << fifo_occupancy<< std::endl;
     m_lchandler.getData( elink, linksdata[id], fifo_occupancy );
     int nBX0 = (int)std::count( linksdata[id].begin(), linksdata[id].end(), BX0_WORD );
     auto posit = std::find( linksdata[id].begin(), linksdata[id].end(), BX0_WORD );

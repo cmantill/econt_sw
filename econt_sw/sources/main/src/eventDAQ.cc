@@ -146,16 +146,23 @@ bool eventDAQ::configure( const YAML::Node& config )
   }
 
   // fc
-
+  m_fcMan->enable_FC_stream(0x1);
+  m_fcMan->enable_orbit_sync(0x1);
+  m_fcMan->enable_periodic_l1a_A(0x0);
+  m_fcMan->enable_periodic_l1a_B(0x0);
+  m_fcMan->enable_periodic_calib_req(0x0);
+  m_fcMan->enable_calib_l1a(0x0);
+  m_fcMan->enable_random_l1a(0x0);
 
   // link capture
   for(auto elink : m_lchandler.getElinks()){
     // set the capture mode of all 13 links to 2 (L1A)
     m_lchandler.setRegister(elink,"capture_mode_in",2);
     // set the acquire length of all 13 links
-    m_lchandler.setRegister(elink,"aquire_length", 512);
+    m_lchandler.setRegister(elink,"aquire_length", 256);
     // tell link capture to do an acquisition
     m_lchandler.setRegister(elink,"aquire", 1);
+
     uint32_t bx_offset = m_lchandler.getRegister(elink,"L1A_offset_or_BX");
     m_lchandler.setRegister(elink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
   }
@@ -165,12 +172,14 @@ bool eventDAQ::configure( const YAML::Node& config )
 
 void eventDAQ::acquire()
 {
-  //m_fcMan->set_l1a_A_bx(3549);
+  m_fcMan->set_l1a_A_bx(3549);
   //m_fcMan->set_l1a_A_bx(0);
-  std::cout << "LinkAligner:: LinkCapture, l1a counter before new " << m_fcMan->getRecvRegister("l1a_count");
-  m_fcMan->enable_periodic_l1a_A(0x1);
-  //m_fcMan->l1a_A(0x1);
-  std::cout << " l1a counter after " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
+  std::cout << "link reset counter before: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
+  std::cout << "l1a counter before: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
+  //m_fcMan->enable_periodic_l1a_A(0x1);
+  m_fcMan->l1a_A(0x1);
+  std::cout << " l1a counter after: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
+  std::cout << "link reset counter after: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
 
   m_fcMan->enable_FC_stream(0x1);
   m_fcMan->enable_orbit_sync(0x1);
