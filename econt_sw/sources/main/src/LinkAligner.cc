@@ -20,18 +20,18 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   auto buildname = [](std::string base, int val)->std::string{ return base+std::to_string(val); };
   auto base = std::string("link");
 
-  // input links                                                                                                                                                                                      
-  std::vector<std::string> elinksInput;
-  for( int i=0; i<NUM_INPUTLINKS; i++ ){
+  // output links                                                                                                                                                            
+  std::vector<std::string> elinksOutput;
+  for( int i=0; i<NUM_OUTPUTLINKS; i++ ){
     std::string name=buildname(base,i);
-    elinksInput.push_back(name);
+    elinksOutput.push_back(name);
   }
 
   // link capture
   LinkCaptureBlockHandler lchandler( m_uhalHW,
                                      std::string("link_capture_axi"),
 				     std::string("link_capture_axi_full_ipif"),
-				     elinksInput
+				     elinksOutput
 				     );
   
   // fromIO

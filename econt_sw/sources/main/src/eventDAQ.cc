@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
 {
@@ -20,10 +22,11 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
     std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
     brams.push_back(bramname);
   }
+  m_eLinksInput = elinksInput;
 
   // output links
   std::vector<std::string> eLinksOutput;
-  for( int i=0; i<13; i++ ){
+  for( int i=0; i<NUM_OUTPUTLINKS; i++ ){
     std::string name=buildname(base,i);
     eLinksOutput.push_back(name);
   }
@@ -49,7 +52,7 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
   LinkCaptureBlockHandler lchandler( m_uhalHW,
                                      std::string("link_capture_axi"),
 				     std::string("link_capture_axi_full_ipif"),
-				     elinksInput
+				     eLinksOutput
 				     );
 
   m_lchandler = lchandler;
@@ -61,7 +64,7 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
 bool eventDAQ::configure( const YAML::Node& config )
 {
   // configuring programmable data
-  for(auto elink : m_eLinks){
+  for(auto elink : m_eLinksInput){
     // select the stream from RAM as the source 
     m_out.setSwitchRegister(elink,"output_select",0);
     // send 255 words in the link reset pattern 
@@ -136,7 +139,7 @@ bool eventDAQ::configure( const YAML::Node& config )
   }
 
   // switching on IO
-  for(auto elink : m_eLinks){
+  for(auto elink : m_eLinksInput){
     m_toIO.setRegister(elink,"reg0",0b110);
     m_toIO.setRegister(elink,"reg0",0b101);
   }
@@ -148,14 +151,17 @@ bool eventDAQ::configure( const YAML::Node& config )
   // fc
   m_fcMan->enable_FC_stream(0x1);
   m_fcMan->enable_orbit_sync(0x1);
-  m_fcMan->enable_periodic_l1a_A(0x0);
-  m_fcMan->enable_periodic_l1a_B(0x0);
-  m_fcMan->enable_periodic_calib_req(0x0);
-  m_fcMan->enable_calib_l1a(0x0);
-  m_fcMan->enable_random_l1a(0x0);
+  //m_fcMan->enable_periodic_l1a_A(0x0);
+  //m_fcMan->enable_periodic_l1a_B(0x0);
+  //m_fcMan->enable_periodic_calib_req(0x0);
+  //m_fcMan->enable_calib_l1a(0x0);
+  //m_fcMan->enable_random_l1a(0x0);
 
   // link capture
   for(auto elink : m_lchandler.getElinks()){
+    //m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0);
+    //m_lchandler.setRegister(elink,"explicit_rstb_acquire", 1);
+
     // set the capture mode of all 13 links to 2 (L1A)
     m_lchandler.setRegister(elink,"capture_mode_in",2);
     // set the acquire length of all 13 links
@@ -163,8 +169,8 @@ bool eventDAQ::configure( const YAML::Node& config )
     // tell link capture to do an acquisition
     m_lchandler.setRegister(elink,"aquire", 1);
 
-    uint32_t bx_offset = m_lchandler.getRegister(elink,"L1A_offset_or_BX");
-    m_lchandler.setRegister(elink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
+    //uint32_t bx_offset = m_lchandler.getRegister(elink,"L1A_offset_or_BX");
+    //m_lchandler.setRegister(elink,"L1A_offset_or_BX", (bx_offset&0xffff0000)|10 );
   }
 
   return true;
@@ -172,18 +178,19 @@ bool eventDAQ::configure( const YAML::Node& config )
 
 void eventDAQ::acquire()
 {
-  m_fcMan->set_l1a_A_bx(3549);
+  //m_fcMan->set_l1a_A_bx(3549);
   //m_fcMan->set_l1a_A_bx(0);
   std::cout << "link reset counter before: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
   std::cout << "l1a counter before: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
   //m_fcMan->enable_periodic_l1a_A(0x1);
   m_fcMan->l1a_A(0x1);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
   std::cout << " l1a counter after: " << m_fcMan->getRecvRegister("l1a_count") << std::endl;
   std::cout << "link reset counter after: " << m_fcMan->getRecvRegister("link_reset_count") << std::endl;
 
-  m_fcMan->enable_FC_stream(0x1);
-  m_fcMan->enable_orbit_sync(0x1);
-  m_fcMan->link_reset(0x0);
+  //m_fcMan->enable_FC_stream(0x1);
+  //m_fcMan->enable_orbit_sync(0x1);
+  //m_fcMan->link_reset(0x0);
 
   auto linksdata = std::vector< std::vector<uint32_t> >(m_eLinksOutput.size());
   int id=0;
