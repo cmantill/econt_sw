@@ -4,6 +4,7 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <boost/format.hpp>
 
 eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
 {
@@ -74,7 +75,10 @@ bool eventDAQ::configure( const YAML::Node& config )
   // reading data from file
   auto inputstr = config["input_file"].as< std::string >();
   std::ifstream infile{ inputstr.c_str() };
+  bool infileopen = false;
   if(infile.is_open()){
+    infileopen = true;
+    int id=0;
     std::string line;
     // skip first 4 lines
     std::getline(infile, line);
@@ -91,40 +95,58 @@ bool eventDAQ::configure( const YAML::Node& config )
       ss.ignore();
       int elink = -1;
       while(ss >> val){
-	if(elink>-1) dataList.at(elink).push_back(val);
+        if(elink>-1) {
+	  if((val&0xF0000000)!=0) std::cout << "header not zero " << std::endl;
+	  // add headers
+	  if(id==0){
+	    val |= 0x90000000;
+	  }
+	  else{
+	    val |= 0xa0000000;
+	  }
+	  dataList.at(elink).push_back(static_cast<uint32_t>(val));
+	  id++;
+	}
         if(ss.peek() == ',') ss.ignore();
 	elink++;
       }
     }
   };
+  
 
   // print input data
   bool printInput = true;
   if(printInput){
     std::cout << "Input data " << dataList.at(0).size() << std::endl;
-    for(unsigned int i=0; i!=dataList.at(0).size(); i++) {
-      for(auto elink : dataList){
-	std::cout << elink.at(i) << " ";
+    for(unsigned int i=0; i<dataList.at(0).size(); ++i) {
+      for(auto elink : dataList) {
+	//std::cout << elink.at(i) << " ";
+	std::cout << boost::format("0x%08x") % elink.at(i) << " ";
+	//std::cout << std::hex << elink.at(i) << std::dec << " ";
       }
       std::cout << std::endl;
     }
-    
-    /*
-    std::cout << "Input data hex " << std::endl;
-    for(unsigned int i=0; i!=dataList.at(0).size(); i++) {
-      for(auto elink : dataList){
-	std::cout << std::hex << std::uppercase << elink.at(i) << std::nouppercase << std::dec << " ";
-      }
-      std::cout << std::endl;
-    }
-    */
   }
 
   // set data to eLinkOutputs block
   int il=0; // elink iterator
   uint32_t size_bram = 8192;
-  for(auto bram : m_out.getElinks()){
-    m_out.setData(bram, dataList.at(il), size_bram);
+  for(auto bram : m_out.getBrams()){
+    std::vector<uint32_t> outData;
+    if(infileopen){
+      for(size_t i=0; i<dataList.at(0).size(); i++) { 
+	outData.push_back(dataList.at(il).at(i));
+      }
+      for(size_t i=dataList.at(0).size(); i< size_bram; ++i) {
+	outData.push_back(static_cast<uint32_t>(0xa0000000));
+      }
+    }
+    else{
+      outData.push_back(static_cast<uint32_t>(0x90000000)); 
+      for(size_t i=1; i!= size_bram; ++i) 
+	outData.push_back(static_cast<uint32_t>(0xa0000000));
+    }
+    m_out.setData(bram, outData, size_bram);
     il++;
   }
 
@@ -145,6 +167,7 @@ void eventDAQ::configurelinks()
     // set the capture mode of all 13 links to 2 (L1A)
     m_lchandler.setRegister(elink,"capture_mode_in",2);
     // set the acquire length of all 13 links
+    //m_lchandler.setRegister(elink,"aquire_length", 4096);
     m_lchandler.setRegister(elink,"aquire_length", 256);
     // tell link capture to do an acquisition
     m_lchandler.setRegister(elink,"aquire", 1);
@@ -168,38 +191,20 @@ void eventDAQ::acquire()
   for( auto elink : m_lchandler.getElinks()){
     uint32_t fifo_occupancy =  m_lchandler.getRegister(elink,"fifo_occupancy");
     m_lchandler.getData( elink, linksdata[id], fifo_occupancy );
-    //std::cout << "elink " << elink << " ";
-    //for(auto datavec : linksdata[id]){
-    //  std::cout << datavec << " ";
-    // }
-    //std::cout << std::endl;
     id++;
   }
   
   bool printData = true;
   if(printData){
-    for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
-      std::cout << "i " << i << " ";
-      for(auto elink : linksdata){
-	std::cout << elink.at(i) << " ";
-      }
-      std::cout << std::endl;
-    }
-    auto posit = std::find( linksdata.at(12).begin(), linksdata.at(12).end(), 4179818786 );
-    if (posit !=  linksdata.at(12).end()){
-      std::cout << "found 4179818786 in elink 12 pos " << posit - linksdata.at(12).begin() << std::endl;
-    }
-
-    // hex
-    /*
     std::cout << "Captured data hex size " << linksdata.at(0).size() << std::endl;
     for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
       std::cout << "i " << i << " ";
       for(auto elink : linksdata){
-	std::cout << std::hex << std::uppercase << elink.at(i) << std::nouppercase << std::dec << " ";
+	std::cout << boost::format("0x%08x") % elink.at(i) << " ";
+	//std::cout << std::hex << elink.at(i) << std::dec << " ";
       }
       std::cout << std::endl;
     }
-    */
+
   }
 }
