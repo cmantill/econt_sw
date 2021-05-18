@@ -39,8 +39,11 @@ class econ_interface():
 
     def read(self, cfg=None):
         """ Read from configs or cache """
-        if cfg: return self.__read_fr_cfg(cfg)
-        else: return self.__read_fr_cache()
+        # print('read from configs or cache ',cfg)
+        if cfg: 
+            return self.__read_fr_cfg(cfg)
+        else: 
+            return self.__read_fr_cache()
 
     def read_pairs(self, pairs):
         """ Read addresses in addr:val pairs """
@@ -61,13 +64,13 @@ class econ_interface():
 
     def __read_fr_cfg(self, cfg):
         """ Read addresses (=keys) in cfgs from rocs. """
-        #print('read cfg')
+        # print('read fr cfg')
         # TODO: make this for multiple cfgs?
         paramMap = self.translator.load_param_map(cfg)['ECON-T']
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
-        cfg = self.translator.cfg_from_pairs(rd_pairs)
-        return cfg
+        cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)
+        return cfgRead
 
     def __read_fr_cache(self):
         """ Read addresses in write_param cache. """

@@ -33,13 +33,15 @@ class Translator():
                 paramMap = safe_load(fin)
         return paramMap
 
-    def cfg_from_pairs(self, pairs):
+    def cfg_from_pairs(self, pairs, config=None):
         """
         Convert from {addr:[val,size_byte]} pairs to {param:param_val} config.
         We can only recover a parameter from a pair when it is in the common cache.
         However, when we read (or write) a param the common cache is populated in advance.
         """
-        #print('Translator::cfg form pairs')
+        # print('Translator::cfg form pairs')
+        if config:
+            read_cfg = self.__expandVal_paramMap(config['ECON-T'])
         cfg = nested_dict()
         for access,accessDict in self.__regs_from_paramMap.cache[()].items():
             for block,blockDict in accessDict.items():
@@ -47,9 +49,17 @@ class Translator():
                     addr = paramDict['addr']
                     if addr in pairs.keys():
                         if isinstance(pairs[addr][0],list):
-                            cfg[access][block][param] = int.from_bytes(pairs[addr][0], 'little')
+                            reg_value = int.from_bytes(pairs[addr][0], 'little')
                         else:
-                            cfg[access][block][param] = int.from_bytes(pairs[addr], 'little')
+                            reg_value = int.from_bytes(pairs[addr], 'little')
+                        cfg[access][block][param] = reg_value
+
+                        if config:
+                            for read_par in read_cfg[access][block][param]['params']:
+                                if read_par in paramDict['params'].keys():
+                                    tmpVal = self.__paramVal_from_regVal(paramDict['params'][read_par], reg_value) 
+                                    cfg[access][block][param + '_' + read_par] = tmpVal
+
         return cfg.to_dict()
 
     def pairs_from_cfg(self, cfg=None, prevCache={}):
