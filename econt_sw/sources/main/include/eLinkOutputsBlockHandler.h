@@ -17,6 +17,7 @@ class eLinkOutputsBlockHandler
   ~eLinkOutputsBlockHandler(){;}
 
   const std::vector< std::string > & getElinks() const {return m_elinks; }
+  const std::vector< std::string > & getBrams() const {return m_bram_names; }
 
   void setStreamRegister(std::string elink, std::string regName, uint32_t value);
   void setSwitchRegister(std::string elink, std::string regName, uint32_t value);
