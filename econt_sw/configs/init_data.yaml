@@ -43,7 +43,11 @@ ECON-T:
     buff_t1:
      # Output buffer threshold T1 
      # This must be at least 52 for the econ-t emulator to work
-     value: 156
+     value: 338
+    buff_t2:
+     value: 314
+    buff_t3:  
+     value: 25
     config:
      params:
       eporttx_numen:
@@ -67,7 +71,7 @@ ECON-T:
   MFC_CAL_VAL:
    registers:
     cal_*:
-     value: [358, 347, 335, 336, 347, 348, 335, 335,
+     value: [348, 347, 335, 336, 347, 348, 335, 335,
              323, 323, 311, 311, 325, 324, 312, 314, 
              307, 293, 304, 318, 280, 267, 279, 291,
              303, 290, 302, 315, 329, 316, 328, 340,
@@ -89,12 +93,12 @@ ECON-T:
   ALGO_THRESHOLD_VAL:
    registers:
     threshold_val_*:
-     value: [47, 47, 47, 47, 47, 47, 47, 47,
-             47, 47, 47, 47, 47, 47, 47, 47,
-             47, 47, 47, 47, 47, 47, 47, 47,
-             47, 47, 47, 47, 47, 47, 47, 47,
-             47, 47, 47, 47, 47, 47, 47, 47,
-             47, 47, 47, 47, 47, 47, 47, 47]
+     value: [0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0, 0, 0]
 
   ALGO_DROPLSB:
    registers:
