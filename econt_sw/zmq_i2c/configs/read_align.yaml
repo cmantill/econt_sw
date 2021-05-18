@@ -13,7 +13,13 @@ ECON-T:
   CH_ALIGNER_*INPUT_ALL:
    registers:
      status:
-      value: 0
+      params:
+       orbsyn_arr_err: 
+        param_value: 0
+       orbsyn_hdr_err:
+        param_value: 0
+       hdr_mm_err:
+        param_value: 0
      select: 
       value: 0
      snapshot: 
