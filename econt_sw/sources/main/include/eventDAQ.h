@@ -5,10 +5,10 @@
 #include <zmq.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include "LinkCaptureBlockHandler.h"
-#include "FastControlManager.h"
-#include "IOBlockHandler.h"
-#include "eLinkOutputsBlockHandler.h"
+#include <LinkCaptureBlockHandler.h>
+#include <FastControlManager.h>
+#include <IOBlockHandler.h>
+#include <eLinkOutputsBlockHandler.h>
 
 #define NUM_INPUTLINKS 12
 #define NUM_OUTPUTLINKS 13
@@ -24,6 +24,7 @@ class eventDAQ
   ~eventDAQ();
 
   bool configure( const YAML::Node& config );
+  bool read();
 
   void run();
   void configurelinks();
@@ -36,6 +37,7 @@ class eventDAQ
   eLinkOutputsBlockHandler m_out;
   LinkCaptureBlockHandler m_lchandler;
 
+  std::string inputstr;
 };
 
 #endif

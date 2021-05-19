@@ -8,6 +8,7 @@
 #include <FastControlManager.h>
 #include <LinkCaptureBlockHandler.h>
 #include <IOBlockHandler.h>
+#include <eLinkOutputsBlockHandler.h>
 
 #define ALIGN_PATTERN 0xACCCCCCC
 #define BX0_PATTERN 0x9CCCCCCC
@@ -22,6 +23,7 @@ class LinkAligner
   LinkAligner(uhal::HwInterface* uhalHWInterface, FastControlManager* fc);
   ~LinkAligner(){;}
 
+  bool configure();
   void align();
   bool checkLinks();
 
@@ -31,6 +33,7 @@ class LinkAligner
   uhal::HwInterface* m_uhalHW;
   FastControlManager* m_fcMan;
 
+  eLinkOutputsBlockHandler m_out;
   LinkCaptureBlockHandler m_lchandler;
   IOBlockHandler m_fromIO;
   IOBlockHandler m_toIO;

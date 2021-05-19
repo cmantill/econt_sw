@@ -85,7 +85,6 @@ ECON-T:
       select:
        # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)   
        param_value: 0
-       # param_value: 3
       density:
        # 1: high density
        param_value: 1
@@ -93,12 +92,12 @@ ECON-T:
   ALGO_THRESHOLD_VAL:
    registers:
     threshold_val_*:
-     value: [0, 0, 0, 0, 0, 0, 0, 0,
-             0, 0, 0, 0, 0, 0, 0, 0,
-             0, 0, 0, 0, 0, 0, 0, 0,
-             0, 0, 0, 0, 0, 0, 0, 0,
-             0, 0, 0, 0, 0, 0, 0, 0,
-             0, 0, 0, 0, 0, 0, 0, 0]
+     value: [47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47]
 
   ALGO_DROPLSB:
    registers:

@@ -52,32 +52,24 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
 
 bool eventDAQ::configure( const YAML::Node& config )
 {
-  // configuring programmable data
-  for(auto elink : m_out.getElinks()){
-    // select the stream from RAM as the source 
-    m_out.setSwitchRegister(elink,"output_select",0);
-    // send 255 words in the link reset pattern 
-    m_out.setSwitchRegister(elink,"n_idle_words",255);
-    // send this word for almost all of the link reset pattern
-    m_out.setSwitchRegister(elink,"idle_word",ALIGN_PATTERN); 
-    // send this word on BX0 during the link reset pattern
-    m_out.setSwitchRegister(elink,"idle_word_BX0",BX0_PATTERN);
+  // input file string
+  inputstr = config["input_file"].as< std::string >();
 
-    // stream one complete orbit from RAM before looping 
-    m_out.setStreamRegister(elink,"sync_mode",1); 
-    // determine pattern length in orbits: 1
-    m_out.setStreamRegister(elink,"ram_range",1); 
-  }
+  // fc
+  m_fcMan->enable_FC_stream(0x1);
+  m_fcMan->enable_orbit_sync(0x1);
 
+  return true;
+}
+
+bool eventDAQ::read()
+{
   // input data to ECON
   std::vector<std::vector<uint32_t> > dataList(NUM_INPUTLINKS);
 
   // reading data from file
-  auto inputstr = config["input_file"].as< std::string >();
   std::ifstream infile{ inputstr.c_str() };
-  bool infileopen = false;
   if(infile.is_open()){
-    infileopen = true;
     int id=0;
     std::string line;
     // skip first 4 lines
@@ -105,14 +97,16 @@ bool eventDAQ::configure( const YAML::Node& config )
 	    val |= 0xa0000000;
 	  }
 	  dataList.at(elink).push_back(static_cast<uint32_t>(val));
-	  id++;
 	}
         if(ss.peek() == ',') ss.ignore();
 	elink++;
       }
+      if(elink>-1) id++;
     }
-  };
-  
+  }
+  else{
+    return false;
+  }
 
   // print input data
   bool printInput = true;
@@ -122,7 +116,7 @@ bool eventDAQ::configure( const YAML::Node& config )
       for(auto elink : dataList) {
 	//std::cout << elink.at(i) << " ";
 	std::cout << boost::format("0x%08x") % elink.at(i) << " ";
-	//std::cout << std::hex << elink.at(i) << std::dec << " ";
+        //std::cout << std::hex << elink.at(i) << std::dec << " ";
       }
       std::cout << std::endl;
     }
@@ -133,29 +127,19 @@ bool eventDAQ::configure( const YAML::Node& config )
   uint32_t size_bram = 8192;
   for(auto bram : m_out.getBrams()){
     std::vector<uint32_t> outData;
-    if(infileopen){
-      for(size_t i=0; i<dataList.at(0).size(); i++) { 
+    for(size_t i=0; i<dataList.at(0).size(); i++) { 
 	outData.push_back(dataList.at(il).at(i));
-      }
-      for(size_t i=dataList.at(0).size(); i< size_bram; ++i) {
-	outData.push_back(static_cast<uint32_t>(0xa0000000));
-      }
     }
-    else{
-      outData.push_back(static_cast<uint32_t>(0x90000000)); 
-      for(size_t i=1; i!= size_bram; ++i) 
-	outData.push_back(static_cast<uint32_t>(0xa0000000));
+    for(size_t i=dataList.at(0).size(); i< size_bram; ++i) {
+      outData.push_back(static_cast<uint32_t>(0xa0000000));
     }
     m_out.setData(bram, outData, size_bram);
     il++;
   }
 
-  // fc
-  m_fcMan->enable_FC_stream(0x1);
-  m_fcMan->enable_orbit_sync(0x1);
-  
   return true;
 }
+
 void eventDAQ::configurelinks()
 {
   // link capture

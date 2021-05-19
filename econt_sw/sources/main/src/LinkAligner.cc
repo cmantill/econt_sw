@@ -10,6 +10,7 @@
 #include <thread>
 
 #include <stdio.h>
+#include <boost/format.hpp>
 
 LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface, 
 			 FastControlManager* fc)
@@ -22,9 +23,12 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 
   // input links
   std::vector<std::string> elinksInput;
+  std::vector<std::string> brams;
   for( int i=0; i<NUM_INPUTLINKS; i++ ){
     std::string name=buildname(base,i);
     elinksInput.push_back(name);
+    std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
+    brams.push_back(bramname);
   }
 
   // output links                                                                                                                                                            
@@ -50,20 +54,74 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
                                 std::string("from_ECONT_IO_axi_to_ipif"),
 				elinksOutput
                                 );
+
+  // eLinkOutputs block (programmable data)
+  eLinkOutputsBlockHandler outhandler( m_uhalHW,
+				       std::string("eLink_outputs_ipif_stream_mux"),
+				       std::string("eLink_outputs_ipif_switch_mux"),
+				       brams,
+				       elinksInput
+				       );
   m_lchandler = lchandler;
   m_fromIO = fromIOhandler;
   m_toIO = toIOhandler;
+  m_out = outhandler;
+
 }
 
-void LinkAligner::align() {
+bool LinkAligner::configure() 
+{
+  // configuring programmable data
+  for(auto elink : m_out.getElinks()){
+    // select the stream from RAM as the source 
+    m_out.setSwitchRegister(elink,"output_select",0);
+    // send 255 words in the link reset pattern 
+    m_out.setSwitchRegister(elink,"n_idle_words",255);
+    // send this word for almost all of the link reset pattern
+    m_out.setSwitchRegister(elink,"idle_word",ALIGN_PATTERN); 
+    // send this word on BX0 during the link reset pattern
+    m_out.setSwitchRegister(elink,"idle_word_BX0",BX0_PATTERN);
+
+    // stream one complete orbit from RAM before looping 
+    m_out.setStreamRegister(elink,"sync_mode",1); 
+    // determine pattern length in orbits: 1
+    m_out.setStreamRegister(elink,"ram_range",1); 
+  }
+
+  // Setting up the output RAMs
+  int il=0; // elink iterator
+  uint32_t size_bram = 8192;
+  for(auto bram : m_out.getBrams()){
+    std::vector<uint32_t> outData;
+    outData.push_back(static_cast<uint32_t>(0x90000000)); 
+    for(size_t i=1; i!= size_bram; ++i) 
+      outData.push_back(static_cast<uint32_t>(0xa0000000));
+    m_out.setData(bram, outData, size_bram);
+    il++;
+  }
+
+  return true;
+}
+
+void LinkAligner::align() {  
   // switching on IO
   for(auto elink : m_toIO.getElinks()){
-    m_toIO.setRegister(elink,"reg0",0b110);
-    m_toIO.setRegister(elink,"reg0",0b101);
+    // active-low reset
+    m_toIO.setRegister(elink,"reg0.reset_link",0);
+    // reset counters (active-high reset)
+    m_toIO.setRegister(elink,"reg0.reset_counters",1);
+    // delay mode to automatic delay setting
+    m_toIO.setRegister(elink,"reg0.delay_mode",1);
+    // run normally
+    m_toIO.setRegister(elink,"reg0.reset_counters",0);
+    m_toIO.setRegister(elink,"reg0.reset_link",1);
   }
   for(auto elink : m_fromIO.getElinks()){
-    m_fromIO.setRegister(elink,"reg0",0b110);
-    m_fromIO.setRegister(elink,"reg0",0b101);
+    m_fromIO.setRegister(elink,"reg0.reset_link",0);
+    m_fromIO.setRegister(elink,"reg0.reset_counters",1);
+    m_fromIO.setRegister(elink,"reg0.delay_mode",1);
+    m_fromIO.setRegister(elink,"reg0.reset_counters",0);
+    m_fromIO.setRegister(elink,"reg0.reset_link",1);
   }
 
   // sending 3 link resets to get IO delays set up properly
@@ -148,6 +206,19 @@ bool LinkAligner::checkLinks()
   if ( !std::equal(positions.begin() + 1, positions.end(), positions.begin()) ){
     std::cout << "Error: " << " not all alignments patterns are in the same position " << std::endl;
     return false;
+  }
+
+  bool printData = true;
+  if(printData){
+    std::cout << "Captured data hex size " << linksdata.at(0).size() << std::endl;
+    for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
+      std::cout << "i " << i << " ";
+      for(auto elink : linksdata){
+	std::cout << boost::format("0x%08x") % elink.at(i) << " ";
+      }
+      std::cout << std::endl;
+    }
+
   }
 
   std::cout << "Links Aligned " << std::endl;

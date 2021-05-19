@@ -181,7 +181,9 @@ int main(int argc,char** argv)
       reply("ConfigError");
       return;
     }
-    if( thedaq->configure( m_config ) )
+    if( thedaq->configure( m_config ) && 
+	linkaligner->configure()
+	)
       reply("Configured");
     else
       reply("ConfigError");
@@ -203,6 +205,7 @@ int main(int argc,char** argv)
     m_linkstatus = zmq_server::LinkStatusFlag::READY;
     case zmq_server::LinkStatusFlag::READY :
     std::cout << "acquire " << std::endl;
+    thedaq->read();
     thedaq->acquire();
     reply("Running");
     }
