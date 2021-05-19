@@ -74,14 +74,6 @@ for i in range(12):
     out_stream[4*i] = 1 # Stream one complete orbit from RAM before looping
     out_stream[4*i + 1] = 1
 
-#with open('EPORTRX_data.csv', 'r') as datafile:
-#    for lineno, line in enumerate(datafile):
-#        if lineno >= 1:
-#            for port_number, datum in enumerate(line.split('\n')[0].split(',')[1:]):
-#                value = int(datum)
-#                assert (value & 0xf0000000) == 0
-#                out_brams[port_number][lineno-1] = value
-
 logging.info("Setting up the output RAMs")
 # Fill all 12 RAMs with zeros except for the headers
 for i in range(12):
@@ -94,7 +86,7 @@ Sync_word = 0b00100100010
 i2c.write(0x20, 0x03a9, Sync_word.to_bytes(2, 'little'))
 
 # Algorithm select
-algo = 3 # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)
+algo = 0 # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)
 density = 1 # 1: high density
 i2c.write(0x20, 0x0454, [((density & 0x1) << 3) | (algo & 0x7)])
 
@@ -105,8 +97,45 @@ STC_type = 0
 i2c.write(0x20, 0x03a9 + 0x7, [((TX_en & 0xf) << 4) | ((Use_sum & 0x1) << 2) | (STC_type & 0x3)])
 
 # Output buffer threshold T1
-Buff_T1 = 52 # This must be at least 52 for the econ-t emulator to work
+Buff_T1 = 338 # This must be at least 52 for the econ-t emulator to work
 i2c.write(0x20, 0x03a9 + 0x02, Buff_T1.to_bytes(2, 'little'))
+Buff_T2 = 314
+Buff_T3 = 25
+i2c.write(0x20, 0x03a9 + 0x04, Buff_T2.to_bytes(2, 'little'))
+i2c.write(0x20, 0x03a9 + 0x06, [Buff_T3])
+
+# mux values
+mux = [7, 4, 5, 6, 3, 1, 0, 2,
+       8,  9,  10, 11, 14, 13, 12, 15,
+       23, 20, 21, 22, 19, 17, 16, 18,
+       25, 24, 26, 27, 30, 31, 28, 29,
+       38, 37, 39, 46, 36, 34, 33, 35,
+       40, 32, 41, 42, 47, 45, 43, 44]
+for i in range(48):
+    i2c.write(0x20, 0x03c4 + 0x01*i, [mux[i]])
+
+# cal values
+cal = [348, 347, 335, 336, 347, 348, 335, 335,
+       323, 323, 311, 311, 325, 324, 312, 314,
+       307, 293, 304, 318, 280, 267, 279, 291,
+       303, 290, 302, 315, 329, 316, 328, 340,
+       263, 276, 274, 261, 289, 302, 300, 287,
+       286, 299, 298, 286, 261, 274, 274, 262]
+for i in range(48):
+    i2c.write(0x20, 0x03f4 + 0x02*i, cal[i].to_bytes(2, 'little'))
+
+# thresholds
+th = [47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47,
+      47, 47, 47, 47, 47, 47, 47, 47]
+for i in range(48):
+     i2c.write(0x20, 0x0455 + 0x03*i, th[i].to_bytes(3, 'little'))
+
+# drop lsb
+i2c.write(0x20, 0x04e5, [3])
 
 # Set the maximum bunch counter value to 3563, the number of bunch crossings in one orbit (minus one)
 BX_max = 3563
@@ -163,6 +192,7 @@ N_acquire = 256
 LCs[:,5] = N_acquire
 # Set the latency buffer based on the IO delays
 delay_out = (fromIO[1:,3] >> 1) & 0x1ff
+print('from io ',fromIO[1:,3], ' ',(fromIO[1:,3] >> 1)& 0x1ff, ' ',(1*(delay_out < 0x100)), ' ',((1*(delay_out < 0x100)) << 16), ' ',(LCs[:,3] & 0xffff) | ((1*(delay_out < 0x100)) << 16))
 LCs[:,3] = (LCs[:,3] & 0xffff) | ((1*(delay_out < 0x100)) << 16)
 # Tell link capture block to do an acquisition
 LCs[:,4] = 1
@@ -219,6 +249,7 @@ BX0_Sync_16 = (0xf800 | Sync_word)
 BX0_Sync_32 = (BX0_Sync_16 << 16) | BX0_Sync_16
 
 BX0_rows, BX0_cols = (outdata == BX0_Sync_32).nonzero()
+print('bx0 ',Sync_word, (0xf800 | Sync_word), BX0_Sync_32)
 logging.debug(f'BX0 sync word found on rows    {BX0_rows}')
 logging.debug(f'BX0 sync word found on columns {BX0_cols}')
 
@@ -240,3 +271,66 @@ except AssertionError:
     with numpy.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
         logging.debug(f'Captured data snippet: {outdata[BX0_rows[0]]}')
     raise
+
+iline=1
+with open('/home/HGCAL_dev/src/econt_sw/econt_sw/data/EPORTRX_data_wafer.csv', 'r') as datafile: 
+    for lineno, line in enumerate(datafile):
+        if lineno >= 5:
+            for port_number, datum in enumerate(line.split('\n')[0].split(',')[1:]):                                                                                                                       
+                value = int(datum)                                                                                                                                                                         
+                assert (value & 0xf0000000) == 0                                                                                                                                                           
+                if iline-1==0: 
+                    value |= 0x90000000
+                else:
+                    value |= 0xa0000000
+                out_brams[port_number][iline-1] = value
+            iline+=1
+
+out_brams_str = out_brams
+for idata,dt in enumerate(out_brams_str[0]):
+    data_str = ['{0:08X}'.format(int(out_brams_str[il][idata])) for il,elink in enumerate(out_brams_str)]
+    if idata<=40:
+        print(data_str)
+
+logging.info("Setting up link capture again")
+# set acquire
+lc[3] = 1
+
+# set explicit resetb
+LCs[:,7] = (LCs[:,7] & 0x1) | 0
+LCs[:,7] = (LCs[:,7] & 0x1) | 1
+# set the capture mode of all 13 links to 2  (L1A)
+LCs[:,2] = 2
+# Set the acquire length of all 13 links                                                                                                                                                                   
+N_acquire = 256
+LCs[:,5] = N_acquire
+# Tell link capture block to do an acquisition
+LCs[:,4] = 1
+
+# fc bx forL1A to 0
+fc[4] = 0
+# send a L1A
+fc[0] = (1 << 0) | (1 << 2) | (1 << 20)
+time.sleep(0.001)
+# clear
+fc[0] = (1 << 0) | (1 << 2)
+
+logging.info("Reading out captured data again")
+FIFO_occupancy = numpy.copy(lc.reshape(-1, 16)[1:14][:,0xe])
+print(FIFO_occupancy)
+with numpy.printoptions(linewidth=120):
+    logging.debug(f'Number of words acquired on each channel: {FIFO_occupancy}')
+
+try:
+    assert numpy.all(FIFO_occupancy == N_acquire)
+except AssertionError:
+    logging.error(f'Failed to acquire {N_acquire} words')
+    raise
+
+outdata = numpy.array([[numpy.copy(lc_mem[j]) for i in range(FIFO_occupancy[j])] for j in range(13)]).T
+print(outdata.shape)
+print(outdata[0])
+for idata,dt in enumerate(outdata):
+
+    data_str = ['{0:08X}'.format(int(outdata[idata][il])) for il,elink in enumerate(outdata[0])]
+    print(data_str)
