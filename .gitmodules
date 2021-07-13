@@ -1,0 +1,3 @@
+[submodule "ECONT_Emulator"]
+	path = ECONT_Emulator
+	url = git@github.com:cmantill/ECONT_Emulator.git
