@@ -1,0 +1,6 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/IO_blocks_map/IO_blocks/IPIF_DelayParamDecode.sv#L21-46 -->
+
+<node>    
+  <node id="global_rstb_links"          address="0x0" mask="0x1" permission="rw" description="Global reset links (active-low reset)"/>
+  <node id="global_reset_counters"      address="0x0" mask="0x2" permission="rw" description="Global reset counters (active-high reset)"/>
+</node>

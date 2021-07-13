@@ -1,0 +1,6 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/master/bram_to_stream/bram_to_stream.sv#L55-61 -->
+<node>    
+  <node id="sync_mode"     address="0x0" permission="rw" description="Sync mode. Options are; 0: no sync - send entire ram always, 1: orbit synchronous, 2: fixed length repeating mode, 3: reserved"/>
+  <node id="ram_range"     address="0x1" permission="rw" description="RAM range. Options are; 1: determines pattern length in orbits, 2: determines the number of 32 bit words to send"/>
+  <node id="force_sync"    address="0x2" permission="rw" description="Force the logic to reset link value to zero"/>
+</node>

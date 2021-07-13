@@ -1,0 +1,19 @@
+<node>
+    <!-- Based on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/LinkCapture_v0.3/src/hdl/link_capture.v for offsets between links
+	   and on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/LinkCapture_v0.3/src/hdl/AXI_decode.v for link register addresses (see link_capture_axi_channels.xml) 
+    -->
+    <node id="global"  address="0x00" module="file://link-capture-link-capture-AXI-0_global.xml"  description="global link capture registers"/>
+    <node id="link0"   address="0x10" module="file://link_capture_axi_channel.xml" description="link 0 capture control"/>
+    <node id="link1"   address="0x20" module="file://link_capture_axi_channel.xml" description="link 1 capture control"/>
+    <node id="link2"   address="0x30" module="file://link_capture_axi_channel.xml" description="link 2 capture control"/>
+    <node id="link3"   address="0x40" module="file://link_capture_axi_channel.xml" description="link 3 capture control"/>
+    <node id="link4"   address="0x50" module="file://link_capture_axi_channel.xml" description="link 4 capture control"/>
+    <node id="link5"   address="0x60" module="file://link_capture_axi_channel.xml" description="link 5 capture control"/>
+    <node id="link6"   address="0x70" module="file://link_capture_axi_channel.xml" description="link 6 capture control"/>
+    <node id="link7"   address="0x80" module="file://link_capture_axi_channel.xml" description="link 7 capture control"/>
+    <node id="link8"   address="0x90" module="file://link_capture_axi_channel.xml" description="link 8 capture control"/>
+    <node id="link9"   address="0xa0" module="file://link_capture_axi_channel.xml" description="link 9 capture control"/>
+    <node id="link10"   address="0xb0" module="file://link_capture_axi_channel.xml" description="link 10 capture control"/>
+    <node id="link11"   address="0xc0" module="file://link_capture_axi_channel.xml" description="link 11 capture control"/>
+    <node id="link12"   address="0xd0" module="file://link_capture_axi_channel.xml" description="link 12 capture control"/>
+</node>

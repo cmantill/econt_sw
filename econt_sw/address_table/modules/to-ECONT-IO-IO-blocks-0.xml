@@ -1,0 +1,15 @@
+<node>
+    <node id="global"   address="0x0" module="file://IO_blocks_global.xml" description="Global registers for IO control" />
+    <node id="link0"    address="0x4" module="file://IO_blocks_channel.xml" description="link 0 IO control"/>
+    <node id="link1"    address="0x8" module="file://IO_blocks_channel.xml" description="link 1 IO control"/>
+    <node id="link2"    address="0xc" module="file://IO_blocks_channel.xml" description="link 2 IO control"/>
+    <node id="link3"    address="0x10" module="file://IO_blocks_channel.xml" description="link 3 IO control"/>
+    <node id="link4"    address="0x14" module="file://IO_blocks_channel.xml" description="link 4 IO control"/>
+    <node id="link5"    address="0x18" module="file://IO_blocks_channel.xml" description="link 5 IO control"/>
+    <node id="link6"    address="0x1c" module="file://IO_blocks_channel.xml" description="link 6 IO control"/>
+    <node id="link7"    address="0x20" module="file://IO_blocks_channel.xml" description="link 7 IO control"/>
+    <node id="link8"    address="0x24" module="file://IO_blocks_channel.xml" description="link 8 IO control"/>
+    <node id="link9"    address="0x28" module="file://IO_blocks_channel.xml" description="link 9 IO control"/>
+    <node id="link10"   address="0x2c" module="file://IO_blocks_channel.xml" description="link 10 IO control"/>
+    <node id="link11"   address="0x30" module="file://IO_blocks_channel.xml" description="link 11 IO control"/>
+</node>

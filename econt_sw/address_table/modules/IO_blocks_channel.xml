@@ -1,0 +1,18 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/IO_blocks_map/IO_blocks/IPIF_DelayParamDecode.sv#L21-46 -->
+
+<node>    
+  <node id="reg0"                       address="0x0">
+        <node id="reset_link"           mask="0x1"   permission="rw" description="Reset link (active-low reset)"/>
+	<node id="reset_counters"       mask="0x2"   permission="rw" description="Reset counters (active-high reset)"/>
+	<node id="delay_mode"           mask="0x4"   permission="rw" description="Delay mode: 0=manual delay setting, 1=automatic delay setting (default 0)"/>
+	<node id="delay_set"            mask="0x8"   permission="rw" description="Delay set: write 0 then 1 to this in manual mode to set the delays chosen in delay_in and delay_offset."/>
+	<node id="bypass_IOBUF"         mask="0x10"  permission="rw" description="Bypass IOBUF: 0=use data from IO pin, 1=use data from input stream (default 0)"/>
+  </node>
+  <node id="delay_in"                   address="0x1" mask="0x000001ff" permission="rw" description="Delay in: 9-bit delay to use in manual mode"/>
+  <node id="delay_offset"               address="0x1" mask="0x0001fe00" permission="rw" description="Delay offset: offset between P and N side to use in manual mode for bit-error monitoring"/>
+  <node id="bitalign_counters"          address="0x2" mask="0x0000ffff" permission="ro" description="Bit align error counters"/>
+  <node id="waiting_for_transitions"    address="0x2" mask="0x00010000" permission="ro" description="Waiting for bit transitions"/>
+  <node id="delay_ready"                address="0x3" mask="0x1"        permission="ro" description="Delay ready"/>
+  <node id="delay_out"                  address="0x3" mask="0x000003fe" permission="ro" description="Delay out: 9-bit delay actually in use right now by P side"/>
+  <node id="delay_out_N"                address="0x3" mask="0x0007fc00" permission="ro" description="Delay out N: in manual mode: delay used by N side; in automatic mode: size of the eye of zero bit errors"/>
+</node>
