@@ -32,21 +32,22 @@
       <node id="link11"   mask="0x800"   permission="rw" />
       <node id="link12"   mask="0x1000"   permission="rw" />
     </node>
-    <node id="link_enable"       address="0x2"            permission="rw" description="link enable">
+	<node id="link_enable"       address="0x2"            permission="rw" description="link enable">
       <node id="link0"   mask="0x1"   permission="rw" />
       <node id="link1"   mask="0x2"   permission="rw" />
       <node id="link2"   mask="0x4"   permission="rw" />
       <node id="link3"   mask="0x8"   permission="rw" />
-      <node id="link4"   mask="0x10"  permission="rw" />
-      <node id="link5"   mask="0x20"  permission="rw" />
-      <node id="link6"   mask="0x40"  permission="rw" />
-      <node id="link7"   mask="0x80"  permission="rw" />
-      <node id="link8"   mask="0x100" permission="rw" />
-      <node id="link9"   mask="0x200" permission="rw" />
-      <node id="link10"  mask="0x400" permission="rw" />
-      <node id="link11"  mask="0x800" permission="rw" />
-      <node id="link12"  mask="0x1000" permission="rw" />
-    </node>
+      <node id="link4"   mask="0x10"   permission="rw" />
+      <node id="link5"   mask="0x20"   permission="rw" />
+      <node id="link6"   mask="0x40"   permission="rw" />
+      <node id="link7"   mask="0x80"   permission="rw" />
+      <node id="link8"   mask="0x100"   permission="rw" />
+      <node id="link9"   mask="0x200"   permission="rw" />
+      <node id="link10"   mask="0x400"   permission="rw" />
+      <node id="link11"   mask="0x800"   permission="rw" />
+      <node id="link12"   mask="0x1000"   permission="rw" />
+	</node>
+
     <node id="aquire"            address="0x4" mask="0x1" permission="rw" description="global acquire reg"/>
     <node id="continous_acquire" address="0x5"            permission="rw" description="global continous acquire reg">
       <node id="link0"   mask="0x1"   permission="rw" />

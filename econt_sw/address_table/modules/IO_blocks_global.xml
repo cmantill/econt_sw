@@ -3,4 +3,5 @@
 <node>    
   <node id="global_rstb_links"          address="0x0" mask="0x1" permission="rw" description="Global reset links (active-low reset)"/>
   <node id="global_reset_counters"      address="0x0" mask="0x2" permission="rw" description="Global reset counters (active-high reset)"/>
+  <node id="global_latch_counters"      address="0x0" mask="0x4" permission="rw" description="Write 1 to save current counter values for all links"/>
 </node>
