@@ -289,7 +289,7 @@ void LinkAligner::testDelay(std::string elink_name, int delay) {
   m_fromIO.setRegister(elink_name,"reg0.delay_in",delay);
   m_fromIO.setRegister(elink_name,"reg0.delay_offset",8); 
 
-  m_fromIO.setRegister(elink_name,"reg0.delay_set",1);
+  m_fromIO.setRegister(elink_name,"reg0.delay_set",1); // this sets the delays
 
   m_fromIO.setRegister(elink_name,"reg0.reset_counters",0);
 
@@ -312,7 +312,6 @@ void LinkAligner::delayScan() {
   auto pusher = std::unique_ptr<zmq::socket_t>( new zmq::socket_t(*context,ZMQ_PUSH) );
   if( m_port>-1 ){
     os.str("");
-    // std::cout << " m port in Link Aligner?" << m_port << std::endl;
     os << "tcp://*:" << m_port;
     pusher->bind(os.str().c_str()); 
     std::string _str("START_DELAY_SCAN");
@@ -343,20 +342,19 @@ void LinkAligner::delayScan() {
 
     for(auto elink : m_fromIO.getElinks()){
       // read bit_counter (counts the number of bytes) and error_counter (counts the number of bytes that had at least one bit error - didn't match between P and N side)
-      auto bits = m_fromIO.getRegister(elink.name(),"bit_counter");
-      auto errors  = m_fromIO.getRegister(elink.name(),"error_counter");
+      auto bit_counts = m_fromIO.getRegister(elink.name(),"bit_counter");
+      auto error_counts  = m_fromIO.getRegister(elink.name(),"error_counter");
 
       // get elink name and save lad
       os.str("");
       os <<  m_fromIO.name() << "." << elink.name();
       std::string link_name = os.str();
-      link_aligner_data lad( link_name, idelay, bits, errors);
+      link_aligner_data lad( link_name, idelay, bit_counts, error_counts);
       oas << lad;
     }
   }
   
   if( m_port>-1 ){
-    std::cout << "sending data " << std::endl;
     zmq::message_t message(zos.str().size());
     memcpy(message.data(), zos.str().c_str(), zos.str().size());
     pusher->send(message);
@@ -365,7 +363,6 @@ void LinkAligner::delayScan() {
   // send: end of run
   if( m_port>-1 ){
     std::string _str("END_OF_RUN");
-    std::cout << "sending END_OF_RUN" << std::endl;
     zmq::message_t message2(_str.size());
     memcpy(message2.data(), _str.c_str(), _str.size());
     pusher->send(message2);

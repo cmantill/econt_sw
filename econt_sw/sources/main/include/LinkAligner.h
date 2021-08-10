@@ -27,7 +27,7 @@
 class link_aligner_data{
  public:
   link_aligner_data(){;} 
-  link_aligner_data( std::string link_name, int idelay, int error_count, int bit_count): m_link_name( link_name ),
+  link_aligner_data( std::string link_name, int idelay, int bit_count, int error_count): m_link_name( link_name ),
     m_idelay( idelay ),
     m_bit_count( bit_count),
     m_error_count( error_count )
@@ -46,6 +46,7 @@ class link_aligner_data{
     {
       ar & m_link_name;
       ar & m_idelay;
+      ar & m_bit_count;
       ar & m_error_count;
     }
   

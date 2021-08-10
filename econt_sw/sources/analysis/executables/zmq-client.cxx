@@ -185,7 +185,6 @@ int main(int argc,char** argv)
 	      switch( dtype ){
 	      case DataType::DELAY_SCAN:
 		ia >> lad;
-		std::cout << " filling " << std::endl;
 		writer->fill(lad);
 		break;
 	      }
