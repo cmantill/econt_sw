@@ -34,24 +34,21 @@ source env.sh
 
 ## Testing
 ```
-./bin/zmq-server  -f address_table/connection.xml
-```
+# run server for uhal
+./bin/zmq-server -I 6677 -f address_table/connection.xml
 
-## Running server and client
-
-e.g. in i2c:
-Run server (on testing board - zynq - but for now zynq localhost):
-```
+# run server for i2c (on testing board - zynq - but for now zynq localhost):
+cd zmq_i2c/
 python3 ./zmq_server.py
-```
 
-Then run client (on remote PC - but for now zynq localhost):
-```
-python3 ./zmq_client.py
-```
-
-for both daq and i2c, we will do scripts such as:
-```
+# run client (on remote PC - but for now zynq localhost):
 python3 ./zmq_align.py
 ```
-that will act as the client
+
+
+```
+python3 ./zmq_server.py
+./bin/zmq-client -P 6678
+./bin/zmq-server -I 6677 -f address_table/connection.xml
+python3 zmq_align.py 
+```
