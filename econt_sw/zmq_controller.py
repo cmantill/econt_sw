@@ -129,3 +129,12 @@ class daqController(zmqController):
             rep = self.socket.recv_string()
             print(rep)
         print(rep)
+
+    def delay_scan(self):
+        # only for daq server to run a delay scan
+        print('delay scan')
+        rep=""
+        while rep.lower().find("delay_scan_done")<0: 
+            self.socket.send_string("delayscan")
+            rep = self.socket.recv_string()
+        print(rep)
