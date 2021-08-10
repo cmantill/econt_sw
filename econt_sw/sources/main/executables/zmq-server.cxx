@@ -25,6 +25,8 @@
 #include "FastControlManager.h"
 #include "eventDAQ.h"
 
+#define DEBUG_TIMER 1
+
 namespace zmq_server{
   volatile static bool InterruptSIG = false;
 
@@ -122,25 +124,39 @@ int main(int argc,char** argv)
   LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
   eventDAQ* thedaq = new eventDAQ(m_ipbushwptr, fcptr);
 
-  auto align = [&linkaligner]()->bool{
-    boost::timer::cpu_timer timer;
-    timer.start();
-    linkaligner->align();
-    timer.stop();
-    std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
-    if( !linkaligner->checkLinks() )
-      return false;
-    return true;
-  };
-
   zmq::context_t m_context(1);
   zmq::socket_t m_socket(m_context,ZMQ_REP);
   std::ostringstream os( std::ostringstream::ate );
   os.str("");
   os << "tcp://*:" << m_serverport;
-  m_socket.bind(os.str().c_str()); 
+  m_socket.bind(os.str().c_str());
 
   signal(SIGINT, zmq_server::interrupt_handler);
+
+  auto align = [&linkaligner]()->bool{
+    boost::timer::cpu_timer timer;
+    timer.start();
+    linkaligner->align();
+    timer.stop();
+#ifdef DEBUG_TIMER
+    std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
+#endif
+    if( !linkaligner->checkLinks() )
+      return false;
+    return true;
+  };
+
+  boost::thread runthread;
+  auto run = [&thedaq, &runthread](){ 
+    runthread = boost::thread( boost::bind(&eventDAQ::run,thedaq) );
+  };
+
+  auto stoprun = [&thedaq, &runthread](){
+    if( runthread.joinable() ){
+      //thedaq->stoprun();
+      runthread.join();
+    }
+  };
 
   auto reply = [&m_socket](std::string repstr){
     uint16_t size=repstr.size();
@@ -163,7 +179,7 @@ int main(int argc,char** argv)
 
   YAML::Node m_config;
   zmq_server::LinkStatusFlag m_linkstatus = zmq_server::LinkStatusFlag::NOT_READY;
-  auto configure = [&m_config, &linkaligner, &thedaq, &m_linkstatus, receive, reply](){
+  auto configure = [&m_config, &linkaligner, &m_linkstatus, receive, reply](){
     boost::timer::cpu_timer timer;
     timer.start();
     reply("ReadyForConfig");
@@ -181,15 +197,18 @@ int main(int argc,char** argv)
       reply("ConfigError");
       return;
     }
-    if( thedaq->configure( m_config ) && 
-	linkaligner->configure()
-	)
+    if( linkaligner->configure( m_config ) )
       reply("Configured");
     else
       reply("ConfigError");
 
     timer.stop();
     std::cout << "\t\t configure ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
+  };
+
+  auto delayscan = [&linkaligner,reply](){
+    linkaligner->delayScan();
+    reply("delay_scan_done");
   };
 
   auto start = [&m_linkstatus,&thedaq,reply,align](){
@@ -204,17 +223,29 @@ int main(int argc,char** argv)
     case zmq_server::LinkStatusFlag::ALIGNED :
     m_linkstatus = zmq_server::LinkStatusFlag::READY;
     case zmq_server::LinkStatusFlag::READY :
-    std::cout << "acquire " << std::endl;
-    thedaq->read();
-    thedaq->acquire();
     reply("Running");
     }
   };
 
+  auto stop = [reply,stoprun](){
+    stoprun();
+    reply("Stopped");
+  };
+
+  auto run_done = [&runthread,reply](){
+    if( runthread.try_join_for(boost::chrono::milliseconds(10)) ){
+      reply("Done");
+    }
+    else
+      reply("NotDone");
+  };
 
   const std::unordered_map<std::string,std::function<void()> > actionMap = {
     {"configure", [&](){ configure(); }},
-    {"start",     [&](){ start();     }}
+    {"delayscan", [&](){ delayscan(); }},
+    {"start",     [&](){ start();     }},
+    {"stop",      [&](){ stop();      }},
+    {"run_done",  [&](){ run_done();  }}
   };
 
   while(1){

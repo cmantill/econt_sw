@@ -3,6 +3,7 @@
 
 #include <uhal/uhal.hpp>
 #include <yaml-cpp/yaml.h>
+#include <LinkCaptureBlockHandler.h>
 
 class eLinkOutputsBlockHandler
 {
@@ -12,11 +13,11 @@ class eLinkOutputsBlockHandler
 			   std::string stream_block_name,
 			   std::string switch_block_name,
 			   std::vector<std::string> bram_names,
-			   std::vector<std::string> & elinks
+			   std::vector<link_description> & elinks
 			   );
   ~eLinkOutputsBlockHandler(){;}
 
-  const std::vector< std::string > & getElinks() const {return m_elinks; }
+  const std::vector< link_description > & getElinks() const {return m_elinks; }
   const std::vector< std::string > & getBrams() const {return m_bram_names; }
 
   void setStreamRegister(std::string elink, std::string regName, uint32_t value);
@@ -28,7 +29,7 @@ class eLinkOutputsBlockHandler
   std::string m_stream_block_name;
   std::string m_switch_block_name;
   std::vector<std::string> m_bram_names;
-  std::vector<std::string> m_elinks;
+  std::vector<link_description> m_elinks;
 };
 
 #endif

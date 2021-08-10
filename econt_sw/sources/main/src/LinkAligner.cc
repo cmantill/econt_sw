@@ -82,10 +82,11 @@ bool LinkAligner::configure(const YAML::Node& config)
 				       std::string("link_capture_axi_full_ipif"),
 				       outelinks);
     m_lchandler = lchandler;
+    m_port = config["delay_scan_port"].as<int>();
   }
   catch( std::exception& e){
     std::cerr << "Exception : "
-              << e.what() << " yaml config file probably does not contain the expected 'elinks_daq/trg' and/or 'IdelayStep' entries" << std::endl;
+              << e.what() << " yaml config file probably does not contain the expected 'delay_scan_port' entries" << std::endl;
     return false;
   }
 
@@ -122,6 +123,7 @@ bool LinkAligner::configure(const YAML::Node& config)
     il++;
   }
   
+  /*
   std::cout << "Input data " << dataList.at(0).size() << std::endl;
   for(unsigned int i=0; i<dataList.at(0).size(); ++i) {
     for(auto elink : dataList) {
@@ -131,6 +133,7 @@ bool LinkAligner::configure(const YAML::Node& config)
     }
     std::cout << std::endl;
   }
+  */
 
   return true;
 }
@@ -184,7 +187,7 @@ void LinkAligner::align() {
     // set the acquire length of all 13 links
     m_lchandler.setRegister(elink.name(),"aquire_length", 256);
     // set the latency buffer based on the IO delays (1 or 0)
-    uint32_t delay_out = m_fromIO.getRegister(elink.name(),"delay_out");
+    uint32_t delay_out = m_fromIO.getRegister(elink.name(),"reg3.delay_out");
     m_lchandler.setRegister(elink.name(),"fifo_latency", 1*(delay_out<0x100));
     // tell link capture to do an acquisition
     m_lchandler.setRegister(elink.name(),"aquire", 1);
@@ -259,7 +262,7 @@ bool LinkAligner::checkLinks()
   }
 
   // print captured data
-  bool printData = true;
+  bool printData = false;
   if(printData){
     std::cout << "Captured data hex size " << linksdata.at(0).size() << std::endl;
     for(unsigned int i=0; i!=linksdata.at(0).size(); i++) {
@@ -276,53 +279,105 @@ bool LinkAligner::checkLinks()
   return true;
 }
 
-bool LinkAligner::testDelay(std::string elink_name, int delay) {
-  
-  // bound delays?
+void LinkAligner::testDelay(std::string elink_name, int delay) {
+  // bound delays (9 bits: 2^9=511)
   delay = delay>=0 ? delay : 0;
   delay = delay<=503 ? delay : 503; // 503+8=511
 
   m_fromIO.setRegister(elink_name,"reg0.reset_counters",1);
   m_fromIO.setRegister(elink_name,"reg0.delay_mode",0); // delay mode to manual delay setting
-  m_fromIO.setRegister(elink_name,"delay_in",delay);
-  m_fromIO.setRegister(elink_name,"delay_offset",8); 
+  m_fromIO.setRegister(elink_name,"reg0.delay_in",delay);
+  m_fromIO.setRegister(elink_name,"reg0.delay_offset",8); 
 
-  m_fromIO.setRegister(elink_name,"reg0.delay_set",0);
   m_fromIO.setRegister(elink_name,"reg0.delay_set",1);
 
   m_fromIO.setRegister(elink_name,"reg0.reset_counters",0);
 
   while(1){
-    auto delayready = m_fromIO.getRegister(elink_name,"delay_ready");
-    auto delayout = m_fromIO.getRegister(elink_name,"delay_out");
-    if((int)delayout==delay || delayready==1){
-      std::cout << "delayout " << delayout << " in " << delay << std::endl;
+    auto delayready = m_fromIO.getRegister(elink_name,"reg3.delay_ready");
+    auto delayout = m_fromIO.getRegister(elink_name,"reg3.delay_out");
+    if((int)delayout==delay && delayready==1){
       break;
     }
     else{
       sleep(0.1);
     }
   }
-
-  sleep(0.1);
-  auto errors  = m_fromIO.getRegister(elink_name,"bitalign_counters");
-  std::cout << "errors " << errors << std::endl;
-
-  return true;
 }
 
 void LinkAligner::delayScan() {
-  for(auto elink : m_fromIO.getElinks()){
-    std::cout << "start delay scan in link : " << elink.name() << std::endl;
-    //m_fromIO.setRegister(elink.name(),"reg0.reset_link",0);
+  std::ostringstream os( std::ostringstream::ate );
 
-    for( int idelay=0; idelay<504; idelay++ ){
-      if( testDelay( elink.name(), idelay ) )
-	{}
-      auto errors  = m_fromIO.getRegister(elink.name(),"bitalign_counters");
-      std::cout << "errors again " << errors << std::endl;
+  auto context = std::unique_ptr<zmq::context_t>( new zmq::context_t(1) );
+  auto pusher = std::unique_ptr<zmq::socket_t>( new zmq::socket_t(*context,ZMQ_PUSH) );
+  if( m_port>-1 ){
+    os.str("");
+    // std::cout << " m port in Link Aligner?" << m_port << std::endl;
+    os << "tcp://*:" << m_port;
+    pusher->bind(os.str().c_str()); 
+    std::string _str("START_DELAY_SCAN");
+    zmq::message_t message0(_str.size());
+    memcpy(message0.data(), _str.c_str(), _str.size());
+    pusher->send(message0);
+  }
+
+  std::ostringstream zos( std::ios::binary );
+  boost::archive::binary_oarchive oas{zos};
+
+  // loop over delay taps
+  for( int idelay=0; idelay<504; idelay=idelay+8 ){
+    
+    // set delays and wait until delay_ready
+    for(auto elink : m_fromIO.getElinks()){
+      testDelay( elink.name(), idelay);
     }
 
-    //m_fromIO.setRegister(elink.name(),"reg0.reset_link",1);
+    // reset the counters (no longer necessary to write clear the reset by writing 0, the reset will clear itself)
+    m_fromIO.setGlobalRegister("global_reset_counters", 1);
+
+    // wait for some amount of time
+    sleep(0.1);
+    
+    //  latch the counters (saves counter values for all links) 
+    m_fromIO.setGlobalRegister("global_latch_counters", 1);
+
+    for(auto elink : m_fromIO.getElinks()){
+      // read bit_counter (counts the number of bytes) and error_counter (counts the number of bytes that had at least one bit error - didn't match between P and N side)
+      auto bits = m_fromIO.getRegister(elink.name(),"bit_counter");
+      auto errors  = m_fromIO.getRegister(elink.name(),"error_counter");
+
+      // get elink name and save lad
+      os.str("");
+      os <<  m_fromIO.name() << "." << elink.name();
+      std::string link_name = os.str();
+      link_aligner_data lad( link_name, idelay, bits, errors);
+      oas << lad;
+    }
   }
+  
+  if( m_port>-1 ){
+    std::cout << "sending data " << std::endl;
+    zmq::message_t message(zos.str().size());
+    memcpy(message.data(), zos.str().c_str(), zos.str().size());
+    pusher->send(message);
+  }
+
+  // send: end of run
+  if( m_port>-1 ){
+    std::string _str("END_OF_RUN");
+    std::cout << "sending END_OF_RUN" << std::endl;
+    zmq::message_t message2(_str.size());
+    memcpy(message2.data(), _str.c_str(), _str.size());
+    pusher->send(message2);
+  } 
+
+
+  try{
+    char ep[1024];
+    size_t s = sizeof(ep);
+    pusher->getsockopt( ZMQ_LAST_ENDPOINT,&ep,&s );
+    pusher->unbind( ep );
+  }
+  catch(...)//this should only happen if the pusher was not yet bounded to anything
+    {}
 }

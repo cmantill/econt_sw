@@ -14,21 +14,24 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
   auto buildname = [](std::string base, int val)->std::string{ return base+std::to_string(val); };
   auto base = std::string("link");
 
+  std::vector<link_description> elinksInput;
+  std::vector<link_description> elinksOutput;
+
   // input links
-  std::vector<std::string> elinksInput;
   std::vector<std::string> brams;
   for( int i=0; i<NUM_INPUTLINKS; i++ ){
     std::string name=buildname(base,i);
-    elinksInput.push_back(name);
+    link_description desc(name, 1, i); //setting idcode to i (can add that later)                                                                                                                                                                                               
+    elinksInput.push_back(desc);
     std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
     brams.push_back(bramname);
   }
 
   // output links
-  std::vector<std::string> eLinksOutput;
   for( int i=0; i<NUM_OUTPUTLINKS; i++ ){
     std::string name=buildname(base,i);
-    eLinksOutput.push_back(name);
+    link_description desc(name, 1, i); //setting idcode to i                                                                                                                                                                                                                    
+    elinksOutput.push_back(desc);
   }
 
   // eLinkOutputs block (programmable data)
@@ -43,7 +46,7 @@ eventDAQ::eventDAQ(uhal::HwInterface* uhalHW, FastControlManager* fc)
   LinkCaptureBlockHandler lchandler( m_uhalHW,
                                      std::string("link_capture_axi"),
 				     std::string("link_capture_axi_full_ipif"),
-				     eLinksOutput
+				     elinksOutput
 				     );
 
   m_lchandler = lchandler;
@@ -55,7 +58,7 @@ bool eventDAQ::configure( const YAML::Node& config )
   // input file string
   inputstr = config["input_file"].as< std::string >();
 
-  // fc
+  // fast commands
   m_fcMan->enable_FC_stream(0x1);
   m_fcMan->enable_orbit_sync(0x1);
 
@@ -64,6 +67,7 @@ bool eventDAQ::configure( const YAML::Node& config )
 
 bool eventDAQ::read()
 {
+
   // input data to ECON
   std::vector<std::vector<uint32_t> > dataList(NUM_INPUTLINKS);
 
@@ -127,6 +131,7 @@ bool eventDAQ::read()
   uint32_t size_bram = 8192;
   for(auto bram : m_out.getBrams()){
     std::vector<uint32_t> outData;
+    //outData.push_back(static_cast<uint32_t>(0x90000000)); 
     for(size_t i=0; i<dataList.at(0).size(); i++) { 
 	outData.push_back(dataList.at(il).at(i));
     }
@@ -146,15 +151,15 @@ void eventDAQ::configurelinks()
   m_lchandler.setGlobalRegister("aquire",0x1);
 
   for(auto elink : m_lchandler.getElinks()){
-    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0x0);
-    m_lchandler.setRegister(elink,"explicit_rstb_acquire", 0x1);
+    m_lchandler.setRegister(elink.name(),"explicit_rstb_acquire", 0x0);
+    m_lchandler.setRegister(elink.name(),"explicit_rstb_acquire", 0x1);
     // set the capture mode of all 13 links to 2 (L1A)
-    m_lchandler.setRegister(elink,"capture_mode_in",2);
+    m_lchandler.setRegister(elink.name(),"capture_mode_in",2);
     // set the acquire length of all 13 links
-    //m_lchandler.setRegister(elink,"aquire_length", 4096);
-    m_lchandler.setRegister(elink,"aquire_length", 256);
+    //m_lchandler.setRegister(elink.name(),"aquire_length", 4096);
+    m_lchandler.setRegister(elink.name(),"aquire_length", 256);
     // tell link capture to do an acquisition
-    m_lchandler.setRegister(elink,"aquire", 1);
+    m_lchandler.setRegister(elink.name(),"aquire", 1);
   }
 }
 
@@ -173,8 +178,8 @@ void eventDAQ::acquire()
   auto linksdata = std::vector< std::vector<uint32_t> >(NUM_OUTPUTLINKS);
   int id=0;
   for( auto elink : m_lchandler.getElinks()){
-    uint32_t fifo_occupancy =  m_lchandler.getRegister(elink,"fifo_occupancy");
-    m_lchandler.getData( elink, linksdata[id], fifo_occupancy );
+    uint32_t fifo_occupancy =  m_lchandler.getRegister(elink.name(),"fifo_occupancy");
+    m_lchandler.getData( elink.name(), linksdata[id], fifo_occupancy );
     id++;
   }
   

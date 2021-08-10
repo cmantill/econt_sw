@@ -8,9 +8,9 @@
 
 IOBlockHandler::IOBlockHandler(uhal::HwInterface* uhalHW,
 			       std::string IO_block_name,
-			       std::vector<std::string> & elinks): m_uhalHW(uhalHW),
-								   m_IO_block_name(IO_block_name),
-								   m_elinks(elinks)
+			       std::vector<link_description> & elinks): m_uhalHW(uhalHW),
+									m_IO_block_name(IO_block_name),
+									m_elinks(elinks)
 {
 }
 
