@@ -19,7 +19,6 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -lzmq -lyaml-cpp -Wall -fPIC")
 
 option( BUILD_ANALYSIS "Build and compile analysis tools" ON )
-option( MONGOOSE_WEB_TOOL "Build and compile mongoose tool" OFF )
 
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
@@ -35,31 +34,25 @@ file( GLOB headers ${PROJECT_SOURCE_DIR}/sources/main/include/*.h )
 file( GLOB executables ${PROJECT_SOURCE_DIR}/sources/main/executables/*.cxx )
 
 add_library(objectlib OBJECT ${sources})
-message( "-- Main executables to be installed")
+message( "-- Executables to be installed")
 foreach( exec ${executables} )
-	  message( "\t${exec}" )
-	   get_filename_component(ex ${exec} NAME_WE)
-	    add_executable( ${ex} ${exec} $<TARGET_OBJECTS:objectlib> ${headers} )
-	     target_link_libraries( ${ex} ${Boost_LIBRARIES} boost_program_options boost_regex boost_serialization boost_chrono cactus_uhal_log cactus_uhal_grammars cactus_uhal_uhal )
-	      install( TARGETS ${ex} DESTINATION ${PROJECT_SOURCE_DIR}/bin
-                ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
-			  LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
+	 message( "\t${exec}" )
+	 get_filename_component(ex ${exec} NAME_WE)
+	 add_executable( ${ex} ${exec} $<TARGET_OBJECTS:objectlib> ${headers} )
+	 target_link_libraries( ${ex} ${Boost_LIBRARIES} boost_program_options boost_regex boost_serialization boost_chrono cactus_uhal_log cactus_uhal_grammars cactus_uhal_uhal )
+	 install( TARGETS ${ex} DESTINATION ${PROJECT_SOURCE_DIR}/bin
+	 	  ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
+		  LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
 endforeach()
 
 add_library( ${PROJECT_NAME} SHARED ${sources} )
 target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} boost_program_options boost_regex boost_serialization boost_chrono cactus_uhal_log cactus_uhal_grammars cactus_uhal_uhal )
 target_include_directories( ${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include )
 install( TARGETS ${PROJECT_NAME}
-         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
-	  LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
+	 ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
+	 LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
 
 if( BUILD_ANALYSIS )
-    #find_package( ROOT REQUIRED ) 
-    #if( ROOT_FOUND )
-    # 	include_directories( ${ROOT_INCLUDE_DIRS} )
-    # 	link_libraries( ${ROOT_LIBRARIES} )
-    #    add_definitions( ${ROOT_DEFINITIONS} )
-    #endif()
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/sources/analysis/include )
     file( GLOB sources ${sources} ${PROJECT_SOURCE_DIR}/sources/analysis/src/*.cc )
     file( GLOB headers ${headers} ${PROJECT_SOURCE_DIR}/sources/analysis/include/*.h )
@@ -67,12 +60,13 @@ if( BUILD_ANALYSIS )
     message( "-- Analysis executables to be installed")
     add_library(anaobjectlib OBJECT ${sources})
     foreach( exec ${analysis_executables} )
-    	          message( "\t${exec}" )
-		       get_filename_component(ex ${exec} NAME_WE)
-		            add_executable( ${ex} ${exec} $<TARGET_OBJECTS:anaobjectlib> ${headers} )
-			         target_link_libraries( ${ex} ${Boost_LIBRARIES} boost_program_options boost_regex boost_serialization boost_chrono cactus_uhal_log cactus_uhal_grammars cactus_uhal_uhal )
-				      install( TARGETS ${ex} DESTINATION ${PROJECT_SOURCE_DIR}/bin
-             			            ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
-					    	          LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
-    endforeach()
+    	     message( "\t${exec}" )
+	     get_filename_component(ex ${exec} NAME_WE)
+	     add_executable( ${ex} ${exec} $<TARGET_OBJECTS:anaobjectlib> ${headers} )
+	     target_link_libraries( ${ex} ${Boost_LIBRARIES} boost_program_options boost_regex boost_serialization boost_chrono cactus_uhal_log cactus_uhal_grammars cactus_uhal_uhal )
+	     install( TARGETS ${ex} DESTINATION ${PROJECT_SOURCE_DIR}/bin
+             	      ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/lib
+		      LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib )
+    endforeach()      
 endif( BUILD_ANALYSIS )
+
