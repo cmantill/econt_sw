@@ -67,6 +67,7 @@ class LinkAligner
   void align();
   bool checkLinks();
 
+  void testPRBS();
   void testDelay(std::string elink_name, int delay);
   void delayScan();
 

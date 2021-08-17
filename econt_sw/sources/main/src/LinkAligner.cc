@@ -279,6 +279,16 @@ bool LinkAligner::checkLinks()
   return true;
 }
 
+void LinkAligner::testPRBS(){
+  std::cout << " starting PRBS28" << std::endl;
+  for(auto elink : m_out.getElinks()){
+    m_out.setSwitchRegister(elink.name(),"header_mask",0xf0000000);
+    m_out.setSwitchRegister(elink.name(),"header",0xa0000000);
+    m_out.setSwitchRegister(elink.name(),"header_BX0",0x90000000);
+  }
+
+}
+
 void LinkAligner::testDelay(std::string elink_name, int delay) {
   // bound delays (9 bits: 2^9=511)
   delay = delay>=0 ? delay : 0;

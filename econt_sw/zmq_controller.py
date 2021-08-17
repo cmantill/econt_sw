@@ -138,3 +138,11 @@ class daqController(zmqController):
             self.socket.send_string("delayscan")
             rep = self.socket.recv_string()
         print(rep)
+
+    def prbs_test(self):
+        print('prbs test')
+        rep=""
+        while rep.lower().find("prbs_test_done")<0:
+            self.socket.send_string("prbstest")
+            rep = self.socket.recv_string()
+        print(rep)
