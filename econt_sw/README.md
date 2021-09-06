@@ -1,7 +1,8 @@
+ECON-SW
+=======
 
 ## Pre-requisites:
-
-- some libraries:
+- Libraries to compile software:
 ```bash
 sudo yum -y install epel-release
 yum install epel-release
@@ -10,48 +11,153 @@ yum install cmake zeromq zeromq-devel cppzmq-devel libyaml libyaml-devel yaml-cp
 pip3 install pyzmq pyyaml smbus2 nested_dict --user
 ```
 
-- uhal : visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
+- Clone repository:
+```bash
+# clone repository in `src/` folder or other working directory:
+git clone git@github.com:cmantill/econt_sw.git
 ```
+
+- uHal: Visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
+```bash
+# go to first directory
+cd econt-sw/
+
+# install libraries
+sudo yum install boost boost-devel
+sudo yum -y install epel-release
+sudo yum install pugixml-devel pugixml
+
+# clone ipbus-software
 git clone https://gitlab.cern.ch/asteen/ipbus-software.git
-cd ipbus-software
+cd ipbus-software/
 git checkout asteen/UIO-hgcal-dev #should be useless since this should be the default branch of this repo
+
+# compile uHal
 make -j2 Set=uhal
 make install -j2 Set=uhal
 ```
 
-## Install
+## Install:
 
-### Basic installation of econt-sw on the zynq:
+### Basic installation of econt-sw on Zynq Trenz module:
 ```bash
-cd econt-sw
+# go to main directory in econt-sw
+cd econt-sw/econt-sw/
+
+# source libraries
+source env.sh
+
+# compile 
 mkdir build
 cd build
 cmake ../
 make install
 cd ../
-source env.sh
 ```
 
-## Testing
+### To re-load new firmware:
+
+In HGCAL-dev board:
 ```
-./bin/zmq-server  -f address_table/connection.xml
+# go to little-dt directory
+cd /home/HGCAL_dev/src/mylittledt/
+
+# load new firmware, e.g. econ-t-IO-Aug12 and set permissions
+sudo ./load.sh ~/firmware/econ-t-IO-Aug12 && sudo chmod a+rw /dev/uio* /dev/i2c-*
 ```
 
-## Running server and client
+## Testing:
+There are 4 components in the testing, either local or remote:
 
-e.g. in i2c:
-Run server (on testing board - zynq - but for now zynq localhost):
+| Remote              | ZYNQ                                 |
+| ------------------- | ------------------------------------ |
+| Testing script      | Executable (zmq-server)              |
+| Client (zmq-client) | Data acqusition (daq and analysis)   |
+|                     | Slow control (i2c)                   |
+
+### Ports:
+- The *testing script* is run remotely (this can mean on the board or on a testing desktop).
+  - It communicates with the *server* executable with `daqPort` (default = 6677)
+  - It communicates with the *client* with `pullerPort` (default = 6678)
+  - It communicates with the *i2c* slow control with `i2cPort` (default=5555)
+- The *client* is also run remotely.
+  - It communicates with the *server* with `pullerPort` (default = 6678)
+  - It communicates with the *DAQ* with `data_push_port` (default = 8888)
+
+The `remoteIP` is set to `localhost`. 
+This means that when running testing scripts remotely one needs to do port forwarding of: `daqPort` and `data_push_port`.
+
+### ZYNQ ECON-T testers:
 ```
+# econ-tester1
+# to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
+ssh HGCAL_dev@192.168.1.45
+```
+
+### ZYNQ HGCAL_dev:
+```
+ssh -p 23 HGCAL_dev@wilsonjc.us
+```
+
+### Testing locally:
+Start a terminal session #1:
+```
+# Run the i2c server
+cd zmq_i2c/
 python3 ./zmq_server.py
 ```
+Start a terminal session #2:
+```
+# Start the server
+./bin/zmq-server -I 6677 -f address_table/connection.xml
+# To debug uHal add `-L 6`
+```
+Start a terminal session #3:
+```
+# Start the client
+./bin/zmq-client -P 6678
+```
+Start a terminal session #4:
+```
+# Run the testing script, e.g.:
+cd scripts/
+python3 align_links.py 
+```
 
-Then run client (on remote PC - but for now zynq localhost):
+### Running on remote desktop:
+
+- On the ZYNQ:
+Start a terminal session #1:
 ```
-python3 ./zmq_client.py
+# Run the i2c server
+cd zmq_i2c/
+python3 ./zmq_server.py
+```
+Start a terminal session #2:
+```
+# Start the server
+./bin/zmq-server -I 6677 -f address_table/connection.xml
 ```
 
-for both daq and i2c, we will do scripts such as:
+- On the remote desktop:
 ```
-python3 ./zmq_align.py
+# Log-in to 14WH desktop
+ssh -K hcalpro@cmsnghcal01.fnal.gov
 ```
-that will act as the client
+Start a terminal session #1:
+```
+# Then, port forward to ZYNQ:
+ssh -L 6678:localhost:6678 -L 8888:localhost:8888 -L 6677:localhost:6677 -L 5555:localhost:5555 -p 23 HGCAL_dev@wilsonjc.us
+```
+Start a terminal session #2 (on the 14WH desktop):
+```
+# Start the client with `pullerPort`:
+cd cmantill/econt_sw/econt_sw/ # or to working directory with econt_sw
+./bin/zmq-client -P 6678
+```
+Start a terminal session #3 (on the 14WH desktop):
+```
+# Run the testing script, e.g.:
+cd scripts/
+python3 align_links.py 
+```
