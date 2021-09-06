@@ -138,6 +138,16 @@ This means that when running testing scripts remotely one needs to do port forwa
     # Start the server
     ./bin/zmq-server -I 6677 -f address_table/connection.xml
     ```
+    
+Alternatively, one can use the webserver:
+    ```bash
+    python3 webserver.py
+    ```
+
+    Open a web browser : [http://hc640259:8080/](http://hc640259:8080/) (replace hc640259 by the zynq IP address)
+    - Select `zynq` (for zynq board) and then press `Load FPGA` button
+    - Click `Start` button of the slow control
+    - Click `Start` button of the server
 
 - On the remote desktop:
     ```
