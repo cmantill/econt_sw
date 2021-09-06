@@ -20,6 +20,8 @@ ECON-T:
         param_value: 0
        hdr_mm_err:
         param_value: 0
+       prbs_chk_err:
+        param_value: 0
      select: 
       value: 0
      snapshot: 

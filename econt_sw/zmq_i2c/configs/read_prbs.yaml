@@ -1,0 +1,14 @@
+ECON-T:
+ RO:
+  CH_ALIGNER_*INPUT_ALL:
+   registers:
+     status:
+      params:
+       hdr_mm_err:
+        param_value: 0
+       prbs_chk_err:
+        param_value: 0
+     select: 
+      value: 0
+     snapshot: 
+      value: 0

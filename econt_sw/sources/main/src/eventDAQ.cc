@@ -58,10 +58,6 @@ bool eventDAQ::configure( const YAML::Node& config )
   // input file string
   inputstr = config["input_file"].as< std::string >();
 
-  // fast commands
-  m_fcMan->enable_FC_stream(0x1);
-  m_fcMan->enable_orbit_sync(0x1);
-
   return true;
 }
 
@@ -167,13 +163,9 @@ void eventDAQ::acquire()
 {
   configurelinks();
 
-  //m_fcMan->set_l1a_A_bx(3549);
-  m_fcMan->set_l1a_A_bx(0);
-  m_fcMan->l1a_A(0x1);
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  m_fcMan->enable_global_l1a(0x1);
+  m_fcMan->resetFC();
 
-  m_fcMan->enable_FC_stream(0x1);
-  m_fcMan->enable_orbit_sync(0x1);
 
   auto linksdata = std::vector< std::vector<uint32_t> >(NUM_OUTPUTLINKS);
   int id=0;

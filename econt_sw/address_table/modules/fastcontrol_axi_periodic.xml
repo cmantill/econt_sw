@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<node>
+  <node id="enable"                    address="0"   mask="0x1"        description="Enable periodic generator"/>
+  <node id="request"                   address="0"   mask="0x2"        description="Request a single pulse from the generator"/>
+  <node id="flavor"                    address="0"   mask="0x38"       description="Type of command/pulse to generate: (0=L1A, 1=L1A_NZS, 2=CALPULSINT, 3=CALPULSEXT, 4=EXTPULSE0, 5=EXTPULSE1)"/>
+  <node id="enable_follow"             address="0"   mask="0x4"        description="Enable following another periodic generator"/>
+  <node id="follow_which"              address="0"   mask="0xF00000"   description="Which other periodic generator to follow"/>
+  <node id="bx"                        address="0"   mask="0xFFF00"    description="Which BX to fire the request on"/>
+  <node id="orbit_prescale"            address="1"   mask="0xFFFFF"    description="Orbit prescale (number of orbits to skip between pulses)"/>
+  <node id="burst_length"              address="1"   mask="0x3FF00000" description="Length of the burst/pulse to produce"/>  
+</node>

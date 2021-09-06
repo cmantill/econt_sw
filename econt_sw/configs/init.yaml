@@ -22,60 +22,34 @@ global:
  output_directory: data
 ECON-T:
  RW:
-  # Turn on automatic alignment for all links  
   CH_ALIGNER_*INPUT_ALL:
    registers:
     config:
-     per_ch_align_en:
-      param_value: 1
-     #patt_sel: 
-     # param_value: 1
-     #prbs28_en:
-     # param_value: 1
-     #patt_en:
-     # param_value: 1
-     #prbs_chk_en:
-     # param_value: 1
-    seed_in:
      value: 1
      
   ALIGNER_ALL:
    registers:
     config:
-     # Enable snapshot_arm [bit 0], and snapshot_en [bit 1] but do not enable i2c_snapshot_en [bit 2] nor dbg_fc_cnt_clr [bit 3]
-     #i2c_snapshot_en:
-     # param_value: 1
      snapshot_en:
       param_value: 1
      snapshot_arm:
       param_value: 1
     match_pattern_val:
-     # patt_BX1 = 0xaccccccc
-     # patt_BX0 = 0x9ccccccc
-     # match_val = (patt_BX0 << 32) | patt_BX1
      value: 0x9cccccccaccccccc
     match_mask_val:
-     # mask for the word aligner
      value: 0x0000000000000000
     orbsyn_cnt_max_val:
-     # maximum bunch counter value to 3563, the number of bunch crossings in one orbit (minus one)
      value: 3563
-    # Set the bunch counter value on an orbit sync fast command to 0. Needs to be 1 to test STC
     orbsyn_cnt_load_val:
      value: 1
-    # Set the bunch counter value on which to take a snapshot to 4.  This needs to be set so that the special BX0 sync pattern from the HGCROC will appear inside the snapshot.
     orbsyn_cnt_snapshot:
-     value: 4
+     value: 5
 
   FMTBUF_ALL:
    registers:
     tx_sync_word:
      value: 0b00100100010
-    # default for 3 in software (78,54,25)
-    # default for 2 in software (52,28,25)
     buff_t1:
-     # Output buffer threshold T1 
-     # This must be at least 52 for the econ-t emulator to work
      value: 338 # default for eRx = 13
     buff_t2:
      value: 314 # default for eRx = 13

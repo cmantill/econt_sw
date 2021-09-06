@@ -55,7 +55,7 @@ int main(int argc,char** argv)
       ("serverport,I", po::value<std::string>(&m_serverport)->default_value("6000"), "port of the zmq server where it listens to commands")
       ("connectionfile,f", po::value<std::string>(&m_connectionfile)->default_value("address_table/connection.xml"), "name of ipbus connection file")
       ("devicename,d", po::value<std::string>(&m_devicename)->default_value("mylittlememory"), "name of ipbus connection file")
-      ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(6), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug")
+      ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(0), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug")
       ("printArgs", po::bool_switch(&m_printArgs)->default_value(true), "turn me on to print used arguments");
     
     po::options_description cmdline_options;

@@ -1,0 +1,18 @@
+ECON-T:
+ RW:
+  # Turn on automatic alignment for all links  
+  CH_ALIGNER_*INPUT_ALL:
+   registers:
+    config:
+     per_ch_align_en:
+      param_value: 1
+     #patt_sel: 
+     # param_value: 1
+     prbs28_en:
+      param_value: 1
+     #patt_en:
+     # param_value: 1
+     #prbs_chk_en:
+     # param_value: 1
+    seed_in:
+     value: 1
