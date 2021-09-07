@@ -2,7 +2,8 @@ from time import sleep
 
 import zmq_controller as zmqctrl
 
-# IP address of the zynq on the econ-testing board (localhost for the moment)
+# IP address of the zynq on the econ-testing board
+# since we are running locally for now is `localhost`
 remoteIP = "localhost"
 
 # port of the zynq waiting for daq (? fc/link) commands
@@ -12,17 +13,16 @@ daqPort = "6677"
 i2cPort = "5555"
 
 # port for data pulling
-pullerPort = "6679"
+pullerPort = "6678"
 
+# initialize sockets
 daq_socket = zmqctrl.daqController(remoteIP, daqPort, "configs/init.yaml")
-cli_socket = zmqctrl.daqController("localhost",pullerPort, "configs/init.yaml")
 i2c_socket = zmqctrl.i2cController(remoteIP, i2cPort, "configs/init.yaml")
-
-# client socket
+cli_socket = zmqctrl.daqController("localhost",pullerPort, "configs/init.yaml")
 cli_socket.yamlConfig['global']['output_directory'] = "/home/HGCAL_dev/src/econt_sw/econt_sw/output/"
 cli_socket.yamlConfig['global']['serverIP'] = daq_socket.ip
 cli_socket.yamlConfig['global']['data_push_port'] = '8888'
-cli_socket.yamlConfig['daq']['delay_scan_port'] = '6679'
+cli_socket.yamlConfig['daq']['delay_scan_port'] = '6678'
 cli_socket.configure()
 
 # i2c 
