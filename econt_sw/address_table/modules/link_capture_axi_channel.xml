@@ -3,10 +3,11 @@
 	   and on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/LinkCapture_v0.3/src/hdl/AXI_decode.v for link register addresses
     -->
     <node id="delay" address="0x0">
-        <node id="in"                   mask="0x1ff"   permission="rw" description="indicates the link is aligned"/>
-        <node id="idelay_error_offset"  mask="0x3fe00" permission="rw" description="offset between the P and N side bitslice (for expert only)"/>
-        <node id="set"                  mask="0x40000" permission="rw" description="when delay_mode is 0: toggle it to 1 to programe a delay_in value (then back to 0)"/>
-        <node id="mode"                 mask="0x80000" permission="rw" description="delay mode : manually:0 ; automatic:1 ; default is 0"/>
+        <node id="in"                   mask="0x1ff"    permission="rw" description="indicates the link is aligned"/>
+        <node id="idelay_error_offset"  mask="0x3fe00"  permission="rw" description="offset between the P and N side bitslice (for expert only)"/>
+        <node id="set"                  mask="0x40000"  permission="rw" description="when delay_mode is 0: toggle it to 1 to programe a delay_in value (then back to 0)"/>
+        <node id="mode"                 mask="0x80000"  permission="rw" description="delay mode : manually:0 ; automatic:1 ; default is 0"/>
+		<node id="invert"               mask="0x100000" permission="rw" description="inversion: normal: 0 ; invert input: 1 ; default is 0"/>
     </node>
 
     <node id="align_pattern"         address="0x1" mask="0xffffffff" permission="rw" description="expected alignment word on the e-links (default pattern 0xaccccccc)"/>

@@ -14,15 +14,23 @@ ECON-T:
    registers:
      status:
       params:
+       prbs_chk_err:
+        param_value: 0
+       orbsyn_fc_err:
+        param_value: 0
        orbsyn_arr_err: 
         param_value: 0
        orbsyn_hdr_err:
         param_value: 0
+       align_seu_err:
+        param_value: 0
        hdr_mm_err:
         param_value: 0
-       prbs_chk_err:
+       snapshot_dv:
         param_value: 0
-     select: 
+       pattern_match:
+        param_value: 0
+     select:
       value: 0
      snapshot: 
       value: 0

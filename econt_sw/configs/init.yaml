@@ -16,6 +16,7 @@ daq:
   - { name : 'link12', polarity: 1, idcode: 12 }
  zmq_push_port: '8888'
  delay_scan_port: '8888'
+ verbose: 1
 global:
  data_push_port: '8888'
  serverIP: localhost

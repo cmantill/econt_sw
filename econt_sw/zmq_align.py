@@ -12,7 +12,7 @@ daqPort = "6677"
 i2cPort = "5555"
 
 # port for data pulling
-pullerPort = "6679"
+pullerPort = "6678"
 
 daq_socket = zmqctrl.daqController(remoteIP, daqPort, "configs/init.yaml")
 cli_socket = zmqctrl.daqController("localhost",pullerPort, "configs/init.yaml")
@@ -22,7 +22,7 @@ i2c_socket = zmqctrl.i2cController(remoteIP, i2cPort, "configs/init.yaml")
 cli_socket.yamlConfig['global']['output_directory'] = "/home/HGCAL_dev/src/econt_sw/econt_sw/output/"
 cli_socket.yamlConfig['global']['serverIP'] = daq_socket.ip
 cli_socket.yamlConfig['global']['data_push_port'] = '8888'
-cli_socket.yamlConfig['daq']['delay_scan_port'] = '6679'
+cli_socket.yamlConfig['daq']['delay_scan_port'] = '6678'
 #cli_socket.configure()
 
 # i2c 
