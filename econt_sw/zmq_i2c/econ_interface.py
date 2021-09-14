@@ -5,10 +5,10 @@ import yaml
 class econ_interface():
     """ Base class for interfacing with ECON at i2c register level """
 
-    def __init__(self):
+    def __init__(self, addr=0x20):
         self.i2c = econ_i2c(1)
         self.translator = Translator('ECON-T')
-        self.i2c_addr = 0x20
+        self.i2c_addr = addr
         self.writeCache = {}
 
     def configure(self, cfg=None):

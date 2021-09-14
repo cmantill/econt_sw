@@ -146,3 +146,21 @@ class daqController(zmqController):
             self.socket.send_string("prbstest")
             rep = self.socket.recv_string()
         print(rep)
+
+    def i2c_scan(self, fname=None, yamlNode=None):
+        print('i2c address scan')
+        self.socket.send_string("i2cscan")
+        rep = self.socket.recv_string()
+        if rep.lower().find("ready")<0:
+            print(rep)
+            return
+        if yamlNode:
+            config=yamlNode
+        elif fname :
+            with open(fname) as fin:
+                config=yaml.safe_load(fin)
+        else:
+            config = self.yamlConfig
+        self.socket.send_string(yaml.dump(config))
+        rep = self.socket.recv_string()
+        print(rep)

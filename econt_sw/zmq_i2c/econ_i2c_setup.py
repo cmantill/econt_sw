@@ -19,7 +19,7 @@ if translate:
     writeCaches = {}
     for addr,vals in pairs.items():
         size_byte = vals[1]
-        readback = i2c.read(0x20, addr, size_byte)
+        readback = i2c.read(0x21, addr, size_byte)
         '''
         if size_byte == 1:
             print("Prev value: ",hex(addr), "0x%02x"%tuple(readback))

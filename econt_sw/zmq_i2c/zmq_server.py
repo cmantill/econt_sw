@@ -18,15 +18,15 @@ def redirect(fn):
     ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
     socket.send_string(ans_str)
 
-try:
-    board = econ_interface.econ_interface()
 
+try:
+    board = econ_interface.econ_interface(0x21)
+    
     while True:
         string = socket.recv_string().lower()
         if string == "initialize" or string == "configure":
             if board: redirect(board.configure)
             else: socket.send_string("E: Board not initialized.")
-
         elif string == "read": redirect(board.read)
 
 except KeyboardInterrupt:

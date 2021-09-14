@@ -1,3 +1,5 @@
+i2c:
+ emulator_addr: 1
 daq:
  input_file: /home/HGCAL_dev/src/econt_sw/econt_sw/data/EPORTRX_data_wafer.csv
  elinks_out:
