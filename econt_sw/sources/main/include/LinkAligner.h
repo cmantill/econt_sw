@@ -63,8 +63,9 @@ class LinkAligner
   LinkAligner(uhal::HwInterface* uhalHWInterface, FastControlManager* fc);
   ~LinkAligner(){;}
 
+  bool configure_data();
+  bool configure_IO(std::string, std::vector<link_description>);
   bool configure(const YAML::Node& config);
-  bool configure_elinkOutputs(const YAML::Node& config);
 
   void align();
   bool checkLinks();
@@ -80,12 +81,14 @@ class LinkAligner
   FastControlManager* m_fcMan;
   int m_port;
   int m_verbose;
+  int m_save_input_data;
+
+  std::vector<link_description> m_elinksInput;
+  std::vector<link_description> m_elinksOutput;
 
   eLinkOutputsBlockHandler m_out;
   IOBlockHandler m_fromIO;
   IOBlockHandler m_toIO;
-  std::vector<std::string> m_eLinks;
-  std::vector<std::string> m_outputBrams;
   std::vector<LinkCaptureBlockHandler> m_link_capture_block_handlers;
 };
 

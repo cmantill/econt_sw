@@ -37,9 +37,18 @@ make install
 cd ../
 ```
 
-## Re-load new firmware
+### Load firmware
 
-In HGCAL-dev board:
+Install `mylittledt`:
+```
+cd mylittledt/
+git remote add hgcal-daq-sw ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/mylittledt.git
+git fetch hgcal-daq-sw
+git checkout -b tileboard hgcal-daq-sw/tileboard
+chmod +x load.sh
+```
+
+Then
 ```
 # go to little-dt directory
 cd /home/HGCAL_dev/src/mylittledt/
@@ -48,10 +57,25 @@ cd /home/HGCAL_dev/src/mylittledt/
 sudo ./load.sh ~/firmware/econ-t-IO-Aug12 && sudo chmod a+rw /dev/uio* /dev/i2c-*
 ```
 
+To check the firmware:
+```
+# check which version of the firmware was loaded
+cat /sys/firmware/devicetree/base/fpga-full/firmware-name
+
+# find out the specific git commit on which the firmware was built
+cat /sys/firmware/devicetree/base/fpga-full/git-desc
+cat /sys/firmware/devicetree/base/fpga-full/git-sha
+```
+
+### Link uHAL xml files
+```
+sudo ln -s /opt/hexactrl/uHAL_xml address_table
+```
+
 ## Testing
 ```
 # run server for uhal
-./bin/zmq-server -I 6677 -f address_table/connection.xml
+./bin/zmq-server -I 6677 -f connection.xml
 
 # run server for i2c (on testing board - zynq - but for now zynq localhost):
 cd zmq_i2c/
