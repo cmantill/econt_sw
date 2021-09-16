@@ -2,7 +2,7 @@ import argparse
 import zmq_controller as zmqctrl
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Start i2c server')
+    parser = argparse.ArgumentParser(description='Align links')
     args = parser.parse_args()
 
     # current path
@@ -18,6 +18,7 @@ if __name__ == "__main__":
 
     # port of the zynq waiting for I2C config and commands
     i2cPort = "5555"
+    i2cPortASIC = "5554"
     
     # port for data pulling 
     pullerPort = "6678"
@@ -25,9 +26,11 @@ if __name__ == "__main__":
     daq_socket = zmqctrl.daqController(remoteIP, daqPort, "configs/align.yaml")
     cli_socket = zmqctrl.daqController("localhost",pullerPort, "configs/align.yaml")
     i2c_socket = zmqctrl.i2cController(remoteIP, i2cPort, "configs/align.yaml")
+    i2c_socket_asic = zmqctrl.i2cController(remoteIP, i2cPortASIC, "configs/align.yaml")
     
     # initialize i2c
     i2c_socket.initialize("{}/../configs/align.yaml".format(p))
+    i2c_socket_asic.initialize("{}/../configs/align.yaml".format(p))
 
     # client options
     cli_socket.yamlConfig['global']['output_directory'] = "{}/../output/align/".format(p)
@@ -42,4 +45,4 @@ if __name__ == "__main__":
 
     # read back i2c alignment
     i2c_socket.read_config("configs/align.yaml","read")
-    
+    i2c_socket_asic.read_config("configs/align.yaml","read")
