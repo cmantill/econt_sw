@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="TOP">
+  <node id="IO-from-ECONT-IO-blocks-0"	    module="file://modules/IO-from-ECONT-IO-blocks-0.xml"	          address="0x80020000"/>
+  <node id="IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO.xml"	          address="0x80000000"/>
+  <node id="IO-from-ECONT-output-link-capture-link-capture-AXI-0"	    module="file://modules/IO-from-ECONT-output-link-capture-link-capture-AXI-0.xml"	          address="0x80030000"/>
+  <node id="IO-to-ECONT-IO-blocks-0"	    module="file://modules/IO-to-ECONT-IO-blocks-0.xml"	          address="0x80040000"/>
+  <node id="IO-to-ECONT-input-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/IO-to-ECONT-input-link-capture-link-capture-AXI-0_FIFO.xml"	          address="0x80010000"/>
+  <node id="IO-to-ECONT-input-link-capture-link-capture-AXI-0"	    module="file://modules/IO-to-ECONT-input-link-capture-link-capture-AXI-0.xml"	          address="0x80050000"/>
+  <node id="fast-command-decoder-clkgen-1"	    module="file://modules/fast-command-decoder-clkgen-1.xml"	          address="0x80070000"/>
+  <node id="fast-command-fastcontrol-recv-axi-0"	    module="file://modules/fast-command-fastcontrol-recv-axi-0.xml"	          address="0x80060000"/>
+</node>
