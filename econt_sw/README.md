@@ -16,9 +16,11 @@ pip3 install pyzmq pyyaml smbus2 nested_dict --user
 sudo yum install boost boost-devel
 sudo yum -y install epel-release
 sudo yum install pugixml-devel pugixml
-git clone https://gitlab.cern.ch/asteen/ipbus-software.git
-cd ipbus-software
-git checkout asteen/UIO-hgcal-dev #should be useless since this should be the default branch of this repo
+
+git clone ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/ipbus-software.git
+cd ipbus-software/
+git checkout deploy-rpm
+
 make -j2 Set=uhal
 make install -j2 Set=uhal
 ```

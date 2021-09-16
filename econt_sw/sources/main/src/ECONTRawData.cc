@@ -37,8 +37,8 @@ void ECONTEventContainer::fillContainer( int eventID, const std::vector<uint32_t
   m_mutex.lock();
   unsigned int len = data.size()/ECONT_DATA_BUF_SIZE;
   for( unsigned int iEvt = 0; iEvt < len; ++iEvt ){
-    auto header = data.begin() + iEvt * HGCROC_DATA_BUF_SIZE;
-    m_econtdata.emplace_back( new ECONTRawData(eventID, header, header+HGCROC_DATA_BUF_SIZE) );
+    auto header = data.begin() + iEvt * ECONT_DATA_BUF_SIZE;
+    m_econtdata.emplace_back( new ECONTRawData(eventID, header, header+ECONT_DATA_BUF_SIZE) );
     eventID++;
   }
   m_mutex.unlock();

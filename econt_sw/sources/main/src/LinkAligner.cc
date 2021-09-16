@@ -41,17 +41,17 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
 
 bool LinkAligner::configure_data()
 {
-  auto buildname = [](std::string base, int val)->std::string{ return base+std::to_string(val); };
   std::vector<std::string> brams;
   for( int i=0; i<NUM_INPUTLINKS; i++ ){
-    std::string bramname=buildname(std::string("eLink_outputs_block"),i)+std::string("_bram_ctrl");
-    brams.push_back(bramname);
+      std::stringstream ss; ss << std::setfill('0') << std::setw(2) << i;
+      std::string bramname=std::string("test-vectors-to-ASIC-and-emulator-test-vectors-out-block")+ss.str()+std::string("-bram-ctrl");
+      brams.push_back(bramname);
   }
 
   // eLinkOutputs
   eLinkOutputsBlockHandler outhandler( m_uhalHW,
-				       std::string("econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux"),
-				       std::string("econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux"),
+				       std::string("test-vectors-to-ASIC-and-emulator-test-vectors-ipif-stream-mux"),
+				       std::string("test-vectors-to-ASIC-and-emulator-test-vectors-ipif-switch-mux"),
 				       brams,
 				       m_elinksInput
 				       );
@@ -169,6 +169,7 @@ bool LinkAligner::configure(const YAML::Node& config)
 				    std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"),
 				    m_elinksOutput );
       m_fromIO = fromIOhandler;
+      std::cout << "configure IO " << std::endl;
       return true;
     }
     else 
@@ -183,6 +184,8 @@ bool LinkAligner::configure(const YAML::Node& config)
 
 
 void LinkAligner::align() {  
+  std::cout << "reset FC" << std::endl;
+
   // reset FC
   m_fcMan->resetFC();
   
@@ -282,16 +285,19 @@ void LinkAligner::align() {
 
     // set bx on which link reset econt will be sent
     m_fcMan->bx_link_reset_econt(3555);
+
+    // send an aquire and link reset as close as possible
     for(auto elink : lchandler.getElinks()){
       //lchandler.setRegister(elink.name(),"aquire", 1);
       char buf[200];
-      sprintf(buf,"link_capture_axi.%s.aquire",elink.name().c_str());
+      sprintf(buf,"%s.%s.aquire",lchandler.name().c_str(),elink.name().c_str());
       m_uhalHW->getNode(buf).write(0x1);
     }
-    m_uhalHW->getNode("fastcontrol_axi.request.link_reset_econt").write(0x1);
+    char buf[200];
+    sprintf(buf,"%s.request.link_reset_econt",m_fcMan->name().c_str());
+    m_uhalHW->getNode(buf).write(0x1);
     m_uhalHW->dispatch();
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1));
     //m_fcMan->request_link_reset_econt();
     
     if(m_verbose){

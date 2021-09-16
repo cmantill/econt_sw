@@ -86,18 +86,22 @@ class i2cController(zmqController):
         print(rep)
         # return rep
     
-    def read_config(self,fname=""):
+    def read_config(self,fname="",key=None):
         # only for I2C server
         # print('read config ',fname)
         self.socket.send_string("read")
         rep = self.socket.recv_string()
         if fname:
             with open(fname) as fin:
-                config=yaml.safe_load(fin)
-            # print('config ',config)
-            self.socket.send_string( yaml.dump(config) )
+                config = yaml.safe_load(fin)
+            if key is not None:
+                config_dict = yaml.dump(config[key])
+            else:
+                config_dict = yaml.dump(config)
+            print('config ',config)
+            self.socket.send_string( config_dict )
         else:
-            # print('no fname')
+            print('no fname')
             self.socket.send_string( "" )
         yamlread = yaml.safe_load( self.socket.recv_string() )
         #print('yaml read ',yamlread)

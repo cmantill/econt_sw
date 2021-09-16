@@ -50,8 +50,8 @@ int main(int argc,char** argv)
         po::options_description generic_options("Generic options");
         generic_options.add_options()
             ("help,h", "Print help messages")
-            ("serverport,I", po::value<std::string>(&m_serverport)->default_value("6000"), "port of the zmq server where it listens to commands")
-            ("connectionfile,f", po::value<std::string>(&m_connectionfile)->default_value("address_table/connection.xml"), "name of ipbus connection file")
+            ("serverport,I", po::value<std::string>(&m_serverport)->default_value("6677"), "port of the zmq server where it listens to commands")
+            ("connectionfile,f", po::value<std::string>(&m_connectionfile)->default_value("connection.xml"), "name of ipbus connection file")
             ("devicename,d", po::value<std::string>(&m_devicename)->default_value("mylittlememory"), "name of ipbus connection file")
             ("uhalLogLevel,L", po::value<int>(&m_uhalLogLevel)->default_value(0), "uhal log level : 0-Disable; 1-Fatal; 2-Error; 3-Warning; 4-Notice; 5-Info; 6-Debug")
             ("printArgs", po::bool_switch(&m_printArgs)->default_value(true), "turn me on to print used arguments");
@@ -118,7 +118,7 @@ int main(int argc,char** argv)
     uhal::HwInterface m_ipbushw = manager.getDevice(m_devicename);
     uhal::HwInterface* m_ipbushwptr(&m_ipbushw);
     
-    FastControlManager* fcptr = new FastControlManager( m_ipbushwptr );
+    FastControlManager* fcptr = new FastControlManager( m_ipbushwptr, "fastcontrol_axi", "fastcontrol_recv_axi" );
     LinkAligner* linkaligner = new LinkAligner( m_ipbushwptr, fcptr );
     eventDAQ* thedaq = new eventDAQ(m_ipbushwptr, fcptr);
     
@@ -214,16 +214,18 @@ int main(int argc,char** argv)
         reply("PRBS_test_done");
     };
     
+    /*
     auto i2cscan = [&m_ipbushwptr,&m_config,receive,reply](){
         reply("ReadyForConfig");
         auto configstr = receive(true);
         m_config = YAML::Load(configstr)["i2c"];
         std::cout << m_config << std::endl;
         auto i2caddr = m_config["emulator_addr"].as< int >();
-        // m_ipbushwptxr->getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_ASIC_I2C_address").write(0x20+i2caddr);
+        m_ipbushwptxr->getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_ASIC_I2C_address").write(0x20+i2caddr);
         m_ipbushwptr->getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_emulator_I2C_address").write(i2caddr);
         reply("Configured");
     };
+    */
     
     auto start = [&m_linkstatus,&thedaq,reply,align](){
         switch( m_linkstatus ){
@@ -257,7 +259,7 @@ int main(int argc,char** argv)
     const std::unordered_map<std::string,std::function<void()> > actionMap = {
         {"configure", [&](){ configure(); }},
         {"delayscan", [&](){ delayscan(); }},
-        {"i2cscan",   [&](){ i2cscan();   }},
+        //{"i2cscan",   [&](){ i2cscan();   }},
         {"prbstest",  [&](){ prbstest();  }},
         {"start",     [&](){ start();     }},
         {"stop",      [&](){ stop();      }},

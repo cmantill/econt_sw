@@ -3,12 +3,8 @@
 import zmq
 import yaml
 import econ_interface
-
-""" ZMQ-Server: Redirect user request to Board. """
-context = zmq.Context()
-socket = context.socket(zmq.REP)
-socket.bind("tcp://*:5555")
-print('[ZMQ] Server started')
+import argparse
+import functools
 
 def redirect(fn):
     socket.send_string('READY')
@@ -18,18 +14,31 @@ def redirect(fn):
     ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
     socket.send_string(ans_str)
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Start i2c server')
+    parser.add_argument('--addr', type=functools.partial(int, base=0),
+                        default=0x20,
+                        help='i2c address')
+    args = parser.parse_args()
 
-try:
-    board = econ_interface.econ_interface(0x21)
+    """ ZMQ-Server: Redirect user request to Board. """
+    context = zmq.Context()
+    socket = context.socket(zmq.REP)
+    socket.bind("tcp://*:5555")
+    print('[ZMQ] Server started')
     
-    while True:
-        string = socket.recv_string().lower()
-        if string == "initialize" or string == "configure":
-            if board: redirect(board.configure)
-            else: socket.send_string("E: Board not initialized.")
-        elif string == "read": redirect(board.read)
+    try:
+        board = econ_interface.econ_interface(args.addr)
+        
+        while True:
+            string = socket.recv_string().lower()
+            if string == "initialize" or string == "configure":
+                if board: redirect(board.configure)
+                else: socket.send_string("E: Board not initialized.")
+            elif string == "read": 
+                redirect(board.read)
 
-except KeyboardInterrupt:
-    print('\nClosing server.')
-    socket.close()
-    context.term()
+    except KeyboardInterrupt:
+        print('\nClosing server.')
+        socket.close()
+        context.term()

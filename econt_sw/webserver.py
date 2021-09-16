@@ -22,15 +22,15 @@ env["LD_LIBRARY_PATH"]='/opt/cactus/lib:./lib:' + env['LD_LIBRARY_PATH']
 env["UHAL_ENABLE_IPBUS_MMAP"]='1'
 
 # commands to execute on server
-cmds = {'rocchar': ['make', 'rocchar'], 
-        'trophy':  ['make', 'trophy'], 
-        'sc':      ['python3', '-u', 'zmq_server.py'], 
-        'fc':      ['./bin/zmq-server']}
+cmds = {
+    'sc':      ['python3', '-u', 'zmq_server.py'], 
+    'fc':      ['./bin/zmq-server']
+}
 
-cwds = {'rocchar': '/root/mylittledt',
-        'trophy':  '/root/mylittledt',
-        'sc':      './zmq_i2c',
-        'fc':      './' }
+cwds = {
+    'sc':      './zmq_i2c',
+    'fc':      './' 
+}
 
 @app.route('/')
 def html():
@@ -46,7 +46,6 @@ def handle_socket():
     for name in procs.keys(): wsock.send('STATE++{}:UP'.format(name))  # initial state
 
     while True:
-#        time.sleep(0.01)        # refresh rate
         try:
             msg = wsock.receive()
             if msg in procs and procs[msg].poll() is None:  # kill proc, proc running

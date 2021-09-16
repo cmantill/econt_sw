@@ -35,7 +35,7 @@ class econ_interface():
         
         # write registers
         self.write_pairs(writePairs)
-        return "ECON Configured"
+        return "i2c: ECON Configured"
 
     def read(self, cfg=None):
         """ Read from configs or cache """

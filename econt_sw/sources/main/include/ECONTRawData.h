@@ -9,11 +9,13 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/thread/thread.hpp>
 
+#define ECONT_DATA_BUF_SIZE 20 // maximum possible readout latency
+
 class ECONTRawData
 {
  public:
   ECONTRawData(){;}
-  
+  ECONTRawData(int event, const std::vector<uint32_t> &data);  
   ECONTRawData(int event, 
 	       std::vector<uint32_t>::const_iterator data_begin,
 	       std::vector<uint32_t>::const_iterator data_end);
@@ -28,7 +30,6 @@ class ECONTRawData
     void serialize(Archive & ar, const unsigned int version)
     {
       ar & m_event;
-      ar & m_chip;
       ar & m_data;
     }
   
@@ -41,7 +42,6 @@ class ECONTEventContainer
 {
  public:
   ECONTEventContainer();
-  ECONTEventContainer(int chip);
   
   void fillContainer( int eventID, const std::vector<uint32_t>& data);
 

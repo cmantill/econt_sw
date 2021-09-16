@@ -12,7 +12,7 @@ if translate:
     default = translator.pairs_from_cfg()
     
     # Load test map and expand config
-    paramMap = translator.load_param_map("configs/init_align.yaml")['ECON-T']
+    paramMap = translator.load_param_map("../configs/init_align.yaml")['ECON-T']
     pairs = translator.pairs_from_cfg(paramMap)
     
     # Read previous values of addresses in test map

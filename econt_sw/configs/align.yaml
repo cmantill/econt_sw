@@ -1,45 +1,63 @@
+i2c:
+ emulator_addr: 1
+daq:
+ input_file: /home/HGCAL_dev/src/econt_sw/econt_sw/data/EPORTRX_data_wafer.csv
+ elinks_out:
+  - { name : 'link0', polarity: 1, idcode: 0 }
+  - { name : 'link1', polarity: 1, idcode: 1 }
+  - { name : 'link2', polarity: 1, idcode: 2 }
+  - { name : 'link3', polarity: 1, idcode: 3 }
+  - { name : 'link4', polarity: 1, idcode: 4 }
+  - { name : 'link5', polarity: 1, idcode: 5 }
+  - { name : 'link6', polarity: 1, idcode: 6 }
+  - { name : 'link7', polarity: 1, idcode: 7 }
+  - { name : 'link8', polarity: 1, idcode: 8 }
+  - { name : 'link9', polarity: 1, idcode: 9 }
+  - { name : 'link10', polarity: 1, idcode: 10 }
+  - { name : 'link11', polarity: 1, idcode: 11 }
+  - { name : 'link12', polarity: 1, idcode: 12 }
+ zmq_push_port: '8888'
+ delay_scan_port: '8888'
+ verbose: 1
+global:
+ data_push_port: '8888'
+ serverIP: localhost
+ output_directory: data
 ECON-T:
  RW:
-  # Turn on automatic alignment for all links  
   CH_ALIGNER_*INPUT_ALL:
    registers:
     config:
      value: 1
-
+     
   ALIGNER_ALL:
    registers:
     config:
-     # Enable snapshot_arm [bit 0], and snapshot_en [bit 1] but do not enable i2c_snapshot_en [bit 2] nor dbg_fc_cnt_clr [bit 3]
      snapshot_en:
       param_value: 1
      snapshot_arm:
       param_value: 1
     match_pattern_val:
-     # patt_BX1 = 0xaccccccc
-     # patt_BX0 = 0x9ccccccc
-     # match_val = (patt_BX0 << 32) | patt_BX1
      value: 0x9cccccccaccccccc
     match_mask_val:
-     # mask for the word aligner
      value: 0x0000000000000000
     orbsyn_cnt_max_val:
-     # maximum bunch counter value to 3563, the number of bunch crossings in one orbit (minus one)
      value: 3563
-    # Set the bunch counter value on an orbit sync fast command to 0. Needs to be 1 to test STC
     orbsyn_cnt_load_val:
      value: 1
-    # Set the bunch counter value on which to take a snapshot to 4.  This needs to be set so that the special BX0 sync pattern from the HGCROC will appear inside the snapshot.
     orbsyn_cnt_snapshot:
-     value: 4
+     value: 5
 
   FMTBUF_ALL:
    registers:
     tx_sync_word:
      value: 0b00100100010
     buff_t1:
-     # Output buffer threshold T1 
-     # This must be at least 52 for the econ-t emulator to work
-     value: 156
+     value: 338 # default for eRx = 13
+    buff_t2:
+     value: 314 # default for eRx = 13
+    buff_t3:  
+     value: 25 # default for eRx = 13
     config:
      params:
       eporttx_numen:
@@ -63,7 +81,7 @@ ECON-T:
   MFC_CAL_VAL:
    registers:
     cal_*:
-     value: [358, 347, 335, 336, 347, 348, 335, 335,
+     value: [348, 347, 335, 336, 347, 348, 335, 335,
              323, 323, 311, 311, 325, 324, 312, 314, 
              307, 293, 304, 318, 280, 267, 279, 291,
              303, 290, 302, 315, 329, 316, 328, 340,
@@ -76,7 +94,7 @@ ECON-T:
      params:
       select:
        # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)   
-       param_value: 3
+       param_value: 0
       density:
        # 1: high density
        param_value: 1
@@ -95,3 +113,40 @@ ECON-T:
    registers:
     drop_lsb:
      value: 3
+read:
+ ECON-T:
+  RW: 
+   MFC_ALGORITHM_SEL_DENSITY:
+    registers:
+     algo:
+      params:
+       select:
+        param_value: 0
+       density:
+        param_shift: 0
+
+  RO:
+   CH_ALIGNER_*INPUT_ALL:
+    registers:
+     status:
+      params:
+       prbs_chk_err:
+        param_value: 0
+       orbsyn_fc_err:
+        param_value: 0
+       orbsyn_arr_err:
+        param_value: 0
+       orbsyn_hdr_err:
+        param_value: 0
+       align_seu_err:
+        param_value: 0
+       hdr_mm_err:
+        param_value: 0
+       snapshot_dv:
+        param_value: 0
+       pattern_match:
+        param_value: 0
+     select:
+      value: 0
+     snapshot:
+      value: 0
