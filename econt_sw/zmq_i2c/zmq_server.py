@@ -19,12 +19,15 @@ if __name__ == "__main__":
     parser.add_argument('--addr', type=functools.partial(int, base=0),
                         default=0x20,
                         help='i2c address')
+    parser.add_argument('--server', type=str,
+                        default='5555',
+                        help='server for i2c')
     args = parser.parse_args()
 
     """ ZMQ-Server: Redirect user request to Board. """
     context = zmq.Context()
     socket = context.socket(zmq.REP)
-    socket.bind("tcp://*:5555")
+    socket.bind("tcp://*:%s"%args.server)
     print('[ZMQ] Server started')
     
     try:

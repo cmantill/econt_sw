@@ -64,7 +64,7 @@ class LinkAligner
   ~LinkAligner(){;}
 
   bool configure_data();
-  bool configure_IO(std::string, std::vector<link_description>);
+  bool configure_IO(std::string, std::vector<link_description>, bool set_delay_mode=false);
   bool configure(const YAML::Node& config);
 
   void align();

@@ -116,25 +116,34 @@ bool LinkAligner::configure_data()
   return true;
 }
 
-bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_description> elinks)
+bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_description> elinks, bool set_delay_mode)
 {
-  IOBlockHandler IOhandler( m_uhalHW,
-			    IO_block_name,
-			    elinks
-			    );
-  
-  for(auto elink : IOhandler.getElinks()){
-    // reset links (active-low reset)
-    IOhandler.setRegister(elink.name(),"reg0.reset_link",0);
-    // reset counters (active-high reset) 
-    IOhandler.setRegister(elink.name(),"reg0.reset_counters",1);
-    // delay mode to automatic delay setting
-    IOhandler.setRegister(elink.name(),"reg0.delay_mode",1);
-    // run normally
-    IOhandler.setRegister(elink.name(),"reg0.reset_counters",0);
-    IOhandler.setRegister(elink.name(),"reg0.reset_link",1);
-  }
-  return true;
+    IOBlockHandler IOhandler( m_uhalHW,
+                              IO_block_name,
+                              elinks
+        );
+    
+    for(auto elink : IOhandler.getElinks()){
+        // setting to 1 will disable the outpu
+        IOhandler.setRegister(elink.name(),"reg0.tristate_IOBUF",0);
+        // do not invert the output
+        IOhandler.setRegister(elink.name(),"reg0.invert",0);
+        if(set_delay_mode){
+            // set delay mode to automatic delay setting
+            IOhandler.setRegister(elink.name(),"reg0.reset_link",0);
+            IOhandler.setRegister(elink.name(),"reg0.reset_counters",1);
+            IOhandler.setRegister(elink.name(),"reg0.delay_mode",1);
+        }
+        // reset link (active-low reset) - needs to be 1
+        IOhandler.setRegister(elink.name(),"reg0.reset_link",1);
+        // reset counters (active-high reset) 
+        IOhandler.setRegister(elink.name(),"reg0.reset_counters",0);
+    }
+
+    // global reset
+    IOhandler.setGlobalRegister("global_rstb_links",1);
+    return true;
+    
 }
 
 bool LinkAligner::configure(const YAML::Node& config)
@@ -146,11 +155,13 @@ bool LinkAligner::configure(const YAML::Node& config)
 
     m_link_capture_block_handlers.clear();
     m_elinksOutput = outelinks;
+    /*
     LinkCaptureBlockHandler lchandler_asic( m_uhalHW,
                                             std::string("capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0"),
                                             std::string("capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO"),
-					    m_elinksOutput );
+                                            m_elinksOutput );
     m_link_capture_block_handlers.push_back(lchandler_asic);
+    */
     LinkCaptureBlockHandler lchandler_emulator( m_uhalHW,
 						std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
 						std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
@@ -159,7 +170,7 @@ bool LinkAligner::configure(const YAML::Node& config)
 
     if( configure_data() && 
 	configure_IO(std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"), m_elinksInput) &&
-	configure_IO(std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"), m_elinksOutput)
+	configure_IO(std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"), m_elinksOutput, true)
 	){
       IOBlockHandler toIOhandler( m_uhalHW,
 				  std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"),
@@ -223,10 +234,12 @@ void LinkAligner::align() {
 
   // check if IO blocks have achieved bit alignment
   for(auto elink : m_fromIO.getElinks()){
-    int delay_ready = m_fromIO.getRegister(elink.name(),"reg3.delay_ready");
-    if(delay_ready!=1){
-      std::cout << "LinkAligner Warning: fromIO delay-ready " << delay_ready << std::endl;
-    }
+      std::cout << "LinkAligner: delay mode fromIO " << m_fromIO.getRegister(elink.name(),"reg0.delay_mode") <<std::endl;
+      std::cout << "LinkAligner: waiting for transitions fromIO " << m_fromIO.getRegister(elink.name(),"reg3.waiting_for_transitions") <<std::endl;
+      int delay_ready = m_fromIO.getRegister(elink.name(),"reg3.delay_ready");
+      if(delay_ready!=1){
+          std::cout << "LinkAligner Warning: fromIO delay-ready " << delay_ready << std::endl;
+      }
   }
   for(auto elink : m_toIO.getElinks()){
     int delay_ready = m_toIO.getRegister(elink.name(),"reg3.delay_ready");
