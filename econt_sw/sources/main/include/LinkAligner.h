@@ -67,6 +67,7 @@ class LinkAligner
   bool configure_IO(std::string, std::vector<link_description>, bool set_delay_mode=false);
   bool configure(const YAML::Node& config);
 
+  void align_IO();
   void align();
   bool checkLinks();
 
