@@ -25,8 +25,10 @@ class zmqController:
         self.port=port
         self.socket = context.socket( zmq.REQ )
         self.socket.connect("tcp://"+str(ip)+":"+str(port))
-        with open(fname) as fin:
-            self.yamlConfig=yaml.safe_load(fin)
+        self.yamlConfig = None
+        if fname:
+            with open(fname) as fin:
+                self.yamlConfig=yaml.safe_load(fin)
 
     def reset(self):
         self.socket.close()
@@ -64,30 +66,25 @@ class zmqController:
 
 
 class i2cController(zmqController):    
-    def __init__(self,ip,port,fname="configs/init.yaml"):
+    def __init__(self,ip,port,fname=None):
         super(i2cController, self).__init__(ip,port,fname)
         
-    def initialize(self,fname=""):
-        # only needed for I2C server
-        #print('initialize')
-        #print(self.ip, self.port)
+    def initialize(self,fname=None):
         self.socket.send_string("initialize")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
             print(rep)
             return
-        if fname :
-            config = fname
-        else:
-            config = self.yamlConfig
-        #print('config',config)
-        self.socket.send_string(yaml.dump(config))
-        rep = self.socket.recv()
-        print(rep)
-        # return rep
     
-    def read_config(self,fname="",key=None):
-        # only for I2C server
+    def read_and_compare(self):
+        self.socket.send_string("compare")
+        rep = self.socket.recv_string()
+        if rep.lower().find("ready")<0:
+            yamlread = yaml.safe_load( self.socket.recv_string() )
+            print('yaml read ',yamlread) 
+            return
+
+    def read_config(self,fname=None,key=None):
         # print('read config ',fname)
         self.socket.send_string("read")
         rep = self.socket.recv_string()
@@ -104,7 +101,7 @@ class i2cController(zmqController):
             print('no fname')
             self.socket.send_string( "" )
         yamlread = yaml.safe_load( self.socket.recv_string() )
-        #print('yaml read ',yamlread)
+        # print('yaml read ',yamlread)
         print('i2cController::read back')
         for access,accessDict in yamlread.items():
             for block,blockDict in accessDict.items():

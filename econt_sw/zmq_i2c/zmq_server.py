@@ -7,7 +7,7 @@ import argparse
 import functools
 
 def redirect(fn):
-    socket.send_string('READY')
+    socket.send_string('ready')
     cfg_str  = socket.recv_string()
     cfg_yaml = yaml.safe_load(cfg_str)
     ans_yaml = fn(cfg_yaml)
@@ -35,9 +35,14 @@ if __name__ == "__main__":
         
         while True:
             string = socket.recv_string().lower()
-            if string == "initialize" or string == "configure":
-                if board: redirect(board.configure)
-                else: socket.send_string("E: Board not initialized.")
+            if string == "initialize":
+                ans = board.configure()
+                socket.send_string("ready")
+            elif string == "configure":
+                redirect(board.configure)
+            elif string == "compare":
+                ans = board.compare()
+                socket.send_string("ready")
             elif string == "read": 
                 redirect(board.read)
 
