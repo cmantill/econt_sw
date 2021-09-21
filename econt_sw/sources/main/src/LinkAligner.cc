@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include <boost/format.hpp>
 
+#include "spdlog/spdlog.h"
+//#include "spdlog/cfg/env.h"
+
 LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface, 
 			 FastControlManager* fc)
 {
@@ -52,7 +55,8 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
                                          m_elinksInput
         );
     m_out = outhandler;
-    
+    //spdlog::cfg::load_env_levels();
+    //spdlog::info("LinkAligner: initialized");
 }
 
 bool LinkAligner::configure_data()
@@ -84,43 +88,19 @@ bool LinkAligner::configure_data()
             outData.push_back(static_cast<uint32_t>(0xa0000000));
         dataList.push_back(outData);
         m_out.setData(bram, outData, size_bram);
-        if(m_verbose>0){
-            std::cout << "LinkAligner: OUT BRAM " << bram << il << " size: " << outData.size() << std::endl;
-        }
+        //spdlog::debug("LinkAligner: out bram {}.{0:d} size {0:d}",bram,il,outData.size())
         il++;
     }
     
     /*
-      if(m_save_input_data>0) {
-      auto context = std::unique_ptr<zmq::context_t>( new zmq::context_t(1) );
-      auto pusher = std::unique_ptr<zmq::socket_t>( new zmq::socket_t(*context,ZMQ_PUSH) );
-      if( m_port>-1 ){
-      os.str("");
-      pusher->bind(os.str().c_str());
-      std::string _str("LINK_ALIGNER_INPUT_DATA");
-      zmq::message_t message0(_str.size());
-      memcpy(message0.data(), _str.c_str(), _str.size());
-      pusher->send(message0);
-      }
-      std::ostringstream zos( std::ios::binary );
-      boost::archive::binary_oarchive oas{zos};
-      
-      // re-order input data by links
-      for(unsigned int i=0; i<dataList.at(0).size(); ++i) {
-      for(auto elink : dataList) {
-      elink.at(i);
-      }
-      }
-      }
-    */
-    
-    std::cout << "Input data " << dataList.at(0).size() << std::endl;
+    //spdlog::debug("LinkAligner: Input data {0:d}",dataList.at(0).size());
     for(unsigned int i=0; i<dataList.at(0).size(); ++i) {
         for(auto elink : dataList) {
-            std::cout << boost::format("0x%08x") % elink.at(i) << " ";
+            //spdlog::debug("LinkAligner: Link{0:d}, {0:08x}",elink.at(i));
+
         }
-        std::cout << std::endl;
     }
+    */
     return true;
 }
 
@@ -132,8 +112,9 @@ bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_descr
         );
     
     for(auto elink : IOhandler.getElinks()){
-        // setting to 1 will disable the outpu
+        // setting to 1 will disable the output
         IOhandler.setRegister(elink.name(),"reg0.tristate_IOBUF",0);
+        IOhandler.setRegister(elink.name(),"reg0.bypass_IOBUF",0);
         // do not invert the output
         IOhandler.setRegister(elink.name(),"reg0.invert",0);
         if(set_delay_mode){
@@ -142,10 +123,6 @@ bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_descr
             IOhandler.setRegister(elink.name(),"reg0.reset_counters",1);
             IOhandler.setRegister(elink.name(),"reg0.delay_mode",1);
         }
-        // reset link (active-low reset) - needs to be 1
-        IOhandler.setRegister(elink.name(),"reg0.reset_link",1);
-        // reset counters (active-high reset) 
-        IOhandler.setRegister(elink.name(),"reg0.reset_counters",0);
     }
 
     // global reset
@@ -160,7 +137,8 @@ bool LinkAligner::configure(const YAML::Node& config)
         auto outelinks = config["elinks_out"].as< std::vector<link_description> >();
         m_port = config["delay_scan_port"].as<int>();
         m_verbose = config["verbose"].as<int>();
-        
+        m_save_input_data = config["save_input_data"].as<int>();
+
         m_link_capture_block_handlers.clear();
         m_elinksOutput = outelinks;
         
@@ -170,12 +148,13 @@ bool LinkAligner::configure(const YAML::Node& config)
                                                 m_elinksOutput );
         m_link_capture_block_handlers.push_back(lchandler_asic);
         
+
         LinkCaptureBlockHandler lchandler_emulator( m_uhalHW,
                                                     std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
                                                     std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
                                                     m_elinksOutput );
-        m_link_capture_block_handlers.push_back(lchandler_emulator);
-        
+        //m_link_capture_block_handlers.push_back(lchandler_emulator)
+;
         if( configure_IO(std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"), m_elinksInput) &&
             configure_IO(std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"), m_elinksOutput, true)
             ){
@@ -208,12 +187,6 @@ void LinkAligner::align_IO() {
         m_out.setSwitchRegister(elink.name(),"output_select",1);
     }
     
-    // for tester (from ASIC)
-    for( int i=0; i<12; i++ ){
-        m_fcMan->request_link_reset_roct();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
     // check fromIO
     for(auto elink : m_fromIO.getElinks()){
         std::cout << "LinkAligner: delay mode fromIO " << m_fromIO.getRegister(elink.name(),"reg0.delay_mode") <<std::endl;
@@ -298,7 +271,7 @@ void LinkAligner::align() {
             // set the BX offset of all 13 links
             lchandler.setRegister(elink.name(),"L1A_offset_or_BX",3554);
             // set the acquire length of all 13 links
-            lchandler.setRegister(elink.name(),"aquire_length",4096); // max memory of link capture
+            lchandler.setRegister(elink.name(),"aquire_length",0x1000); // 4096 max memory of link capture
             // set the latency buffer based on the IO delays (1 or 0)
             // fifo_latency: delays some links relative to one another before they go into the memory
             uint32_t delay_out = m_fromIO.getRegister(elink.name(),"reg3.delay_out");
@@ -316,15 +289,26 @@ void LinkAligner::align() {
         m_fcMan->bx_link_reset_econt(3555);
         
         // send an aquire and link reset as close as possible
+        char buf[200];
+        sprintf(buf,"%s.global.aquire",lchandler.name().c_str());
+        m_uhalHW->getNode(buf).write(0x0);
+        m_uhalHW->getNode(buf).write(0x1);
+
+        /*
         for(auto elink : lchandler.getElinks()){
             //lchandler.setRegister(elink.name(),"aquire", 1);
             char buf[200];
             sprintf(buf,"%s.%s.aquire",lchandler.name().c_str(),elink.name().c_str());
             m_uhalHW->getNode(buf).write(0x1);
         }
-        char buf[200];
+        */
         sprintf(buf,"%s.request.link_reset_econt",m_fcMan->name().c_str());
         m_uhalHW->getNode(buf).write(0x1);
+        m_uhalHW->dispatch();
+
+        sprintf(buf,"%s.global.aquire",lchandler.name().c_str());
+        m_uhalHW->getNode(buf).write(0x0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         m_uhalHW->dispatch();
         
         //m_fcMan->request_link_reset_econt();
@@ -360,7 +344,7 @@ bool LinkAligner::checkLinks()
       auto isaligned = lchandler.getRegister(elink.name(),"status.link_aligned");
       if(!isaligned){
 	std::cout << "LinkAligner: Error :  " << elink.name().c_str() << " is not aligned" << std::endl;
-	return false;
+	//return false;
       }
       lchandler.setRegister(elink.name(),"aquire", 1);
     }

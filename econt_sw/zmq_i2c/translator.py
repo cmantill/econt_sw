@@ -97,7 +97,7 @@ class Translator():
                         elif 'params' in cfgDict:
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
-                            prev_regVal = int.from_bytes(prevCache[addr], 'little') if addr in prevCache else 0
+                            prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
                             for par, reg in defaultDict['params'].items():
                                 # get parameter values from previous register value 
                                 # TODO: does this do something?

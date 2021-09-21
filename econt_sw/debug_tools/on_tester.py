@@ -11,9 +11,10 @@ if __name__ == "__main__":
                         help='to IO or from IO')
     args = parser.parse_args()
 
+    uhal.disableLogging();
+    #uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
-    uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
 
     if args.io == "to":
         io_name = "ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"
@@ -33,7 +34,24 @@ if __name__ == "__main__":
                     dev.getNode(io_name+"."+link+".reg0.invert").write(0x1)
                 else:
                     dev.getNode(io_name+"."+link+".reg0.invert").write(0x0)
+
+                if args.io=="from":
+                    dev.getNode(io_name+"."+link+".reg0.reset_link").write(0x0)
+                    dev.getNode(io_name+"."+link+".reg0.reset_counters").write(0x1)
+                    dev.getNode(io_name+"."+link+".reg0.delay_mode").write(0x1)
+
+            dev.getNode(io_name+".global.global_rstb_links").write(0x1)
             dev.dispatch()
+
+        if option=="IO-read" and args.io=="from":
+            for l in range(nlinks):
+                link = "link%i"%l
+                bit_tr = dev.getNode(io_name+"."+link+".reg3.waiting_for_transitions").read()
+                delay_ready = dev.getNode(io_name+"."+link+".reg3.delay_ready").read()
+                dev.dispatch()
+                print("link %i: bit_tr %d and delay ready %d"%(link,bit_tr,delay_ready))
+                if delay_ready==1:
+                    print('DELAY READY!')
                     
         if option=="PRBS":
             for l in range(nlinks):
