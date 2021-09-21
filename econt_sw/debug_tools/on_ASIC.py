@@ -11,6 +11,7 @@ if __name__ == "__main__":
                         help='to IO or from IO')
     args = parser.parse_args()
 
+    uhal.disableLogging();
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
@@ -42,21 +43,22 @@ if __name__ == "__main__":
                 else:
                     dev.getNode(io_name+"."+link+".reg0.invert").write(0x0)
 
-                dev.getNode(io_name+"."+link+".reg0.reset_link").write(0x0)
-                dev.getNode(io_name+"."+link+".reg0.reset_counters").write(0x1)
-                dev.getNode(io_name+"."+link+".reg0.delay_mode").write(0x1)
+                if args.io=="to":
+                    dev.getNode(io_name+"."+link+".reg0.reset_link").write(0x0)
+                    dev.getNode(io_name+"."+link+".reg0.reset_counters").write(0x1)
+                    dev.getNode(io_name+"."+link+".reg0.delay_mode").write(0x1)
 
             dev.getNode(io_name+".global.global_rstb_links").write(0x1)
             dev.dispatch()
 
-        if option=="IO-read":
+        if option=="IO-read" and args.io=="to":
             for l in range(nlinks):
                 link = "link%i"%l
                 #while True:
                 bit_tr = dev.getNode(io_name+"."+link+".reg3.waiting_for_transitions").read()
                 delay_ready = dev.getNode(io_name+"."+link+".reg3.delay_ready").read()
                 dev.dispatch()
-                print("link %i: bit_tr %d and delay ready %d"%(link,bit_tr,delay_ready))
+                print("%s: bit_tr %d and delay ready %d "%(link,bit_tr,delay_ready))
                 if delay_ready==1:
                     print('DELAY READY!')
                     #break;    
@@ -68,39 +70,47 @@ if __name__ == "__main__":
             dev.getNode(link_capture_name+".global.explicit_resetb").write(0x1)
             for l in range(nlinks):
                 link = "link%i"%l
-                dev.getNode(link_capture_name+"."+link+".explicit_resetb").write(0x0)
-                dev.getNode(link_capture_name+"."+link+".explicit_resetb").write(0x1)
                 dev.getNode(link_capture_name+"."+link+".L1A_offset_or_BX").write(3500)
                 dev.getNode(link_capture_name+"."+link+".capture_mode_in").write(0x1)
                 dev.getNode(link_capture_name+"."+link+".aquire_length").write(0x1000)
             dev.dispatch()
-
+            
+            if option=="link-align":
+                # only needed for from-IO
+                 dev.getNode(link_capture_name+".global.link_enable").write(0x1fff)
+                 dev.getNode(link_capture_name+".global.explicit_resetb").write(0x0)
+                 time.sleep(0.001)
+                 dev.getNode(link_capture_name+".global.explicit_resetb").write(0x1)
+                 for l in range(nlinks):
+                     link = "link%i"%l
+                     dev.getNode(link_capture_name+"."+link+".align_pattern").write(0b00100100010)
+                     dev.getNode(link_capture_name+"."+link+".L1A_offset_or_BX").write(3500)
+                     dev.getNode(link_capture_name+"."+link+".capture_mode_in").write(0x1)
+                     dev.getNode(link_capture_name+"."+link+".aquire_length").write(0x1000)
+                     dev.getNode(link_capture_name+"."+link+".fifo_latency").write(0x0)
+                     dev.dispatch()
+            
             if option=="link-capture":
+                dev.getNode(link_capture_name+".global.aquire").write(0)
+                dev.getNode(link_capture_name+".global.aquire").write(1)
+                dev.getNode(link_capture_name+".global.aquire").write(0)
+                time.sleep(0.001)
+                dev.dispatch()
+
                 for l in range(nlinks):
                     link = "link%i"%l
-                    data = dev.getNode(bram_name+"."+link).readBlock(0x1000)
+                    fifo_occupancy = dev.getNode(link_capture_name+"."+link+".fifo_occupancy").read()
                     dev.dispatch()
-                    if l==0:
-                        print(link)
-                        print([hex(i) for i in data])
+                    if fifo_occupancy>0:
+                        data = dev.getNode(bram_name+"."+link).readBlock(int(fifo_occupancy))
+                        dev.dispatch()
+                        print('fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
+                    #if l==0:
+                    #print(link)
+                    #print([hex(i) for i in data])
                     dev.getNode(link_capture_name+"."+link+".aquire").write(0x0)
                     dev.getNode(link_capture_name+"."+link+".explicit_rstb_acquire").write(0x0)
                     dev.getNode(link_capture_name+"."+link+".explicit_rstb_acquire").write(0x1)
                     dev.dispatch()
                 dev.getNode(link_capture_name+".global.interrupt_enable").write(0x0)
                 dev.dispatch()
-
-        if option=="link-align":
-            # only needed for from-IO
-            dev.getNode(link_capture_name+".global.link_enable").write(0x1fff)
-            dev.getNode(link_capture_name+".global.explicit_resetb").write(0x0)
-            time.sleep(0.001)
-            dev.getNode(link_capture_name+".global.explicit_resetb").write(0x1)
-            for l in range(nlinks):
-                link = "link%i"%l
-                dev.getNode(link_capture_name+"."+link+".align_pattern").write(0b00100100010)
-                dev.getNode(link_capture_name+"."+link+".L1A_offset_or_BX").write(3500)
-                dev.getNode(link_capture_name+"."+link+".capture_mode_in").write(0x1)
-                dev.getNode(link_capture_name+"."+link+".aquire_length").write(0x1000)
-            dev.getNode(link_capture_name+"."+link+".fifo_latency").write(0x0)
-            dev.dispatch()
