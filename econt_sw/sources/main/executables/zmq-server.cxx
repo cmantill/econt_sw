@@ -213,20 +213,7 @@ int main(int argc,char** argv)
         linkaligner->testPRBS();
         reply("PRBS_test_done");
     };
-    
-    /*
-    auto i2cscan = [&m_ipbushwptr,&m_config,receive,reply](){
-        reply("ReadyForConfig");
-        auto configstr = receive(true);
-        m_config = YAML::Load(configstr)["i2c"];
-        std::cout << m_config << std::endl;
-        auto i2caddr = m_config["emulator_addr"].as< int >();
-        m_ipbushwptxr->getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_ASIC_I2C_address").write(0x20+i2caddr);
-        m_ipbushwptr->getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_emulator_I2C_address").write(i2caddr);
-        reply("Configured");
-    };
-    */
-    
+        
     auto start = [&m_linkstatus,&thedaq,reply,align](){
         switch( m_linkstatus ){
         case zmq_server::LinkStatusFlag::NOT_READY :

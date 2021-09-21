@@ -39,9 +39,9 @@ if __name__ == "__main__":
     cli_socket.yamlConfig['daq']['delay_scan_port'] = pullerPort
 
     # configure daq
-    daq_socket.configure()
+    #daq_socket.configure()
     # align links
-    daq_socket.start()
+    #daq_socket.start()
 
     # read back i2c alignment
     i2c_socket.read_config("configs/align.yaml","read")

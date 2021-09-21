@@ -19,6 +19,7 @@ daq:
  zmq_push_port: '8888'
  delay_scan_port: '8888'
  verbose: 1
+ save_input_data: 0
 global:
  data_push_port: '8888'
  serverIP: localhost
