@@ -17,7 +17,7 @@ def redirect(fn):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start i2c server')
     parser.add_argument('--addr', type=functools.partial(int, base=0),
-                        default=0x20,
+                        default=0x21,
                         help='i2c address')
     parser.add_argument('--server', type=str,
                         default='5555',

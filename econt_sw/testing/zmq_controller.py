@@ -47,7 +47,7 @@ class zmqController:
         merge(self.yamlConfig,config)
 
     def configure(self,fname="",yamlNode=None):
-        print('configure w. ',yamlNode)
+        print('configure w. ',yamlNode,fname)
         self.socket.send_string("configure")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
