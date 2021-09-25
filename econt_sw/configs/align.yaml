@@ -34,6 +34,8 @@ ECON-T:
   ALIGNER_ALL:
    registers:
     config:
+     i2c_snapshot_en:
+      param_value: 0
      snapshot_en:
       param_value: 1
      snapshot_arm:
@@ -47,7 +49,7 @@ ECON-T:
     orbsyn_cnt_load_val:
      value: 1
     orbsyn_cnt_snapshot:
-     value: 5
+     value: 15
 
   FMTBUF_ALL:
    registers:
@@ -94,10 +96,8 @@ ECON-T:
     algo:
      params:
       select:
-       # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)   
        param_value: 0
       density:
-       # 1: high density
        param_value: 1
 
   ALGO_THRESHOLD_VAL:
@@ -124,7 +124,25 @@ read:
        select:
         param_value: 0
        density:
-        param_shift: 0
+        param_value: 0
+
+   ALIGNER_ALL:
+    registers:
+     config:
+      snapshot_en:
+       param_value: 0
+      snapshot_arm:
+       param_value: 0
+     match_pattern_val:
+      value: 0
+     match_mask_val:
+      value: 0
+     orbsyn_cnt_max_val:
+      value: 0
+     orbsyn_cnt_load_val:
+      value: 0
+     orbsyn_cnt_snapshot:
+      value: 0
 
   RO:
    CH_ALIGNER_*INPUT_ALL:
@@ -150,4 +168,6 @@ read:
      select:
       value: 0
      snapshot:
+      value: 0
+     hdr_mm_cntr: 
       value: 0

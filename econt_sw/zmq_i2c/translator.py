@@ -85,10 +85,11 @@ class Translator():
 
                     is_infg = False
                     try:
+                        # print(access,block,param)
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
-                        # print('no cfgDict')
+                        print('no cfgDict')
                         pass
 
                     if is_incfg and cfgDict is not None:
