@@ -12,8 +12,8 @@ if __name__ == "__main__":
     i2cPort = "5555"
     i2cPortASIC = "5554"
 
-    #i = 6
-    i = 7
+    i = 6
+    #i = 7
     i2c_socket_asic = zmqctrl.i2cController(remoteIP, i2cPortASIC, "configs/align.yaml")
     i2c_socket_asic.yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['orbsyn_cnt_snapshot']['value'] = i
     i2c_socket_asic.yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['match_pattern_val']['value'] = 0x9cccccccaccccccc

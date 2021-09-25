@@ -47,11 +47,11 @@ class zmqController:
         merge(self.yamlConfig,config)
 
     def configure(self,fname="",yamlNode=None):
-        print('configure w. ',yamlNode,fname)
+        #print('configure w. ',yamlNode,fname)
         self.socket.send_string("configure")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
-            print(rep)
+            #print(rep)
             return
         if yamlNode:
             config=yamlNode
@@ -73,7 +73,7 @@ class i2cController(zmqController):
         self.socket.send_string("initialize")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
-            print(rep)
+            #print(rep)
             return
     
     def read_and_compare(self):
@@ -81,7 +81,7 @@ class i2cController(zmqController):
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
             yamlread = yaml.safe_load( self.socket.recv_string() )
-            print('yaml read ',yamlread) 
+            #print('yaml read ',yamlread) 
             return
 
     def read_config(self,fname=None,key=None):
@@ -95,18 +95,18 @@ class i2cController(zmqController):
                 config_dict = yaml.dump(config[key])
             else:
                 config_dict = yaml.dump(config)
-            print('config ',config)
+            #print('config ',config)
             self.socket.send_string( config_dict )
         else:
-            print('no fname')
+            #print('no fname')
             self.socket.send_string( "" )
         yamlread = yaml.safe_load( self.socket.recv_string() )
         # print('yaml read ',yamlread)
-        print('i2cController::read back')
-        for access,accessDict in yamlread.items():
-            for block,blockDict in accessDict.items():
-                for param, paramDict in blockDict.items():
-                    print(access,block, param, hex(yamlread[access][block][param]))
+        #print('i2cController::read back')
+        #for access,accessDict in yamlread.items():
+        #    for block,blockDict in accessDict.items():
+        #        for param, paramDict in blockDict.items():
+        #            print(access,block, param, hex(yamlread[access][block][param]))
         return( yamlread )
 
 class daqController(zmqController):

@@ -1,0 +1,11 @@
+<node>
+	<node id="ECONT_ASIC_I2C_address" address="0x0" mask="0xf" permission="rw" description="ECONT ASIC I2C address, default 0x0 (lower 4 bits; the upper 3 bits are always 0x2)"/>
+	<node id="ECONT_emulator_I2C_address" address="0x1" mask="0xf" permission="rw" description="ECONT emulator I2C address, default 0x1 (lower 4 bits; the upper 3 bits are always 0x2)"/>
+	<node id="resets" address="0x2">
+		<node id="ECONT_ASIC_RESETB" mask="0x1" permission="rw" description="ECONT ASIC RESETB, default 1 (1=run normally, 0=reset)"/>
+		<node id="ECONT_ASIC_SOFT_RESETB" mask="0x2" permission="rw" description="ECONT ASIC SOFT RESETB, default 1 (1=run normally, 0=reset)"/>
+		<node id="ECONT_emulator_RESETB" mask="0x4" permission="rw" description="ECONT emulator RESETB, default 1 (1=run normally, 0=reset)"/>
+		<node id="ECONT_emulator_SOFT_RESETB" mask="0x8" permission="rw" description="ECONT emulator SOFT RESETB, default 1 (1=run normally, 0=reset)"/>
+	</node>
+	<node id="enable_external_I2C" address="0x3" mask="0x1" permission="rw" description="Enable external I2C, default 1 (1=enable, 0=disable)"/>
+</node>

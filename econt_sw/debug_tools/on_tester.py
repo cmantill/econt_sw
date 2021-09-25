@@ -25,6 +25,18 @@ if __name__ == "__main__":
         nlinks = 13
 
     for option in args.debug:
+        if option=="fc":
+            dev.getNode("fastcontrol_axi.command.enable_fast_ctrl_stream").write(0x1);
+            dev.getNode("fastcontrol_axi.command.enable_orbit_sync").write(0x1);
+            
+            dev.getNode("fastcontrol_axi.bx_link_reset_roct").write(3500)
+            dev.getNode("fastcontrol_axi.bx_link_reset_rocd").write(3501)
+            dev.getNode("fastcontrol_axi.bx_link_reset_econt").write(3502)
+            dev.getNode("fastcontrol_axi.bx_link_reset_econd").write(3503)
+            dev.getNode("fastcontrol_axi.request.link_reset_roct").write(0x1);
+            dev.getNode("fastcontrol_axi.request.link_reset_econt").write(0x1);
+            dev.dispatch()
+
         if option=="IO" or option=="IO-invert":
             for l in range(nlinks):
                 link = "link%i"%l

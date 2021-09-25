@@ -1,0 +1,11 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/blob/master/stream_compare/stream_compare_axi.xml -->
+
+<node>
+	<node id="control" address="0x0">
+		<node id="reset" mask="0x1" permission="rw" description="Active high reset"/>
+		<node id="latch" mask="0x2" permission="rw" description="Write 1 to latch counters for readout"/>
+	</node>
+	<node id="word_count" address="0x1" permission="rw" description="Number of words received"/>
+	<node id="err_count"  address="0x2" permission="rw" description="Number of mismatched words"/>
+	<node id="trigger"    address="0x3" mask="0x1" permission="rw" description="Activate mismatch trigger output"/>
+</node>

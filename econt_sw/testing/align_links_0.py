@@ -24,14 +24,11 @@ if __name__ == "__main__":
     i2c_socket.yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['match_pattern_val']['value'] = 0x9cccccccaccccccc
     i2c_socket.configure()
 
+    read_asic = i2c_socket_asic.read_config("configs/align.yaml")
+    print('TX sync word ASIC ',hex(read_asic['RW']['FMTBUF_ALL']['tx_sync_word']))
+
+    read_emulator = i2c_socket.read_config("configs/align.yaml")
+    print('TX sync word emulator', hex(read_emulator['RW']['FMTBUF_ALL']['tx_sync_word']))
+
     import os
-    os.system('python testing/align_on_tester_1.py')
-    os.system('python testing/align_on_tester_2.py')
-
-    # i2c_socket.read_config("configs/align.yaml","read")
-    read_asic = i2c_socket_asic.read_config("configs/align.yaml","read")
-    for i in range(12):
-        print('Status link %i'%i,hex(read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status']))
-        print('Snapshot link %i'%i,hex(read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['snapshot']))
-
-    os.system('python testing/align_on_tester_3.py')
+    os.system('python testing/align_on_tester_0.py')
