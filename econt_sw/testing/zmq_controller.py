@@ -2,8 +2,18 @@ import zmq
 import yaml
 from time import sleep
 from nested_dict import nested_dict
+import logging
+import sys
 
-# This acts like the client
+def _init_logger():
+    logger = logging.getLogger('zmqcontroller')
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        '%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def merge(a, b, path=None):
     "merges b into a"
@@ -26,6 +36,7 @@ class zmqController:
         self.socket = context.socket( zmq.REQ )
         self.socket.connect("tcp://"+str(ip)+":"+str(port))
         self.yamlConfig = None
+        self.logger = _init_logger()
         if fname:
             with open(fname) as fin:
                 self.yamlConfig=yaml.safe_load(fin)
@@ -73,18 +84,19 @@ class i2cController(zmqController):
         self.socket.send_string("initialize")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
-            #print(rep)
             return
+        else:
+            return None
     
-    def read_and_compare(self):
-        self.socket.send_string("compare")
+    def read_and_compare(self,access="RW"):
+        if access=="RW":
+            self.socket.send_string("compare-rw")
+        else:
+            self.socket.send_string("compare-ro")
         rep = self.socket.recv_string()
-        if rep.lower().find("ready")<0:
-            yamlread = yaml.safe_load( self.socket.recv_string() )
-            #print('yaml read ',yamlread) 
-            return
+        return rep
 
-    def read_config(self,fname=None,key=None):
+    def read_config(self,fname=None,key=None,yamlNode=None):
         # print('read config ',fname)
         self.socket.send_string("read")
         rep = self.socket.recv_string()
@@ -97,6 +109,9 @@ class i2cController(zmqController):
                 config_dict = yaml.dump(config)
             #print('config ',config)
             self.socket.send_string( config_dict )
+        elif yamlNode:
+            config_dict = yamlNode
+            self.socket.send_string( yaml.dump(config_dict) )
         else:
             #print('no fname')
             self.socket.send_string( "" )

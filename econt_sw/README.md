@@ -216,6 +216,13 @@ This means that when running testing scripts remotely one needs to do port forwa
   python3 testing/align_links.py
   ```
   
-  
+## Tests:
 
+- Fast control:
 
+- Slow control:
+```
+python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address True
+```
+
+- Alignment:

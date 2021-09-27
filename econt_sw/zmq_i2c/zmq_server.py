@@ -36,13 +36,17 @@ if __name__ == "__main__":
         while True:
             string = socket.recv_string().lower()
             if string == "initialize":
+                board.reset_cache()
                 ans = board.configure()
                 socket.send_string("ready")
             elif string == "configure":
                 redirect(board.configure)
-            elif string == "compare":
-                ans = board.compare()
-                socket.send_string("ready")
+            elif string == "compare-rw":
+                ans = board.compare("RW")
+                socket.send_string("keys: %s"%ans)
+            elif string == "compare-ro":
+                ans = board.compare("RO")
+                socket.send_string("keys: %s"%ans)
             elif string == "read": 
                 redirect(board.read)
 
