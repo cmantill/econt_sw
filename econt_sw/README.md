@@ -219,10 +219,58 @@ This means that when running testing scripts remotely one needs to do port forwa
 ## Tests:
 
 - Fast control:
+  - [ ] Test PLL locking with a range of frequencies
+  - [ ] Introduce FC errors
+  - [ ] OrbitSync (BCR): resets bunch counter to programmable value. Check misplaced BCR by looking at header errors (if it sees the BC0 pattern w/o BCR it will complain).
+  - [ ] LINK_RESET_ROCT: triggers programmable alignment pattern to be sent by HGCROC (elinkOutputs). See whether the ECON-T performs its alignment process in response.
+  - [ ] LINK_RESET_ECONT: triggers output alignment pattern to be sent to BE.
+  - [ ] ChipSync: same as soft reset but does not reset FC.
 
 - Slow control:
+  - [x] Set a fixed address
+```
+python testing/i2c_set_address.py --i2c ASIC --addr 0
+python testing/i2c_set_address.py --i2c emulator --addr 1
+```
+  - [x] Test a fixed address, read/write from/to every bit of every register in the ASIC (only reads for RO registers)
 ```
 python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address True
 ```
+  - [x] Test every possible i2c address for the ASIC
+```
+for i in {0..15}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address True; done
+```
 
-- Alignment:
+- Reset signals:
+
+  - [x] Send reset and release:
+```
+# send reset
+python testing/reset_signals.py --i2c ASIC --reset hard
+
+# release
+python testing/reset_signals.py --i2c ASIC --reset hard --release True
+```
+  - [x] Test hard reset: i2c register gets reset
+```
+python3 testing/resets.py --i2c ASIC emulator  --server 5554,5555 --reset hard
+```
+  - [x] Test soft reset: i2c register left unchanged
+```
+python3 testing/resets.py --i2c ASIC emulator  --server 5554,5555 --reset soft
+```
+
+- Alignment sequence:
+  - [ ] *ASIC* phase alignment.
+    - In interposer system: align `to-IO`.
+  - [x] *Tester* input phase alignment: align `from-IO`.
+  - [x] *ASIC* word alignment: send LINK_RESET_ROCT, check snapshot and `select` i2c ASIC status.
+  - [x] *Tester* link_capture-ASIC word alignment: send LINK-RESET-ECONT.
+  - [x] *Tester* link_capture-ASIC and link_capture-Emulator relative alignment: check relative alignment using `fifo_latency`.
+
+- Alignment tests:
+  - [ ] Test different alignment patterns (i2c).
+  - [ ] Check that header errors are correctly detected and counted.
+
+- PRBS15 to ASIC:
+  - [ ] Set PRBS15 with headers.

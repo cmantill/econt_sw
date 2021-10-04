@@ -17,7 +17,13 @@ Testing slow control.
 - Writes registers.
 - Reads and compares registers.
 
-Usage: python i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address
+Usage: python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address
+
+For i2c, the 3 highest bits are 010, and the 4 lowest bits are set for each chip by 4 pins on the chip.
+If the voltages on those four pins are, for example, high, low, high, low, then the 4 lowest bits of the I2C address would be 1010, and the whole address would be 0x2A.
+
+To test all possible addresses:
+for i in {0..16}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address; done
 """
 
 if __name__ == "__main__":    
@@ -36,7 +42,13 @@ if __name__ == "__main__":
         raise ValueError("Number of addresses/servers must be the same as i2c keys")
     duplicates = set([x for x in addresses if addresses.count(x) > 1]) or set([x for x in servers if servers.count(x) >1])
     if len(duplicates)>0:
-        raise ValueError("Dupicated addresses or servers")
+        if 'ASIC' in i2ckeys:
+            # manually set address and server if testing ASIC
+            addresses = [addr if i==0 else addr+1 for i,addr in enumerate(addresses)]
+            servers = [server if i==0 else server+1 for i,server in enumerate(servers)]
+            logger.warning('Manually setting addresses to avoid duplicates')
+        else:
+            raise ValueError("Dupicated addresses or servers")
 
     addr = {}; server={}; 
     for k,key in enumerate(i2ckeys):
@@ -45,6 +57,7 @@ if __name__ == "__main__":
     logger.info('Addresses %s',addr)
     logger.info('Servers %s',server)
 
+    # test address
     if args.set_address:
         for key in i2ckeys:
             os.system('python testing/i2c_set_address.py --i2c %s --addr %i'%(key,addr[key]))
