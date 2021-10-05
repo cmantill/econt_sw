@@ -3,6 +3,8 @@ import time
 import argparse
 import logging
 
+logging.basicConfig()
+
 """
 Alignment sequence on 'ASIC' - (emulator) using python2 uhal.
 
@@ -33,7 +35,7 @@ if __name__ == "__main__":
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
-    logger = logging.getLogger('align:ASIC:step:%s'%args.step)
+    logger = logging.getLogger('align:ASIC')
     logger.setLevel(logging.INFO)
 
     names = {
@@ -116,7 +118,7 @@ if __name__ == "__main__":
         fifo_occupancy = dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(input_bram_name+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
             dev.dispatch()
             print('fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
             if l==0:
@@ -157,7 +159,7 @@ if __name__ == "__main__":
         fifo_occupancy = dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(input_bram_name+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names["lc-input"]["fifo"]+"."+link).readBlock(int(fifo_occupancy))
             dev.dispatch()
             print('fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
             if l==0:
