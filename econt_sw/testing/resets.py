@@ -63,7 +63,7 @@ if __name__ == "__main__":
         logger.debug(f'Wrote tx_sync_word: {tx_sync_word:02x}')
 
         # send reset signal
-        os.system('python testing/reset_signals.py --i2c %s --reset %s'%(key,args.reset))
+        os.system('python testing/uhal-reset_signals.py --i2c %s --reset %s'%(key,args.reset))
         
         # read i2c register back
         config['ECON-T']['RW']['FMTBUF_ALL']['registers']['tx_sync_word']['value'] = 0
@@ -88,7 +88,7 @@ if __name__ == "__main__":
                     logger.warning('TX Sync word changed after soft reset')
 
         # release reset
-        os.system('python testing/reset_signals.py --i2c %s --reset %s --release True'%(key,args.reset))
+        os.system('python testing/uhal-reset_signals.py --i2c %s --reset %s --release True'%(key,args.reset))
         logger.info('Released %s reset, eTx, eRx alignment required'%args.reset)
 
         # terminate process

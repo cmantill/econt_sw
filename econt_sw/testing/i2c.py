@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # test address
     if args.set_address:
         for key in i2ckeys:
-            os.system('python testing/i2c_set_address.py --i2c %s --addr %i'%(key,addr[key]))
+            os.system('python testing/uhal-i2c_set_address.py --i2c %s --addr %i'%(key,addr[key]))
 
     # start servers
     env = os.environ.copy()

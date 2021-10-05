@@ -2,7 +2,7 @@ import uhal
 import argparse
 import logging
 
-logger = logging.getLogger('i2c:test')
+logger = logging.getLogger('reset:test')
 logger.setLevel(logging.INFO)
 
 """
