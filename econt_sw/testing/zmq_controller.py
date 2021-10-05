@@ -107,7 +107,7 @@ class i2cController(zmqController):
                 config_dict = yaml.dump(config[key])
             else:
                 config_dict = yaml.dump(config)
-            #print('config ',config)
+            #print('config ',config_dict)
             self.socket.send_string( config_dict )
         elif yamlNode:
             config_dict = yamlNode
@@ -116,7 +116,7 @@ class i2cController(zmqController):
             #print('no fname')
             self.socket.send_string( "" )
         yamlread = yaml.safe_load( self.socket.recv_string() )
-        # print('yaml read ',yamlread)
+        #print('yaml read ',yamlread)
         #print('i2cController::read back')
         #for access,accessDict in yamlread.items():
         #    for block,blockDict in accessDict.items():

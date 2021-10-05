@@ -60,7 +60,7 @@ class Translator():
 
         return cfg.to_dict()
 
-    def pairs_from_cfg(self, cfg=None, prevCache={}, allowed=['RW','R0']):
+    def pairs_from_cfg(self, cfg=None, prevCache={}, allowed=['RW','RO']):
         """
         Convert an input config dict to pairs of
         {address: [value, size_byte]}

@@ -4,6 +4,8 @@ import argparse
 import numpy
 import logging
 
+logging.basicConfig()
+
 """
 Alignment sequence on tester using python2 uhal.
 
@@ -55,7 +57,7 @@ if __name__ == "__main__":
                     'fifo': "capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO",
                     },
         'lc-emulator': {'lc': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0",
-                        'emulator': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO"
+                        'fifo': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO",
                         },
         'stream_compare': "capture-align-compare-compare-outputs-stream-compare-0",
 
@@ -84,7 +86,7 @@ if __name__ == "__main__":
         # send PRBS
         for l in range(input_nlinks):
             link = "link%i"%l
-            dev.getNode(testvectors_switch_name+"."+link+".output_select").write(0x1)
+            dev.getNode(names['testvectors']['switch']+"."+link+".output_select").write(0x1)
         dev.dispatch()
         raw_input("IO blocks configured. Sending PRBS. Press key to continue...")
 
@@ -115,7 +117,7 @@ if __name__ == "__main__":
                                 
         for l in range(input_nlinks):
             link = "link%i"%l
-            for key,value in testvectors_settings:
+            for key,value in testvectors_settings.items():
                 dev.getNode(names['testvectors']['switch']+"."+link+"."+key).write(value)
             
             # size of bram is 4096
@@ -137,8 +139,7 @@ if __name__ == "__main__":
             dev.dispatch()
             time.sleep(0.001)
 
-        # send link reset roct
-        # this would align the emulator on the ASIC board and the emulator on the tester board simultaneously
+        # configure fast command
         dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
         dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
         
@@ -147,6 +148,11 @@ if __name__ == "__main__":
         dev.getNode(names['fc']+".bx_link_reset_rocd").write(3501)
         dev.getNode(names['fc']+".bx_link_reset_econt").write(3502)
         dev.getNode(names['fc']+".bx_link_reset_econd").write(3503)
+
+        # send link reset roct
+        # this would align the emulator on the ASIC board and the emulator on the tester board simultaneously
+        dev.getNode(names['fc']+".request.link_reset_roct").write(0x1);
+        raw_input("Sent link reset ROCT. Press key to continue...")
 
     if args.step == "asic-tester":
         
@@ -157,7 +163,7 @@ if __name__ == "__main__":
         dev.dispatch()
 
         # get link reset econt counter
-        lrc = dev.getNode(names['fc-recv']+"counters.link_reset_econt").read();
+        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
 
@@ -217,7 +223,7 @@ if __name__ == "__main__":
             dev.dispatch()
 
             # check link reset ECONT counter
-            lrc = dev.getNode(names['fc-recv']+"counters.link_reset_econt").read();
+            lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
             dev.dispatch()
             logger.info('link reset econt counter %i'%lrc)
 
@@ -229,7 +235,7 @@ if __name__ == "__main__":
                 error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
                 aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
                 dev.dispatch()
-                logger.info('ASIC link-capture %s aligned: %d %d %d'%(names['lc-ASIC']['lc'],link, aligned, aligned_c, error_c))
+                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
                 
                 fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
                 dev.dispatch()
@@ -254,7 +260,7 @@ if __name__ == "__main__":
                 error_c = dev.getNode(names['lc-emulator']['lc']+"."+link+".link_error_count").read()
                 aligned = dev.getNode(names['lc-emulator']['lc']+"."+link+".status.link_aligned").read()
                 dev.dispatch()
-                logger.info('Emulator link-capture %s aligned: %d %d %d'%(names['lc-emulator']['lc'],link, aligned, aligned_c, error_c))
+                logger.info('Emulator link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
                 
                 fifo_occupancy = dev.getNode(names['lc-emulator']['lc']+"."+link+".fifo_occupancy").read()
                 dev.dispatch()

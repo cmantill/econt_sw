@@ -130,6 +130,7 @@ class econ_interface():
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
         cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)
+        # print('cfgread ',cfg)
         self._logger.info('Successfully read addresses from config')
         return cfgRead
 
