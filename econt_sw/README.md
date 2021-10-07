@@ -185,10 +185,8 @@ This means that when running testing scripts remotely one needs to do port forwa
   cd cmantill/econt_sw/econt_sw/ # or to working directory with econt_sw
   ./bin/zmq-client -P 6678
 
-  # Start a terminal session (on the 14WH desktop):
-  # Run the testing script, e.g.:
-  cd scripts/
-  python3 align_links.py 
+  # Start a terminal session (on the 14WH desktop) - run scripts:
+  # python3 align_links.py 
   ```
   
 ### Running on tester setup:
@@ -268,16 +266,28 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [x] *Tester* link_capture-ASIC word alignment: send LINK-RESET-ECONT.
   - [x] *Tester* link_capture-ASIC and link_capture-Emulator relative alignment: check relative alignment using `fifo_latency`.
 
-  In python uhal:
+  In python uhal (on tester):
   ```
   # if i2c servers running in different windows
   # python3 zmq_server.py --addr 0x20 --server 5554 # (ASIC)
   # python3 zmq_server.py --addr 0x21 --server 5555 # (emulator)
   python3 testing/align_links.py
 
-  # with servers:
+  # to run the i2c servers  in the same script
   python3 testing/align_links.py --start-server
   ```
+
+  1. On Tester:
+     Execute until: `IO blocks configured. Sending PRBS. Press key to continue...`
+  2. On ASIC:
+     ```
+     python2 testing/uhal-align_on_ASIC.py
+     ```
+     - Execute until: `IO blocks configured. Waiting for bit transitions. Press key to continue...`
+     - Press key.
+     - Execute until: `Link capture and counters checked. Waiting for link reset roct. Press key to continue...`
+  3. On Tester: Press key
+     - Execute until: `Sent link reset ROCT. Press key to continue...`
 
 - Alignment tests:
   - [ ] Test different alignment patterns (i2c).
