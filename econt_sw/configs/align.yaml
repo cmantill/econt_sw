@@ -29,17 +29,20 @@ ECON-T:
   CH_ALIGNER_*INPUT_ALL:
    registers:
     config:
-     value: 1
+     params:
+      per_ch_align_en:
+       param_value: 1
      
   ALIGNER_ALL:
    registers:
     config:
-     i2c_snapshot_en:
-      param_value: 0
-     snapshot_en:
-      param_value: 1
-     snapshot_arm:
-      param_value: 1
+     params:
+      i2c_snapshot_en:
+       param_value: 0
+      snapshot_en:
+       param_value: 1
+      snapshot_arm:
+       param_value: 1
     match_pattern_val:
      value: 0x9cccccccaccccccc
     match_mask_val:
@@ -129,10 +132,11 @@ read:
    ALIGNER_ALL:
     registers:
      config:
-      snapshot_en:
-       param_value: 0
-      snapshot_arm:
-       param_value: 0
+      params:
+       snapshot_en:
+        param_value: 0
+       snapshot_arm:
+        param_value: 0
      match_pattern_val:
       value: 0
      match_mask_val:

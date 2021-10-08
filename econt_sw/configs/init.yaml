@@ -28,8 +28,10 @@ ECON-T:
   CH_ALIGNER_*INPUT_ALL:
    registers:
     config:
-     value: 1
-     
+     params:
+      per_ch_align_en:
+       param_value: 1
+       
   ALIGNER_ALL:
    registers:
     config:
