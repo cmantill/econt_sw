@@ -58,12 +58,14 @@ ECON-SW
 - **To re-load new firmware**:
 
     In HGCAL-dev board:
+    - FIRMWARE_FOLDER ASIC: `~/firmware/econ-t-emu-solo-ROCv3-Sep24-3/`
+    - FIRMWARE_FOLDER TESTER: `~/firmware/econ-t-tester-ROCv3-Sep25/`
     ```bash
     # go to little-dt directory
-    cd /home/HGCAL_dev/src/mylittledt/
+    cd /home/HGCAL_dev/mylittledt/
 
-    # load new firmware, e.g. econ-t-IO-Aug12 and set permissions
-    sudo ./load.sh ~/firmware/econ-t-IO-Aug12 && sudo chmod a+rw /dev/uio* /dev/i2c-*
+    # load new firmware, $FIRMWARE_FOLDER and set permissions
+    sudo ./load.sh $FIRMWARE_FOLDER && sudo chmod a+rw /dev/uio* /dev/i2c-*
     ```
     
     To check the version of the firmware:
@@ -213,7 +215,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ./bin/zmq-server -L 6
   
   # test alignment
-  python3 testing/align_links.py
+  python3 testing/zmq-align_links.py
   ```
   
 ## Tests:
@@ -261,7 +263,8 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
 
 - Alignment sequence:
-  - [ ] *ASIC* phase alignment.
+  - [ ] Phase alignment.
+    - [ ] In *ASIC*.
     - [x] In interposer system: align `to-IO`.
   - [x] *Tester* input phase alignment: align `from-IO`.
   - [x] *ASIC* word alignment: send LINK_RESET_ROCT, check snapshot and `select` i2c ASIC status.
@@ -283,9 +286,41 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] Test different alignment patterns (i2c).
   - [ ] Check that header errors are correctly detected and counted.
 
+- Delay scan:
+  - [ ] from-IO delay scan on tester
+  
 - PRBS15 to ASIC:
-  - [ ] Set PRBS15 with headers.
+  - [ ] Set PRBS15 with headers (28 bit mode).
+  - [ ] Set PRBS15 without headers (32 bit mode).
+  - [ ] Crude delay scan in ASIC using PRBS error checking.
 
-- Algorithm tests:
-  - [ ] 
-  - [ ]
+- Data path tests:
+  - [ ] MUX
+  - [ ] Calibration
+  - [ ] DropLSB
+  - Algorithms:
+    - [ ] Repeater
+    - [ ] Threshold Sum
+    - [ ] STC
+    - [ ] BC
+    - [ ] AE
+  - Formatter/buffer (TS):
+    - [ ] Vary buffer thresholds
+    - [ ] Test T1 truncation
+    - [ ] Test T2/T3 truncation
+    - [ ] Fill the buffer
+  - Vary eTx enabled
+
+- Error handling logic:
+  - [ ] readout of errors
+  - [ ] masking of errors
+  - [ ] clearing of errors
+
+- ERX:
+  - [ ] Test inversion
+  - [ ] Test enable
+
+- ETX:
+  - [ ] Test inversion
+  
+    

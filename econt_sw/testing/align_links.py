@@ -4,7 +4,7 @@ import zmq_controller as zmqctrl
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Align links')
-    parser.add_argument('--start-server', dest="start_server", type=bool, default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
     args = parser.parse_args()
 
     server={'ASIC': '5554', 'emulator': '5555'}

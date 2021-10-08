@@ -10,8 +10,8 @@ To do the 32-bit PRBS tests, just switch off the headers in elinkOutputs
 """
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Align links')
-    parser.add_argument('--start-server', dest="start_server", type=bool, default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser = argparse.ArgumentParser(description='Test PRBS')
+    parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
     args = parser.parse_args()
 
     server={'ASIC': '5554', 'emulator': '5555'}
@@ -37,10 +37,12 @@ if __name__ == "__main__":
     i2c_sockets = {}
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/prbs.yaml")
-        i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['prbs28_en']['param_value'] = prbs28_en
         
-        # arbitrarly change select (was 148)
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['prbs28_en']['param_value'] = prbs28_en
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['sel_override_en']['param_value'] = 1
+        
         i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['sel_override_val'] = {'value': 200}
+        
         print(i2c_sockets[key].yamlConfig)
         i2c_sockets[key].configure()
 
