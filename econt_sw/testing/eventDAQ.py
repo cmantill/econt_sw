@@ -25,14 +25,15 @@ if __name__ == "__main__":
 
     i2c_sockets = {}
     for key in server.keys():
-        i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/init.yaml")
+        i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "/home/HGCAL_dev/src/econt_sw/econt_sw/configs/test_vectors/repeater_Oct8/init.yaml")
         i2c_sockets[key].configure()
 
         # read back i2c 
-        read_socket = i2c_sockets[key].read_config("configs/init.yaml")
+        read_socket = i2c_sockets[key].read_config("/home/HGCAL_dev/src/econt_sw/econt_sw/configs/test_vectors/repeater_Oct8/init.yaml")
+        print(read_socket)
 
     # daq
-    os.system('python testing/uhal-daq.py')
+    #os.system('python testing/uhal-daq.py')
 
     # terminate i2c servers
     for key,proc in procs.items():
