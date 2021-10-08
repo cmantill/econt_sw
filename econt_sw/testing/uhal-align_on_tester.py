@@ -197,7 +197,20 @@ if __name__ == "__main__":
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
-        
+
+        # check links
+        for l in range(output_nlinks):
+            link = "link%i"%l
+            aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
+            error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
+            aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
+            dev.dispatch()
+            asic_i = -1;
+            if(aligned_c==128 and error_c==0 and aligned==1):
+                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+            else:
+                logger.warning('ASIC link-capture %s is not aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+                
         def find_latency(latency):
             # adjust latency
             new_latency = {}
@@ -219,17 +232,7 @@ if __name__ == "__main__":
             # check link capture ASIC
             for l in range(output_nlinks):
                 link = "link%i"%l
-                aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
-                error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
-                aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
-                dev.dispatch()
                 asic_i = -1;
-                if(aligned_c==128 and error_c==0 and aligned==1):
-                    logger.info('%i: ASIC link-capture %s aligned: %d %d %d'%(latency[l],link, aligned, aligned_c, error_c))
-                else:
-                    # logger.warning('ASIC link-capture %s not aligned: : %d %d %d'%(link, aligned, aligned_c, error_c))
-                    new_latency[l] = -1
-                    continue
                 fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
                 dev.dispatch()
                 occ = '%d'%fifo_occupancy
