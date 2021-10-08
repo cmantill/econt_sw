@@ -139,6 +139,12 @@ if __name__ == "__main__":
             dev.dispatch()
             time.sleep(0.001)
 
+        # configure bypass
+        for l in range(output_nlinks):
+            link = "link%i"%l
+            dev.getNode(names['bypass']['switch']+"."+link+".output_select").write(0x1)
+        dev.dispatch()
+
         # configure fast command
         dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
         dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
@@ -155,18 +161,6 @@ if __name__ == "__main__":
         raw_input("Sent link reset ROCT. Press key to continue...")
 
     if args.step == "asic-tester":
-        
-        # configure bypass
-        for l in range(output_nlinks):
-            link = "link%i"%l
-            dev.getNode(names['bypass']['switch']+"."+link+".output_select").write(0x1)
-        dev.dispatch()
-
-        # get link reset econt counter
-        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
-        dev.dispatch()
-        logger.info('link reset econt counter %i'%lrc)
-
         # configure link captures
         for lcapture in [names['lc-ASIC'],names['lc-emulator']]:
             lcapture = lcapture['lc']
@@ -189,8 +183,85 @@ if __name__ == "__main__":
                 dev.getNode(lcapture+"."+link+".capture_linkreset_ECONd").write(0x0)
                 
                 dev.getNode(lcapture+"."+link+".aquire_length").write(4096)
+                dev.getNode(lcapture+"."+link+".fifo_latency").write(0);
             dev.dispatch()
 
+        # send link reset roct (once)
+        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+        dev.dispatch()
+        dev.getNode(names['fc']+".bx_link_reset_econt").write(3550)
+        dev.dispatch()
+        logger.info('link reset econt counter %i'%lrc)
+        dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
+        dev.dispatch()
+        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+        dev.dispatch()
+        logger.info('link reset econt counter %i'%lrc)
+        
+        def find_latency(latency):
+            # adjust latency
+            new_latency = {}
+            for l in range(output_nlinks):
+                dev.getNode(names['lc-ASIC']['lc']+".fifo_latency").write(latency[l]);
+            dev.dispatch()
+
+            # do capture
+            dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
+            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
+            dev.dispatch()
+            dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(1)
+            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(1)
+            dev.dispatch()
+            dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
+            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
+            dev.dispatch()
+
+            # check link capture ASIC
+            for l in range(output_nlinks):
+                link = "link%i"%l
+                aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
+                error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
+                aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
+                dev.dispatch()
+                asic_i = -1;
+                if(aligned_c==128 and error_c==0 and aligned==1):
+                    logger.info('%i: ASIC link-capture %s aligned: %d %d %d'%(latency[l],link, aligned, aligned_c, error_c))
+                else:
+                    # logger.warning('ASIC link-capture %s not aligned: : %d %d %d'%(link, aligned, aligned_c, error_c))
+                    new_latency[l] = -1
+                    continue
+                fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
+                dev.dispatch()
+                occ = '%d'%fifo_occupancy
+                if occ>0:
+                    data = dev.getNode(names['lc-ASIC']['fifo']+"."+link).readBlock(int(fifo_occupancy))
+                    dev.dispatch()
+                    # logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
+                    for i,d in enumerate(data):
+                        if d==0xf922f922:
+                            asic_i = i
+                            break;
+                if(asic_i>-1):
+                    logger.info('%i ASIC link-capture found BX0 word at %d',latency[l],asic_i)
+                    new_latency[l] = latency[l]
+                else:
+                    #logger.warning('ASIC link-capture did not find BX0 word')
+                    new_latency[l] = -1
+                    
+            return new_latency
+
+        latency = {}
+        for l in range(output_nlinks):
+	    latency[l] = -1
+            
+        for i in range(0,1):
+            for l in range(output_nlinks):
+                if latency[l]==-1: 
+                    latency[l] = i
+            latency = find_latency(latency)
+
+        print(latency)
+        """
         # relative align
         def relative_align(fifo_latency):
             found_latency = False
@@ -303,4 +374,4 @@ if __name__ == "__main__":
         # send a L1A to two capture blocks
         # dev.getNode(names['stream_compare']+".trigger").write(0x1)
         # then set the capture blocks to capture when they see a L1A
-        
+        """
