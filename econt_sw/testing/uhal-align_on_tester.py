@@ -39,7 +39,7 @@ if __name__ == "__main__":
     dev = man.getDevice("mylittlememory")
 
     logger = logging.getLogger('align:step:%s'%args.step)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     names = {
         'IO': {'to': "ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0",
@@ -100,6 +100,7 @@ if __name__ == "__main__":
                 logger.debug("from-IO %s: bit_tr %d and delay ready %d"%(link,bit_tr,delay_ready))
                 if delay_ready==1:
                     break
+        logger.info("from-IO aligned")
 
     if args.step == "asic-word":
         # setup normal output in test-vectors
@@ -214,19 +215,20 @@ if __name__ == "__main__":
         def find_latency(latency):
             # adjust latency
             new_latency = {}
+            asic_found = {}
+
             for l in range(output_nlinks):
-                dev.getNode(names['lc-ASIC']['lc']+".fifo_latency").write(latency[l]);
+                dev.getNode(names['lc-ASIC']['lc']+".link%i"%l+".fifo_latency").write(latency[l]);
             dev.dispatch()
 
             # do capture
             dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
-            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
             dev.dispatch()
             dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(1)
-            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(1)
+            dev.dispatch()
+            dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
             dev.dispatch()
             dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
-            dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
             dev.dispatch()
 
             # check link capture ASIC
@@ -236,44 +238,49 @@ if __name__ == "__main__":
                 fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
                 dev.dispatch()
                 occ = '%d'%fifo_occupancy
-                if occ>0:
+                if fifo_occupancy>0:
                     data = dev.getNode(names['lc-ASIC']['fifo']+"."+link).readBlock(int(fifo_occupancy))
                     dev.dispatch()
-                    # logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
+                    logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
                     for i,d in enumerate(data):
                         if d==0xf922f922:
                             asic_i = i
                             break;
-                if(asic_i>-1):
-                    logger.info('%i ASIC link-capture found BX0 word at %d',latency[l],asic_i)
-                    new_latency[l] = latency[l]
+                    if(asic_i>-1):
+                        logger.info('%i ASIC link-capture found BX0 word at %d',latency[l],asic_i)
+                        new_latency[l] = latency[l]
+                        asic_found[l] = asic_i
+                    else:
+                        logger.warning('ASIC link-capture did not find BX0 word')
+                        new_latency[l] = -1
                 else:
-                    #logger.warning('ASIC link-capture did not find BX0 word')
-                    new_latency[l] = -1
+                    logger.warning('No captured data')
                     
-            return new_latency
+            return new_latency,asic_found
 
-        latency = {}
+        latency_asic = {}
         for l in range(output_nlinks):
-	    latency[l] = -1
-            
+	    latency_asic[l] = -1
+
+        asic_found = {}
         for i in range(0,1):
             for l in range(output_nlinks):
-                if latency[l]==-1: 
-                    latency[l] = i
-            latency = find_latency(latency)
+                if latency_asic[l]==-1: 
+                    latency_asic[l] = i
+            print(i,latency_asic)
+            latency_asic,asic_found = find_latency(latency_asic)
+            if -1 not in latency_asic.values():
+                print('found!',latency_asic)
+                break
 
-        print(latency)
-        """
         # relative align
-        def relative_align(fifo_latency):
+        def relative_align(fifo_latency,asic_found):
             found_latency = False
             logger.info('Relative alignment')
 
             # set latency
             for l in range(output_nlinks):
                 link = "link%i"%l
-                dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_latency").write(1)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".fifo_latency").write(fifo_latency)
             dev.dispatch()
                 
@@ -284,14 +291,8 @@ if __name__ == "__main__":
             dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(1)
             dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(1)
             dev.dispatch()
-            
-            # send link reset ECONT
-            dev.getNode(names['fc']+".bx_link_reset_econt").write(3550) 
-            dev.dispatch()
             dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
             dev.dispatch()
-            
-            # reset global acquire
             dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
             dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
             dev.dispatch()
@@ -301,54 +302,25 @@ if __name__ == "__main__":
             dev.dispatch()
             logger.info('link reset econt counter %i'%lrc)
 
-            # check if link capture ASIC is aligned
-            asic_i = 0
-            for l in range(output_nlinks):
-                link = "link%i"%l
-                aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
-                error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
-                aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
-                dev.dispatch()
-                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
-                
-                fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
-                dev.dispatch()
-                occ = '%d'%fifo_occupancy
-                if occ>0:
-                    data = dev.getNode(names['lc-ASIC']['fifo']+"."+link).readBlock(int(fifo_occupancy))
-                    dev.dispatch()
-                    logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
-                    if l==0:
-                        for i,d in enumerate(data):
-                            if d==0xf922f922:
-                                print(i,hex(d))
-                                asic_i = i
-                                break;
-            dev.getNode(names['lc-ASIC']['lc']+".global.interrupt_enable").write(0x0)
-            dev.dispatch()
-
             # check if link capture Emulator is aligned
             for l in range(output_nlinks):
                 link = "link%i"%l
-                aligned_c = dev.getNode(names['lc-emulator']['lc']+"."+link+".link_aligned_count").read()
-                error_c = dev.getNode(names['lc-emulator']['lc']+"."+link+".link_error_count").read()
-                aligned = dev.getNode(names['lc-emulator']['lc']+"."+link+".status.link_aligned").read()
-                dev.dispatch()
-                logger.info('Emulator link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
-                
                 fifo_occupancy = dev.getNode(names['lc-emulator']['lc']+"."+link+".fifo_occupancy").read()
                 dev.dispatch()
                 occ = '%d'%fifo_occupancy
-                if occ>0:
+                if fifo_occupancy>0:
                     data = dev.getNode(names['lc-emulator']['fifo']+"."+link).readBlock(int(fifo_occupancy))
                     dev.dispatch()
                     logger.debug('Emulator fifo occupancy  %s %d %i' %(link,fifo_occupancy,len(data)))
-                    if l==0:
-                        for i,d in enumerate(data):
-                            if d==0xf922f922:
-                                print(i,hex(d))
-                                if i==asic_i:
-                                    found_latency = True
+                    for i,d in enumerate(data):
+                        if d==0xf922f922:
+                            asic_i = i
+                            break;
+                    if(asic_i>-1 and asic_i==asic_found[l]):
+                        logger.info('Emulator link-capture found BX0 word at %d',asic_i)
+                        found_latency = True
+                    else:
+                        logger.warning('Emulator link-capture did not find BX0 word')
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".aquire").write(0x0)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".explicit_rstb_acquire").write(0x0)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".explicit_rstb_acquire").write(0x1)
@@ -359,7 +331,7 @@ if __name__ == "__main__":
 
         # iterate over different fifo latencies
         for lat in range(0,15):
-            ret = relative_align(lat)
+            ret = relative_align(lat,asic_found)
             if ret:
                 print('found!')
                 break;
@@ -377,4 +349,3 @@ if __name__ == "__main__":
         # send a L1A to two capture blocks
         # dev.getNode(names['stream_compare']+".trigger").write(0x1)
         # then set the capture blocks to capture when they see a L1A
-        """
