@@ -1,7 +1,4 @@
-i2c:
- emulator_addr: 1
 daq:
- input_file: /home/HGCAL_dev/src/econt_sw/econt_sw/data/EPORTRX_data_wafer.csv
  elinks_out:
   - { name : 'link0', polarity: 1, idcode: 0 }
   - { name : 'link1', polarity: 1, idcode: 1 }
@@ -99,7 +96,8 @@ ECON-T:
     algo:
      params:
       select:
-       param_value: 3
+       # algorithm: needs to be in threshold sum mode (for plenty of bit transitions w. PRBS)
+       param_value: 0
       density:
        param_value: 1
 
