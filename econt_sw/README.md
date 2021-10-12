@@ -15,6 +15,10 @@ ECON-SW
     ```bash
     # clone repository in `src/` folder or other working directory:
     git clone git@github.com:cmantill/econt_sw.git
+
+    # for tester setup, switch branch:
+    git fetch origin
+    git checkout -b tester-emulator-ROCv3 origin/tester-emulator-ROCv3
     ```
 
 - *uHal*: Visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
@@ -113,9 +117,13 @@ This means that when running testing scripts remotely one needs to do port forwa
     # econ-tester1 (ASIC with emu-solo firmware)
     # to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
     ssh HGCAL_dev@192.168.1.45
+    # or
+    sshECONT-ASIC
    
     # econ-tester2 (Emulator with tester firmware)
     ssh HGCAL_dev@192.168.1.46
+    # or
+    sshECONT-Tester
 ```
 
 ### ZYNQ HGCAL_dev:

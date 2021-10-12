@@ -99,7 +99,7 @@ ECON-T:
     algo:
      params:
       select:
-       param_value: 0
+       param_value: 3
       density:
        param_value: 1
 
