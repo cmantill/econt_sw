@@ -134,13 +134,12 @@ int main(int argc,char** argv)
     auto align = [&linkaligner]()->bool{
         boost::timer::cpu_timer timer;
         timer.start();
-        linkaligner->align();
+        if( !linkaligner->align() )
+            return false;
         timer.stop();
 #ifdef DEBUG_TIMER
         std::cout << "\t\t link aligner ellapsed time = " << timer.elapsed().wall/1e9 << std::endl;
 #endif
-        if( !linkaligner->checkLinks() )
-            return false;
         return true;
     };
     
@@ -209,11 +208,6 @@ int main(int argc,char** argv)
         reply("delay_scan_done");
     };
     
-    auto prbstest = [&linkaligner,reply](){
-        linkaligner->testPRBS();
-        reply("PRBS_test_done");
-    };
-        
     auto start = [&m_linkstatus,&thedaq,reply,align](){
         switch( m_linkstatus ){
         case zmq_server::LinkStatusFlag::NOT_READY :
@@ -246,8 +240,6 @@ int main(int argc,char** argv)
     const std::unordered_map<std::string,std::function<void()> > actionMap = {
         {"configure", [&](){ configure(); }},
         {"delayscan", [&](){ delayscan(); }},
-        //{"i2cscan",   [&](){ i2cscan();   }},
-        {"prbstest",  [&](){ prbstest();  }},
         {"start",     [&](){ start();     }},
         {"stop",      [&](){ stop();      }},
         {"run_done",  [&](){ run_done();  }}

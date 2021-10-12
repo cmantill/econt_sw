@@ -67,11 +67,11 @@ class LinkAligner
   bool configure_data();
   bool configure(const YAML::Node& config);
 
-  bool checkLinks();
+  bool checkLinks(LinkCaptureBlockHandler lchandler, bool printData=false);
   bool alignRelative(int emulator_latency);
   
   void align_IO();
-  void align();
+  bool align();
 
   void testDelay(std::string elink_name, int delay);
   void delayScan();
@@ -92,6 +92,7 @@ class LinkAligner
   eLinkOutputsBlockHandler m_bypass;
   IOBlockHandler m_fromIO;
   IOBlockHandler m_toIO;
+  std::vector<LinkCaptureBlockHandler> m_link_capture_block_handlers;
   LinkCaptureBlockHandler m_lc_asic;
   LinkCaptureBlockHandler m_lc_emulator;
 };

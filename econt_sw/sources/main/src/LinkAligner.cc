@@ -207,7 +207,7 @@ void LinkAligner::align_IO() {
   
   // wait for user input after sending PRBS
   std::cout << "IO blocks configured. Sending PRBS. Press key to continue... " << std::endl;
-  cin.get();
+  std::cin.get();
   
   // check that from-IO is aligned
   for(auto elink : m_fromIO.getElinks()){
@@ -220,7 +220,7 @@ void LinkAligner::align_IO() {
   }
 }
 
-bool LinkAligner::checkLinks(lchandler,printData)
+bool LinkAligner::checkLinks(LinkCaptureBlockHandler lchandler,bool printData)
 {
   // check alignment status                                                                                                                                                                                                                                                                                                   
   for( auto elink : lchandler.getElinks() ){
@@ -355,7 +355,7 @@ bool LinkAligner::alignRelative(int emulator_latency){
  *   - we can send a L1A (FC ROCv2) or set a BX on which to capture
  **/
 
-void LinkAligner::align() {  
+bool LinkAligner::align() {  
   
   // align IO blocks
   align_IO();  
@@ -391,7 +391,7 @@ void LinkAligner::align() {
   
   // wait for user input
   std::cout << "Sent link reset ROCT. Press key to continue..." << std::endl;
-  cin.get();
+  std::cin.get();
   
   // configure link captures
   for(auto lchandler : m_link_capture_block_handlers){
@@ -428,6 +428,7 @@ void LinkAligner::align() {
   }
 
   // setup stream compare
+  return true;
 }
 
 void LinkAligner::testDelay(std::string elink_name, int delay) {
