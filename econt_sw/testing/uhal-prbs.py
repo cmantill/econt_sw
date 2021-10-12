@@ -76,7 +76,10 @@ if __name__ == "__main__":
         "header_BX0": 0x90000000,
     }
     if args.prbs28:
+        print('28 b setting header mask')
         testvectors_settings['header_mask'] = 0xf0000000
+
+    print(testvectors_settings)
 
     # read lc
     for l in range(output_nlinks):
@@ -103,6 +106,19 @@ if __name__ == "__main__":
         dev.dispatch()
 
     """
+    # send link reset econt
+    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+    dev.dispatch()
+    dev.getNode(names['fc']+".bx_link_reset_econt").write(3550)
+    dev.dispatch()
+    logger.info('link reset econt counter %i'%lrc)
+    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
+    dev.dispatch()
+    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+    dev.dispatch()
+    logger.info('link reset econt counter %i'%lrc)
+
+
     # do capture on BX
     dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
     dev.dispatch()

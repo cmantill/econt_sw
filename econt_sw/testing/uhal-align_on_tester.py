@@ -39,7 +39,7 @@ if __name__ == "__main__":
     dev = man.getDevice("mylittlememory")
 
     logger = logging.getLogger('align:step:%s'%args.step)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     
     names = {
         'IO': {'to': "ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0",
@@ -84,9 +84,22 @@ if __name__ == "__main__":
             dev.dispatch()
         
         # send PRBS
+        testvectors_settings = {
+            "output_select": 0x1,
+            "n_idle_words": 256,
+            "idle_word": 0xaccccccc,
+            "idle_word_BX0": 0x9ccccccc,
+            "header_mask": 0xf0000000, # impose headers
+            "header": 0xa0000000,
+            "header_BX0": 0x90000000,
+        }
         for l in range(input_nlinks):
             link = "link%i"%l
-            dev.getNode(names['testvectors']['switch']+"."+link+".output_select").write(0x1)
+            for key,value in testvectors_settings.items():
+                dev.getNode(names['testvectors']['switch']+"."+link+"."+key).write(value)
+            dev.getNode(names['testvectors']['stream']+"."+link+".sync_mode").write(0x1)
+            dev.getNode(names['testvectors']['stream']+"."+link+".ram_range").write(0x1)
+            dev.getNode(names['testvectors']['stream']+"."+link+".force_sync").write(0x0)
         dev.dispatch()
         raw_input("IO blocks configured. Sending PRBS. Press key to continue...")
 
@@ -107,11 +120,9 @@ if __name__ == "__main__":
         out_brams = []
         testvectors_settings = {"output_select": 0x0,
                                 "n_idle_words": 255,
-                                # "n_idle_words":	0,
                                 "idle_word": 0xaccccccc,
                                 "idle_word_BX0": 0x9ccccccc,
-                                "header_mask": 0xf0000000,
-                                # "header_mask": 0x00000000,
+                                "header_mask": 0x00000000,
                                 "header": 0xa0000000,
                                 "header_BX0": 0x90000000,
                                 }
@@ -123,10 +134,6 @@ if __name__ == "__main__":
             
             # size of bram is 4096
             out_brams.append([None] * 4096)
-            
-            dev.getNode(names['testvectors']['stream']+"."+link+".sync_mode").write(0x1)
-            dev.getNode(names['testvectors']['stream']+"."+link+".ram_range").write(0x1)
-            dev.getNode(names['testvectors']['stream']+"."+link+".force_sync").write(0x0)
         dev.dispatch()
 
         # set zero-data with headers
@@ -195,6 +202,7 @@ if __name__ == "__main__":
         logger.info('link reset econt counter %i'%lrc)
         dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
         dev.dispatch()
+        time.sleep(0.001)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
@@ -208,7 +216,7 @@ if __name__ == "__main__":
             dev.dispatch()
             asic_i = -1;
             if(aligned_c==128 and error_c==0 and aligned==1):
-                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+                logger.debug('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
             else:
                 logger.warning('ASIC link-capture %s is not aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
                 
@@ -241,13 +249,13 @@ if __name__ == "__main__":
                 if fifo_occupancy>0:
                     data = dev.getNode(names['lc-ASIC']['fifo']+"."+link).readBlock(int(fifo_occupancy))
                     dev.dispatch()
-                    logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
+                    logger.debug('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
                     for i,d in enumerate(data):
                         if d==0xf922f922:
                             asic_i = i
                             break;
                     if(asic_i>-1):
-                        logger.info('%i ASIC link-capture found BX0 word at %d',latency[l],asic_i)
+                        logger.debug('%i ASIC link-capture found BX0 word at %d',latency[l],asic_i)
                         new_latency[l] = latency[l]
                         asic_found[l] = asic_i
                     else:
@@ -263,7 +271,7 @@ if __name__ == "__main__":
 	    latency_asic[l] = -1
 
         asic_found = {}
-        for i in range(0,1):
+        for i in range(0,511): # max fifo latency?
             for l in range(output_nlinks):
                 if latency_asic[l]==-1: 
                     latency_asic[l] = i
@@ -275,13 +283,15 @@ if __name__ == "__main__":
 
         # relative align
         def relative_align(fifo_latency,asic_found):
-            found_latency = False
+            found_latency = True
             logger.info('Relative alignment')
 
             # set latency
+            new_latency = {}
+            emulator_found = {}
             for l in range(output_nlinks):
                 link = "link%i"%l
-                dev.getNode(names['lc-emulator']['lc']+"."+link+".fifo_latency").write(fifo_latency)
+                dev.getNode(names['lc-emulator']['lc']+"."+link+".fifo_latency").write(fifo_latency[l])
             dev.dispatch()
                 
             # write global acquire
@@ -317,24 +327,49 @@ if __name__ == "__main__":
                             asic_i = i
                             break;
                     if(asic_i>-1 and asic_i==asic_found[l]):
-                        logger.info('Emulator link-capture found BX0 word at %d',asic_i)
-                        found_latency = True
+                        logger.debug('Emulator link-capture found BX0 word at %d',asic_i)  
+                        new_latency[l] = fifo_latency[l]
+                        emulator_found[l] = asic_i
                     else:
                         logger.warning('Emulator link-capture did not find BX0 word')
+                        new_latency[l] = -1
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".aquire").write(0x0)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".explicit_rstb_acquire").write(0x0)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".explicit_rstb_acquire").write(0x1)
                 dev.dispatch()
             dev.getNode(names['lc-emulator']['lc']+".global.interrupt_enable").write(0x0)
             dev.dispatch()
-            return found_latency
+            return new_latency,emulator_found
 
         # iterate over different fifo latencies
-        for lat in range(0,15):
-            ret = relative_align(lat,asic_found)
-            if ret:
-                print('found!')
-                break;
+        latency_emulator = {}
+        for l in range(output_nlinks):
+            latency_emulator[l] = -1
+
+        for i in range(0,511): # max fifo latency
+            for l in range(output_nlinks):
+                if latency_emulator[l]==-1:
+                    latency_emulator[l] = i
+            print(i,latency_emulator)
+            latency_emulator,emulator_found = relative_align(latency_emulator,asic_found)
+            if -1 not in latency_emulator.values():
+                print('found!',latency_emulator)
+                break
+
+        """
+        # check lc again
+        for l in range(output_nlinks):
+            link = "link%i"%l
+            aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
+            error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
+            aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
+            dev.dispatch()
+            asic_i = -1;
+            if(aligned_c==128 and error_c==0 and aligned==1):
+                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+            else:
+                logger.warning('ASIC link-capture %s is not aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+        """
 
         # test stream-compare as extra
         dev.getNode(names['stream_compare']+".control.reset").write(0x1) # start the counters from zero
