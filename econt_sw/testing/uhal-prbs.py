@@ -19,7 +19,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
-                        help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')    
+                        help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
+    parser.add_argument('--prbs28', dest='prbs28',  action='store_true', default=False, help='PRBS 28 bit')
     args = parser.parse_args()
 
     if args.logLevel.find("ERROR")==0:
@@ -70,18 +71,60 @@ if __name__ == "__main__":
         "n_idle_words": 255,
         "idle_word": 0xaccccccc,
         "idle_word_BX0": 0x9ccccccc,
-        "header_mask": 0xf0000000,
-        #"header_mask": 0x00000000, # for 32 bit
+        "header_mask": 0x00000000, # switching off the headers
         "header": 0xa0000000,
         "header_BX0": 0x90000000,
     }
+    if args.prbs28:
+        testvectors_settings['header_mask'] = 0xf0000000
+
+    # read lc
+    for l in range(output_nlinks):
+        link = "link%i"%l
+        aligned_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_aligned_count").read()
+        error_c = dev.getNode(names['lc-ASIC']['lc']+"."+link+".link_error_count").read()
+        aligned = dev.getNode(names['lc-ASIC']['lc']+"."+link+".status.link_aligned").read()
+        dev.dispatch()
+        asic_i = -1;
+        if(aligned_c==128 and error_c==0 and aligned==1):
+            logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+        else:
+            logger.warning('ASIC link-capture %s is not aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
     
+    # send PRBS
     for l in range(input_nlinks):
         link = "link%i"%l
         for key,value in testvectors_settings.items():
             dev.getNode(names['testvectors']['switch']+"."+link+"."+key).write(value)
             
-            dev.getNode(names['testvectors']['stream']+"."+link+".sync_mode").write(0x1)
-            dev.getNode(names['testvectors']['stream']+"."+link+".ram_range").write(0x1)
-            dev.getNode(names['testvectors']['stream']+"."+link+".force_sync").write(0x0)
+        dev.getNode(names['testvectors']['stream']+"."+link+".sync_mode").write(0x1)
+        dev.getNode(names['testvectors']['stream']+"."+link+".ram_range").write(0x1)
+        dev.getNode(names['testvectors']['stream']+"."+link+".force_sync").write(0x0)
         dev.dispatch()
+
+    """
+    # do capture on BX
+    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
+    dev.dispatch()
+    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(1)
+    dev.dispatch()
+    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
+    dev.dispatch()
+    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
+    dev.dispatch()
+    
+    # check link capture ASIC
+    for l in range(output_nlinks):
+        link = "link%i"%l
+        asic_i = -1;
+        fifo_occupancy = dev.getNode(names['lc-ASIC']['lc']+"."+link+".fifo_occupancy").read()
+        dev.dispatch()
+        occ = '%d'%fifo_occupancy
+        if fifo_occupancy>0:
+            data = dev.getNode(names['lc-ASIC']['fifo']+"."+link).readBlock(int(fifo_occupancy))
+            dev.dispatch()
+            logger.info('ASIC link-capture fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
+            if l==0:
+                for d in data:
+                    print(hex(d))
+    """
