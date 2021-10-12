@@ -70,6 +70,9 @@ if __name__ == "__main__":
             else:
                 dev.getNode(io_name+"."+link+".reg0.delay_mode").write(0x1)
         dev.getNode(io_name+".global.global_rstb_links").write(0x1)
+        dev.getNode(io_name+".global.global_reset_counters").write(0x1)
+        time.sleep(0.001)
+        dev.getNode(io_name+".global.global_latch_counters").write(0x1)
         dev.dispatch()
 
     raw_input("IO blocks configured. Waiting for bit transitions. Press key to continue...")
@@ -85,52 +88,77 @@ if __name__ == "__main__":
             if delay_ready==1:
                 break;    
 
-    # configure link capture 
+    # configure lc to capture on BX
     dev.getNode(names["lc-input"]["lc"]+".global.link_enable").write(0x1fff)
     dev.getNode(names["lc-input"]["lc"]+".global.explicit_resetb").write(0x0)
     time.sleep(0.001)
     dev.getNode(names["lc-input"]["lc"]+".global.explicit_resetb").write(0x1)
     dev.dispatch()
-    # capture on BX
     for l in range(input_nlinks):
         link = "link%i"%l
-        dev.getNode(names["lc-input"]["lc"]+"."+link+".align_pattern").write(0b00100100010)
-        dev.getNode(names["lc-input"]["lc"]+"."+link+".L1A_offset_or_BX").write(3500)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".L1A_offset_or_BX").write(0)
         dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_mode_in").write(0x1)
-        dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire_length").write(0x1000)
-        dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_latency").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire_length").write(300)
         dev.dispatch()
+
+    # do an acquisition
     dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
     dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(1)
     dev.dispatch()
     time.sleep(0.001)
     dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
     dev.dispatch()
-
+    all_data = []
+    all_data_filled=True
     for l in range(input_nlinks):
         link = "link%i"%l
-        aligned_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_aligned_count").read()
-        error_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_error_count").read()
-        aligned = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.link_aligned").read()
-        dev.dispatch()
-        logger.info('input-link-capture %s %d %d %d'%(link, aligned, aligned_c, error_c))
-
         fifo_occupancy = dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
             data = dev.getNode(names["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
             dev.dispatch()
-            print('fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
-            if l==0:
-                print(link)
-                print([hex(d) for i,d in enumerate(data) if i<15])
+            all_data.append(data)
+        else:
+            all_data_filled = False
+            print('fifo occupancy %s %d' %(link,fifo_occupancy))
         dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire").write(0x0)
         dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x0)
         dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x1)
         dev.dispatch()
     dev.getNode(names["lc-input"]["lc"]+".global.interrupt_enable").write(0x0)
     dev.dispatch()
+    # print data
+    if all_data_filled:
+        data = [[hex(all_data[j][i]) for j in range(len(all_data))] for i in range(len(all_data[0]))]
+        for d in data[:10]:
+            print(d)
 
+    # configure link capture's align pattern
+    dev.getNode(names["lc-input"]["lc"]+".global.link_enable").write(0x1fff)
+    dev.getNode(names["lc-input"]["lc"]+".global.explicit_resetb").write(0x0)
+    time.sleep(0.001)
+    dev.getNode(names["lc-input"]["lc"]+".global.explicit_resetb").write(0x1)
+    dev.dispatch()
+    for l in range(input_nlinks):
+        link = "link%i"%l
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".align_pattern").write(0xaccccccc)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".L1A_offset_or_BX").write(0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_mode_in").write(0x2)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_linkreset_ROCt").write(0x1)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_linkreset_ECONt").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_L1A").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_linkreset_ROCd").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_linkreset_ECONd").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire_length").write(300)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_latency").write(0x0)
+        dev.dispatch()
+
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(1)
+    dev.dispatch()
+    time.sleep(0.001)
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    dev.dispatch()
 
     # read fast commands
     reset_roc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read()
@@ -140,34 +168,107 @@ if __name__ == "__main__":
     logger.info("Initial counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
     raw_input("Link capture and counters checked. Waiting for link reset roct. Press key to continue...")
 
-    # read again
+    # read lc before link reset
+    for l in range(input_nlinks):
+        link = "link%i"%l
+        aligned_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_aligned_count").read()
+        error_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_error_count").read()
+        aligned = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.link_aligned").read()
+        delay_ready = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.delay_ready").read()
+        waiting_for_trig = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.waiting_for_trig").read()
+        writing =  dev.getNode(names["lc-input"]["lc"]+"."+link+".status.writing").read()
+        dev.dispatch()
+        logger.info('input-link-capture %s aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(link, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
+
+    # read again                                                                                                                                                         
     reset_roc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read()
     dev.dispatch()
     reset_econt = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read()
     dev.dispatch()
     logger.info("After counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
 
-    # check if input link capture is aligned
+    # check that lc is aligned
     for l in range(input_nlinks):
         link = "link%i"%l
         aligned_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_aligned_count").read()
         error_c = dev.getNode(names["lc-input"]["lc"]+"."+link+".link_error_count").read()
         aligned = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.link_aligned").read()
+        delay_ready = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.delay_ready").read()
+        waiting_for_trig = dev.getNode(names["lc-input"]["lc"]+"."+link+".status.waiting_for_trig").read()
+        writing =  dev.getNode(names["lc-input"]["lc"]+"."+link+".status.writing").read()
         dev.dispatch()
-        print('%s %s %d %d %d'%(names["lc-input"]["lc"],link, aligned, aligned_c, error_c))
+        logger.info('input-link-capture %s aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(link, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
 
+    # set lc to write
+    #dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    #dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(1)
+    #dev.dispatch()
+    #time.sleep(0.001)
+    #dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    #dev.dispatch()
+
+    all_data = []
+    all_data_filled=True
+    for l in range(input_nlinks):
+        link = "link%i"%l
         fifo_occupancy = dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(names["lc-input"]["fifo"]+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
             dev.dispatch()
-            print('fifo occupancy %s %d %i' %(link,fifo_occupancy,len(data)))
-            if l==0:
-                print(link)
-                print([hex(i) for i in data])
+            all_data.append(data)
+        else:
+            all_data_filled = False
+            print('fifo occupancy %s %d' %(link,fifo_occupancy))
         dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire").write(0x0)
         dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x0)
         dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x1)
         dev.dispatch()
     dev.getNode(names["lc-input"]["lc"]+".global.interrupt_enable").write(0x0)
     dev.dispatch()
+    # print data (should be zeros)
+    if all_data_filled:
+        data = [[hex(all_data[j][i]) for j in range(len(all_data))] for i in range(len(all_data[0]))]
+        for d in data[:10]:
+            print(d)
+
+    raw_input("Captured data on input link capture. Waiting to capture again after getting PRBS..")
+
+    for l in range(input_nlinks):
+        link = "link%i"%l
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".L1A_offset_or_BX").write(3500)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".capture_mode_in").write(0x1)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire_length").write(300)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_latency").write(0x0)
+        dev.dispatch()
+    # send aquire
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(1)
+    dev.dispatch()
+    time.sleep(0.001)
+    dev.getNode(names["lc-input"]["lc"]+".global.aquire").write(0)
+    dev.dispatch()
+    all_data = []
+    all_data_filled=True
+    for l in range(input_nlinks):
+        link = "link%i"%l
+        fifo_occupancy = dev.getNode(names["lc-input"]["lc"]+"."+link+".fifo_occupancy").read()
+        dev.dispatch()
+        if fifo_occupancy>0:
+            data = dev.getNode(names["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
+            dev.dispatch()
+            all_data.append(data)
+        else:
+            all_data_filled = False
+            print('fifo occupancy %s %d' %(link,fifo_occupancy))
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".aquire").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x0)
+        dev.getNode(names["lc-input"]["lc"]+"."+link+".explicit_rstb_acquire").write(0x1)
+        dev.dispatch()
+    dev.getNode(names["lc-input"]["lc"]+".global.interrupt_enable").write(0x0)
+    dev.dispatch()
+    # print data
+    if all_data_filled:
+        data = [[hex(all_data[j][i]) for j in range(len(all_data))] for i in range(len(all_data[0]))]
+        for d in data[:10]:
+            print(d)
