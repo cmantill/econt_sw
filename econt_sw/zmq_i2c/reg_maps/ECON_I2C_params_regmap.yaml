@@ -616,45 +616,45 @@ ECON-T:
      size_byte: 4
      value: 0x0188c888
      params:
-     fromFrameAligner_FrameAlignerIsLocked:
-      param_mask: 0x01
-      param_shift: 30
-     fromMemToLJCDR_disableFrameAlignerLockControl:
-      param_mask: 0x01
-      param_shift: 29
-     fromMemToLJCDR_enableControlOverride:
-      param_mask: 0x01
-      param_shift: 28
-     fromMemToLJCDR_enableCapBankOverride:
-      param_mask: 0x01
-      param_shift: 27
-     rxLockMode:
-      param_mask: 0x01
-      param_shift: 26
-     mode:
-      param_mask: 0x01
-      param_shift: 25
-     fromMemToLJCDR_lfEnable:
-      param_mask: 0x01
-      param_shift: 24
-     fromMemToLJCDR_waitPLLTime:
-      param_mask: 0x0f
-      param_shift: 20
-     fromMemToLJCDR_waitCDRTime:
-      param_mask: 0x0f
-      param_shift: 16
-     fromMemToLJCDR_selEndOfCount:
-      param_mask: 0x0f
-      param_shift: 12
-     fromMemToLJCDR_lfUnLockThrCounter:
-      param_mask: 0x0f
-      param_shift: 8
-     fromMemToLJCDR_lfReLockThrCounter:
-      param_mask: 0x0f
-      param_shift: 4
-     fromMemToLJCDR_lfLockThrCounter:
-      param_mask: 0x0f
-      param_shift: 0     
+      fromFrameAligner_FrameAlignerIsLocked:
+       param_mask: 0x01
+       param_shift: 30
+      fromMemToLJCDR_disableFrameAlignerLockControl:
+       param_mask: 0x01
+       param_shift: 29
+      fromMemToLJCDR_enableControlOverride:
+       param_mask: 0x01
+       param_shift: 28
+      fromMemToLJCDR_enableCapBankOverride:
+       param_mask: 0x01
+       param_shift: 27
+      rxLockMode:
+       param_mask: 0x01
+       param_shift: 26
+      mode:
+       param_mask: 0x01
+       param_shift: 25
+      fromMemToLJCDR_lfEnable:
+       param_mask: 0x01
+       param_shift: 24
+      fromMemToLJCDR_waitPLLTime:
+       param_mask: 0x0f
+       param_shift: 20
+      fromMemToLJCDR_waitCDRTime:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_selEndOfCount:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_lfUnLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_lfReLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_lfLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 0     
     pll_bytes_24to22:
      addr_offset: 0x17
      size_byte: 3
