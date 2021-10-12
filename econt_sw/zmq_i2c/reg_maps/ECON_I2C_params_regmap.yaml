@@ -24,6 +24,52 @@
 ECON-T:
  ninput: 12
  noutput: 13
+ WO:
+  CH_ERR_*INPUT_ALL:
+   block_shift: 30
+   addr_base: 0x0300
+   registers:
+    config:
+     value: 0
+     params:
+      wren_mask:
+       param_mask: 0x01
+       param_shift: 2
+      wren_err:
+       param_mask: 0x01
+       param_shift: 1
+      clr_on_read:
+       param_mask: 0x01
+       param_shift: 0
+       
+  CH_ERR_13_ALL:
+   addr_base: 0x0330
+   registers:
+    config:
+     value: 0
+     params:
+      misc_interrupts:
+       param_mask: 0x03
+       param_shift: 6
+      pll_not_locked:
+       param_mask: 0x01
+       param_shift: 5
+      dll_not_locked:
+       param_mask: 0x01
+       param_shift: 4
+      chns_not_locked:
+       param_mask: 0x01
+       param_shift: 3
+      buffer_wr_ptr_overflow_err:
+       param_mask: 0x01
+       param_shift: 2
+      fc_error_count_ne_zero:
+       param_mask: 0x01
+       param_shift: 1
+      command_rx_inverted:
+       param_mask: 0x01
+       param_shift: 0
+   
  RW:
   CH_ALIGNER_*INPUT_ALL:
    block_shift: 0x40
@@ -77,23 +123,6 @@ ECON-T:
      size_byte: 4
      value: 0x00000000
 
-  CH_ERR_*INPUT_ALL:
-   block_shift: 4
-   addr_base: 0x0300
-   registers:
-    config:
-     value: 0
-     params:
-      wren_mask:
-       param_mask: 0x01
-       param_shift: 2
-      wren_err:
-       param_mask: 0x01
-       param_shift: 1
-      clr_on_read:
-       param_mask: 0x01
-       param_shift: 0
-    
   CH_EPRXGRP_*INPUT_ALL:
    block_shift: 4
    addr_base: 0x0340
@@ -459,45 +488,239 @@ ECON-T:
     pll_bytes_1to0:
      size_byte: 2
      value: 0x0e00
+     params:
+      enableDes:
+       param_mask: 0x1
+       param_shift: 9
+      enableSer:
+       param_mask: 0x1
+       param_shift: 7
+      clktreeCdisable:
+       param_mask: 0x01
+       param_shift: 5
+      clktreeBdisable:
+       param_mask: 0x01
+       param_shift: 3
+      clktreeAdisable:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_4to2:
      addr_offset: 0x02
      size_byte: 3
      value: 0xffffff
+     params:
+      clk2G56enable:
+       param_mask: 0x01
+       param_shift: 15
+      clk1G28enable:
+       param_mask: 0x01
+       param_shift: 13
+      clk640Menable:
+       param_mask: 0x01
+       param_shift: 11
+      clk320Menable:
+       param_mask: 0x01
+       param_shift: 9
+      clk160Menable:
+       param_mask: 0x01
+       param_shift: 7
+      clk80Menable:
+       param_mask: 0x01
+       param_shift: 5
+      clk40Menable:
+       param_mask: 0x01
+       param_shift: 3
+      enablePhaseShifter:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_8to5:
      addr_offset: 0x05
      size_byte: 4
      value: 0x3dfaaaae
+     params:
+      fromMemToLJCDR_COenableFD:
+       param_mask: 0x01
+       param_shift: 5
+      fromMemToLJCDR_COenableCDR:
+       param_mask: 0x01
+       param_shift: 4
+      fromMemToLJCDR_COdisDataCounterRef:
+       param_mask: 0x01
+       param_shift: 3
+      fromMemToLJCDR_COdisDESvbiasge:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_12to9:
      addr_offset: 0x09
      size_byte: 4
      value: 0x34550555
+     params:
+      fromMemToLJCDR_CONFIG_FF_CAP_WL:
+       param_mask: 0x07
+       param_shift: 9
+      fromMemToLJCDR_PLL_R_CONFIG_WL:
+       param_mask: 0x0f
+       param_shift: 5
+      fromMemToLJCDR_CONFIG_P_PLL_WL:
+       param_mask: 0x0f
+       param_shift: 1
+      fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_17to13:
      addr_offset: 0x0d
      size_byte: 5
      value: 0x7c70d84558
+     params:
+      fromMemToLJCDR_CBOvcoCapSelect:
+       param_mask: 0x1ff
+       param_shift: 31
+      fromMemToLJCDR_COrefClkSel:
+       param_mask: 0x01
+       param_shift: 28
+      fromMemToLJCDR_COoverrideVc:
+       param_mask: 0x01
+       param_shift: 25
+      VCObypass:
+       param_mask: 0x01
+       param_shift: 24
+      fromMemToLJCDR_COenablePLL:
+       param_mask: 0x01
+       param_shift: 23
+      fromMemToLJCDR_COconnectPLL:
+       param_mask: 0x01
+       param_shift: 22
+      fromMemToLJCDR_COconnectCDR:
+       param_mask: 0x01
+       param_shift: 21
+      fromMemToLJCDR_vcoRailMode:
+       param_mask: 0x01
+       param_shift: 20
+      fromMemToLJCDR_vcoDAC:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_PLL_R_CONFIG:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_CONFIG_P_PLL:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_CONFIG_I_PLL:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_BIASGEN_CONFIG:
+       param_mask: 0x0f
+       param_shift: 0
     pll_bytes_21to18:
      addr_offset: 0x13
      size_byte: 4
      value: 0x0188c888
+     params:
+     fromFrameAligner_FrameAlignerIsLocked:
+      param_mask: 0x01
+      param_shift: 30
+     fromMemToLJCDR_disableFrameAlignerLockControl:
+      param_mask: 0x01
+      param_shift: 29
+     fromMemToLJCDR_enableControlOverride:
+      param_mask: 0x01
+      param_shift: 28
+     fromMemToLJCDR_enableCapBankOverride:
+      param_mask: 0x01
+      param_shift: 27
+     rxLockMode:
+      param_mask: 0x01
+      param_shift: 26
+     mode:
+      param_mask: 0x01
+      param_shift: 25
+     fromMemToLJCDR_lfEnable:
+      param_mask: 0x01
+      param_shift: 24
+     fromMemToLJCDR_waitPLLTime:
+      param_mask: 0x0f
+      param_shift: 20
+     fromMemToLJCDR_waitCDRTime:
+      param_mask: 0x0f
+      param_shift: 16
+     fromMemToLJCDR_selEndOfCount:
+      param_mask: 0x0f
+      param_shift: 12
+     fromMemToLJCDR_lfUnLockThrCounter:
+      param_mask: 0x0f
+      param_shift: 8
+     fromMemToLJCDR_lfReLockThrCounter:
+      param_mask: 0x0f
+      param_shift: 4
+     fromMemToLJCDR_lfLockThrCounter:
+      param_mask: 0x0f
+      param_shift: 0     
     pll_bytes_24to22:
      addr_offset: 0x17
      size_byte: 3
      value: 0x000e00
+     params:
+      phase_of_enable_1G28:
+       param_mask: 0x1f
+       param_shift: 18
+      toclkgen_disVCO:
+       param_mask: 0x01
+       param_shift: 15
+      toclkgen_disSER:
+       param_mask: 0x01
+       param_shift: 12
+      toclkgen_disEXT:
+       param_mask: 0x01
+       param_shift: 9
+      toclkgen_disEOM:
+       param_mask: 0x01
+       param_shift: 6
+      toclkgen_disDES:
+       param_mask: 0x01
+       param_shift: 3
+      toclkgen_disCLK:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_26to25:
      addr_offset: 0x1a
      size_byte: 2
      value: 0x0038
+     params:
+      ref_clk_sel:
+       param_mask: 0x01
+      output_clk_sel:
+       param_mask: 0x03
+       param_shift: 12
+      refClk_setCommonMode:
+       param_mask: 0x01
+       param_shift: 9
+      refClk_enableTermination:
+       param_mask: 0x01
+       param_shift: 6
+      refClk_enableRx:
+       param_mask: 0x01
+       param_shift: 3
+      tofbDiv_skip:
+       param_mask: 0x01
+       param_shift: 0
     pll_bytes_27:
      addr_offset: 0x1c
      size_byte: 1
      value: 0x00
+     params:
+      reset_eTx_par_enable_intr:
+       param_mask: 0x01
+       param_shift: 4
+      reset_pll_not_locked_intr:
+       param_mask: 0x01
+       param_shift: 3
 
   AUTOENCODER_*INPUT:
    block_shift: 143
    addr_base: 0x0538
    registers:
     weights:
-     size_byte: 143
+     size_byte: 134
      value: 0
 
   MISC_ALL:
@@ -509,7 +732,7 @@ ECON-T:
       run:
        param_mask: 0x01
        param_shift: 1
-      clear_errors:
+      rw_ecc_err_clr:
        param_mask: 0x01
        param_shift: 0
 
@@ -575,9 +798,35 @@ ECON-T:
    registers:
     raw_error:
      value: 0
+     params:
+      err_raw_dat:
+       param_mask: 0x3F
+       param_shift: 6
+      hdr_mm_err:
+       param_mask: 0x01
+       param_shift: 5
+      align_seu_err:
+       param_mask: 0x01
+       param_shift: 4
+      orbsyn_hdr_err:
+       param_mask: 0x01
+       param_shift: 3
+      orbsyn_arr_err:
+       param_mask: 0x01
+       param_shift: 2
+      orbsyn_fc_err:
+       param_mask: 0x01
+       param_shift: 1
+      prbs_chk_err:
+       param_mask: 0x01
+       param_shift: 0
     error_mask:
      addr_offset: 0x01
      value: 0
+     params:
+      msk_dat:
+       param_mask: 0x3f
+       param_shift: 0
     error_data:
      addr_offset: 0x02
      value: 0
@@ -697,16 +946,61 @@ ECON-T:
     pll_read_bytes_2to0:
      size_byte: 3
      value: 0x000000
+     params:
+      ljCDRCapBankSearchActive:
+       param_mask: 0x01
+       param_shift: 19
+      smLocked:
+       param_mask: 0x01
+       param_shift: 18
+      smState:
+       param_mask: 0x0f
+       param_shift: 14
+      endCounterRefClk:
+       param_mask: 0x01
+       param_shift: 13
+      endCounterVCO:
+       param_mask: 0x01
+       param_shift: 12
+      lfLossOfLockCount:
+       param_mask: 0xff
+       param_shift: 4
+      lfLocked:
+       param_mask: 0x01
+       param_shift: 3
+      lfInstLock:
+       param_mask: 0x01
+       param_shift: 2
+      lfState:
+       param_mask: 0x03
+       param_shift: 0
     pll_read_bytes_4to3:
      addr_offset: 0x03
      size_byte: 2
      value: 0x0000
+     params:
+      pll_not_locked_timeout:
+       param_mask: 0x01
+       param_shift: 3
+      parallel_enable_intrA:
+       param_mask: 0x01
+       param_shift: 2
+      parallel_enable_intrB:
+       param_mask: 0x01
+       param_shift: 1
+      parallel_enable_intrC:
+       param_mask: 0x01
+       param_shift: 0
 
   MISC_ALL:
    addr_base: 0x0bed
    registers:
     misc_ro_0:
      value: 0
+     params:
+      PUSM_state:
+       param_mask: 0x0f
+       param_shift: 0
      
   MISC_ERR_CNT_SINGLE:
    addr_base: 0x0bee
