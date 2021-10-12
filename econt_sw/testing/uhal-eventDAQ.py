@@ -131,6 +131,20 @@ if __name__ == "__main__":
         dev.dispatch()
 
     # set input data
+    fname = "/home/HGCAL_dev/src/econt_sw/econt_sw/configs/test_vectors/counterPattern_Oct8/testInput.csv"
+
+    import csv
+    data = []
+    with open(fname) as f:
+        csv_reader = csv.reader(f, delimiter=',')
+        for i,row in enumerate(csv_reader):
+            if i==0: continue
+            for l in range(input_nlinks):
+                data[l].append(row[l])
+
+    print(data[:1])
+
+
     for l in range(input_nlinks):
         for i,b in enumerate(out_brams[l]):
                 if i==0: out_brams[l][i] = 0x90000000

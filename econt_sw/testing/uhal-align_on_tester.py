@@ -216,7 +216,7 @@ if __name__ == "__main__":
             dev.dispatch()
             asic_i = -1;
             if(aligned_c==128 and error_c==0 and aligned==1):
-                logger.debug('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
+                logger.info('ASIC link-capture %s aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
             else:
                 logger.warning('ASIC link-capture %s is not aligned: %d %d %d'%(link, aligned, aligned_c, error_c))
                 
@@ -331,7 +331,7 @@ if __name__ == "__main__":
                         new_latency[l] = fifo_latency[l]
                         emulator_found[l] = asic_i
                     else:
-                        logger.warning('Emulator link-capture did not find BX0 word')
+                        logger.warning('Emulator link-capture did not find BX0 word for %s'%link)
                         new_latency[l] = -1
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".aquire").write(0x0)
                 dev.getNode(names['lc-emulator']['lc']+"."+link+".explicit_rstb_acquire").write(0x0)

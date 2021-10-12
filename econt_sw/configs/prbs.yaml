@@ -31,6 +31,13 @@ ECON-T:
      params:
       select:
        param_value: 0
+  
+  MISC_ALL:
+   registers:
+    misc_rw_0:
+     params:
+      rw_ecc_err_clr:
+       param_value: 1
 
 read:
  ECON-T:

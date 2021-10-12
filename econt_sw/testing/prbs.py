@@ -1,6 +1,12 @@
 import argparse
 import os
 import zmq_controller as zmqctrl
+import logging
+import numpy as np
+
+logging.basicConfig()
+logger = logging.getLogger("test-prbs")
+logger.setLevel(logging.INFO)
 
 """
 PRBS tests.
@@ -8,6 +14,20 @@ PRBS tests.
 To do the 28-bit PRBS tests, switch to the PRBS output and set up the headers.  
 To do the 32-bit PRBS tests, just switch off the headers in elinkOutputs
 """
+
+def parse_prbs_registers(read):
+    prbs_chck_err = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status_prbs_chk_err'] for i in range(12)]
+    hdr_mm_err = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status_hdr_mm_err'] for i in range(12)]
+    hdr_mm_cntr = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['hdr_mm_cntr'] for i in range(12)]
+    orbsyn_fc_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_fc_err_cnt'] for i in range(12)]
+    orbsyn_arr_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_arr_err_cnt'] for i in range(12)]
+    orbsyn_hdr_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_hdr_err_cnt'] for i in range(12)]
+    prbs_chk_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['prbs_chk_err_cnt'] for i in range(12)]
+    with np.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
+        for i in range(12):
+            logger.info(f'Link {i:02d} prbs-chk-err 0x{prbs_chck_err[i]:02x}, header-mismatch 0x{hdr_mm_err[i]:02x}')
+            logger.info(f'Counters: prbs-chk-err 0x{prbs_chk_err_cnt[i]:02x},  header-mismatch 0x{hdr_mm_cntr[i]:02x}, orbitsync-fc-err 0x{orbsyn_fc_err_cnt[i]:02x}, orbitsync-header-err 0x{orbsyn_hdr_err_cnt[i]:02x}, orbitsync-arrival-err 0x{orbsyn_arr_err_cnt[i]:02x}')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test PRBS')
@@ -37,30 +57,20 @@ if __name__ == "__main__":
     i2c_sockets = {}
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/prbs.yaml")
-        # i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/align.yaml")
-
-        # i2c_sockets[key].yamlConfig['ECON-T']['RW']['FMTBUF_ALL']['registers']['tx_sync_word']['value'] = 0b00100100010
-        
-        # i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['per_ch_align_en'] = {'param_value': 1}
-        # i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['sel_override_en'] = {'param_value': 0}
-        
-        # i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['prbs_chk_en'] = {'param_value': 1}
         if args.prbs28:
             i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['prbs28_en'] = {'param_value': 1}
         else:
             i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['prbs28_en'] = {'param_value': 0}
-        # i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['sel_override_val'] = {'value': 0}
         i2c_sockets[key].configure()
 
-        if args.select!=-1:
-            print('Setting select value to ',args.select)
-            i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['sel_override_en'] = {'param_value': 1}
-            i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['sel_override_val'] = {'value': args.select}
-            
         print('i2c settings for %s'%key)
         print('CH_ALIGNER_*INPUT_ALL: ', i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL'])
         i2c_sockets[key].configure()
 
+    # read settings before sending PRBS
+    read_asic = i2c_sockets['emulator'].read_config("configs/prbs.yaml","read")
+    parse_prbs_registers(read_asic)
+    
     # set prbs headers in elink-outputs (with uHal)
     if args.prbs28:
         print('Sending prbs 28 bit w elinkoutputs')
@@ -72,16 +82,14 @@ if __name__ == "__main__":
     # read i2c registers (select and status)
     #read_asic = i2c_sockets['ASIC'].read_config("configs/prbs.yaml","read")
     read_asic = i2c_sockets['emulator'].read_config("configs/prbs.yaml","read")
-    print(read_asic)
-    for i in range(12):
-        print('Status prbs chck err %i'%i,hex(read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status_prbs_chk_err']))
-        print('Status hdr err %i '%i,hex(read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status_hdr_mm_err']))
-        # print snapshot
-        #print('Snapshot link %i'%i,hex(read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['snapshot']))
-        print('hdr_mm_cntr %i'%i,read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['hdr_mm_cntr'])
-        print('orbsyn_hdr_err_cnt %i'%i,read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_hdr_err_cnt'])
-        print('orbsyn_arr_err_cnt %i'%i,read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_arr_err_cnt'])
-        print('prbs_chk_err_cnt %i'%i,read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['prbs_chk_err_cnt'])
+    parse_prbs_registers(read_asic)
+
+    # write select value
+    if args.select!=-1:
+        print('Setting select value to ',args.select)
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['config']['sel_override_en'] = {'param_value': 1}
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['CH_ALIGNER_*INPUT_ALL']['registers']['sel_override_val'] = {'value': args.select}        
+
     # terminate i2c servers
     for key,proc in procs.items():
         proc.terminate()
