@@ -66,7 +66,7 @@ if __name__ == "__main__":
             bit_tr = dev.getNode(names_ASIC['IO']['to']+".link%i"%l+".reg3.waiting_for_transitions").read()
             delay_ready = dev.getNode(names_ASIC['IO']['to']+".link%i"%l+".reg3.delay_ready").read()
             dev.dispatch()
-            logger.info("%s: bit_tr %d and delay ready %d"%(link,bit_tr,delay_ready))
+            logger.info("link%i: bit_tr %d and delay ready %d"%(l,bit_tr,delay_ready))
             if delay_ready==1:
                 break;    
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         fifo_occupancy = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(names_ASIC["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names_ASIC["lc-input"]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
             dev.dispatch()
             all_data.append(data)
         else:
@@ -147,6 +147,12 @@ if __name__ == "__main__":
     logger.info("Initial counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
     raw_input("Link capture and counters checked. Waiting for link reset roct. Press key to continue...")
 
+    reset_roc = dev.getNode(names_ASIC['fc-recv']+".counters.link_reset_roct").read()
+    dev.dispatch()
+    reset_econt = dev.getNode(names_ASIC['fc-recv']+".counters.link_reset_econt").read()
+    dev.dispatch()
+    logger.info("After counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
+
     # read lc before link reset
     for l in range(input_nlinks):
         aligned_c = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".link_aligned_count").read()
@@ -156,14 +162,7 @@ if __name__ == "__main__":
         waiting_for_trig = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".status.waiting_for_trig").read()
         writing =  dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".status.writing").read()
         dev.dispatch()
-        logger.info('input-link-capture %s aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(link, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
-
-    # read again                                                                                                                                                         
-    reset_roc = dev.getNode(names_ASIC['fc-recv']+".counters.link_reset_roct").read()
-    dev.dispatch()
-    reset_econt = dev.getNode(names_ASIC['fc-recv']+".counters.link_reset_econt").read()
-    dev.dispatch()
-    logger.info("After counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
+        logger.info('input-link-capture link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
 
     # check that lc is aligned
     for l in range(input_nlinks):
@@ -174,7 +173,7 @@ if __name__ == "__main__":
         waiting_for_trig = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".status.waiting_for_trig").read()
         writing =  dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".status.writing").read()
         dev.dispatch()
-        logger.info('input-link-capture %s aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(link, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
+        logger.info('input-link-capture link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
 
     # set lc to write
     #dev.getNode(names_ASIC["lc-input"]["lc"]+".global.aquire").write(0)
@@ -190,12 +189,11 @@ if __name__ == "__main__":
         fifo_occupancy = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(names_ASIC["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names_ASIC["lc-input"]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
             dev.dispatch()
             all_data.append(data)
         else:
             all_data_filled = False
-            print('fifo occupancy %s %d' %(link,fifo_occupancy))
         dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".aquire").write(0x0)
         dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".explicit_rstb_acquire").write(0x0)
         dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".explicit_rstb_acquire").write(0x1)
@@ -229,12 +227,11 @@ if __name__ == "__main__":
         fifo_occupancy = dev.getNode(names_ASIC["lc-input"]["lc"]+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
         if fifo_occupancy>0:
-            data = dev.getNode(names_ASIC["lc-input"]['fifo']+"."+link).readBlock(int(fifo_occupancy))
+            data = dev.getNode(names_ASIC["lc-input"]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
             dev.dispatch()
             all_data.append(data)
         else:
             all_data_filled = False
-            print('fifo occupancy %s %d' %(link,fifo_occupancy))
     # print data
     if all_data_filled:
         data = [[hex(all_data[j][i]) for j in range(len(all_data))] for i in range(len(all_data[0]))]
