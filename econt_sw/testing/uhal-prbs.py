@@ -3,8 +3,9 @@ import time
 import argparse
 import numpy
 import logging
-
 logging.basicConfig()
+
+from uhal_config import names,input_nlinks,output_nlinks
 
 """
 PRBS tests using python2 uhal
@@ -42,30 +43,6 @@ if __name__ == "__main__":
     logger = logging.getLogger('prbs')
     logger.setLevel(logging.INFO)
     
-    names = {
-        'IO': {'to': "ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0",
-               'from': "ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"},
-        'testvectors': {'switch': "test-vectors-to-ASIC-and-emulator-test-vectors-ipif-switch-mux",
-                        'stream': "test-vectors-to-ASIC-and-emulator-test-vectors-ipif-stream-mux",
-                        'bram': "test-vectors-to-ASIC-and-emulator-test-vectors-out-block00-bram-ctrl"
-                    },
-        'bypass': {'switch': "econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux",
-                   'stream': "econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux"
-               },
-        'fc': "housekeeping-FastControl-fastcontrol-axi-0",
-        'fc-recv': "housekeeping-FastControl-fastcontrol-recv-axi-0",
-        'lc-ASIC': {'lc': "capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0",
-                    'fifo': "capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO",
-                    },
-        'lc-emulator': {'lc': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0",
-                        'fifo': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO",
-                        },
-        'stream_compare': "capture-align-compare-compare-outputs-stream-compare-0",
-
-    }
-    input_nlinks = 12
-    output_nlinks = 13
-
     testvectors_settings = {
         "output_select": 0x1, # for PRBS
         "n_idle_words": 255,

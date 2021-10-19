@@ -248,6 +248,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
   for i in {0..15}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address True; done
   ```
+  - [ ] Read and write one single i2c register
 
 - Reset signals:
 
@@ -305,17 +306,23 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] Check that header errors are correctly detected and counted.
 
 - Delay scan:
-  - [ ] from-IO delay scan on tester
-  
+  - [X] from-IO delay scan on tester
+  ```
+  python testing/uhal-delayScan.py
+  ```
+
 - PRBS15 to ASIC:
   - [ ] Set PRBS15 with headers (28 bit mode).
   - [ ] Set PRBS15 without headers (32 bit mode).
   - [ ] Crude delay scan in ASIC using PRBS error checking.
 
 - Data path tests:
+  - [X] Basic DAQ
+
   - [ ] MUX
   - [ ] Calibration
   - [ ] DropLSB
+
   - Algorithms:
     - [ ] Repeater
     - [ ] Threshold Sum

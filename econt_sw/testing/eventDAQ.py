@@ -5,6 +5,7 @@ import zmq_controller as zmqctrl
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Event DAQ')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser.add_argument('--idir',dest="idir", type=str, required=True, default=None, help='test vector directory')
     args = parser.parse_args()
 
     server={'ASIC': '5554', 'emulator': '5555'}
@@ -25,15 +26,15 @@ if __name__ == "__main__":
 
     i2c_sockets = {}
     for key in server.keys():
-        i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "/home/HGCAL_dev/src/econt_sw/econt_sw/configs/test_vectors/repeater_Oct8/init.yaml")
+        i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), args.idir+"/init.yaml")
         i2c_sockets[key].configure()
 
         # read back i2c 
-        read_socket = i2c_sockets[key].read_config("/home/HGCAL_dev/src/econt_sw/econt_sw/configs/test_vectors/repeater_Oct8/init.yaml")
+        read_socket = i2c_sockets[key].read_config(args.idir+"/init.yaml")
         print(read_socket)
 
     # daq
-    #os.system('python testing/uhal-daq.py')
+    os.system('python testing/uhal-eventDAQ.py --idir %s'%args.idir)
 
     # terminate i2c servers
     for key,proc in procs.items():
