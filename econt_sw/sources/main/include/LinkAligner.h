@@ -67,7 +67,8 @@ class LinkAligner
   bool configure_data();
   bool configure(const YAML::Node& config);
 
-  bool checkLinks(LinkCaptureBlockHandler lchandler, bool printData=false);
+  bool checkLinkStatus(LinkCaptureBlockHandler lchandler);
+  bool checkLinkFIFO(LinkCaptureBlockHandler lchandler,std::vector<int> positions,,std::vector<int> positions_found);
   bool alignRelative(int emulator_latency);
   
   void align_IO();

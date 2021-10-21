@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--addr', type=str, default='0', help='list of i2c list of addresses - e.g. 0 for ASIC, 1 for emulator')
     parser.add_argument('--server', type=str, default='5554', help='list of i2c server ports - e.g. 5554 for ASIC, 5555 for emulator')
     parser.add_argument('--i2c',  type=str, nargs="+", choices=['ASIC', 'emulator'], help="keys of i2c addresses")
+    parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
     parser.add_argument('--set-address', type=bool, default=True, help='set i2c address')
     args = parser.parse_args()
     
@@ -71,9 +72,13 @@ if __name__ == "__main__":
         cmds[key] = ['python3', '-u', 'zmq_server.py', '--addr', '%i'%(0x20+addr[key]), '--server', server[key]]
         cwds[key] = './zmq_i2c'
 
+    procs = {}
+    if args.start_server:
+        for key in i2ckeys:
+            procs[key] = Popen(cmds[key], cwd=cwds[key],stdout=PIPE, universal_newlines=True, env=env)
+
     for key in i2ckeys:
         logger.info('Starting i2c %s test'%key)
-        proc = Popen(cmds[key], cwd=cwds[key],stdout=PIPE, universal_newlines=True, env=env)
         i2c_socket = zmqctrl.i2cController("localhost", str(server[key]))
 
         # write one i2c register (tx_sync_word) and read back
@@ -101,5 +106,6 @@ if __name__ == "__main__":
         i2c_read = i2c_socket.read_and_compare('RO')
         logger.info(f'Unmatched {i2c_read}')
 
-        # terminate process
+    # terminate processes
+    for key,proc in procs.items():
         proc.terminate()

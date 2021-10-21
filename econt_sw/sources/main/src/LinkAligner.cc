@@ -294,11 +294,11 @@ bool LinkAligner::checkLinkFIFO(LinkCaptureBlockHandler lchandler,std::vector<in
     return false;
   }
 }
-bool LinkAligner::findLatency(int latency,LinkCaptureBlockHandler lchandler,std::vector<int> found_positions)
+bool LinkAligner::findLatency(std::vector<int> latencies,LinkCaptureBlockHandler lchandler,std::vector<int> found_positions)
 {
   // set latency
   for(auto elink : lchandler.getElinks()){
-    lchandler.setRegister(elink.name(),"fifo_latency",latency);
+      lchandler.setRegister(elink.name(),"fifo_latency",latencies.at();
   }
 
   // global acquire
@@ -312,8 +312,8 @@ bool LinkAligner::findLatency(int latency,LinkCaptureBlockHandler lchandler,std:
   // reset global acquire
   lchandler.setRegister("global","aquire",0);
 
-  // check if link capture links are filled
-
+  // find BX0 word on link capture for ASIC
+  if(
   if( checkLinks( m_lc_asic ) && checkLinks( m_lc_emulator )){
     return true;
   }
