@@ -2,6 +2,12 @@ import argparse
 import os
 import zmq_controller as zmqctrl
 
+"""
+event DAQ
+
+python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --start-server
+"""
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Event DAQ')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
