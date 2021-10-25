@@ -20,10 +20,12 @@ def read_testvector(fname):
                 data[l].append(row[l])
     return data
 
-def save_testvector(fname,data):
+def save_testvector(fname,data,header=False):
     import csv
     with open( fname, 'w') as f:
         writer = csv.writer(f, delimiter=',')
+        if header:
+            writer.writerow(['TX_DATA_%i'%l for l in range(len(data[0]))])
         for j in range(len(data)):
             writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
@@ -75,8 +77,6 @@ def get_captured_data(dev,lcapture):
             daq_data.append([int(d) for d in data])
         else:
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
-    # dev.getNode(names[lcapture]['lc']+".global.interrupt_enable").write(0x0)   
-    # dev.dispatch()
     print(lcapture,len(daq_data[0]))
     return np.array(daq_data).T
 
