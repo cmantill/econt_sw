@@ -19,7 +19,9 @@ if __name__ == "__main__":
         cwds[key] = './zmq_i2c'
 
     # i2c for alignment
-    orbsyn_cnt_snapshot = 7
+    orbsyn_cnt_snapshot = {'ASIC': 7,
+                           'emulator': 1,
+                    }
     match_pattern_val = 0x9cccccccaccccccc
 
     procs = {}
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     i2c_sockets = {}
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/align.yaml")
-        i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['orbsyn_cnt_snapshot']['value'] = orbsyn_cnt_snapshot
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['orbsyn_cnt_snapshot']['value'] = orbsyn_cnt_snapshot[key]
         i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['match_pattern_val']['value'] = match_pattern_val
         i2c_sockets[key].configure()
 
@@ -43,8 +45,13 @@ if __name__ == "__main__":
     os.system('python testing/uhal-align_on_tester.py --step asic-word')
 
     # read i2c registers (select and status)
+    read_emulator = i2c_sockets['emulator'].read_config("configs/align.yaml","read")
     read_asic = i2c_sockets['ASIC'].read_config("configs/align.yaml","read")
-    #print(read_asic)
+
+    orbsyn_cnt_snapshot_asic = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
+    orbsyn_cnt_snapshot_emu = read_emulator['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
+    print('Orbit cnt snapshot emulator %i, ASIC %i'%(orbsyn_cnt_snapshot_emu,orbsyn_cnt_snapshot_asic))
+
     for i in range(12):
         # status should be 0x3
         # alignment patern should be in snapshot
@@ -52,6 +59,7 @@ if __name__ == "__main__":
         snapshot = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['snapshot']
         sel = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['select']
         status = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status']
+        orbsyn_cnt_snapshot = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
         print('Status: ',hex(status), ' Snapshot: ',hex(snapshot),' Select value: ',hex(sel))
         print('Snapshot ',hex(snapshot >> sel))
         try:
@@ -62,7 +70,9 @@ if __name__ == "__main__":
 
     # relative alignment for IO
     os.system('python testing/uhal-align_on_tester.py --step asic-tester')
-
+    
     # terminate i2c servers
     for key,proc in procs.items():
         proc.terminate()
+
+

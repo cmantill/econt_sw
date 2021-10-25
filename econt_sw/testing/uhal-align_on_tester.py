@@ -22,7 +22,7 @@ If `bx0[l]` is set, then check that that position at which BX0 word is found, is
 def find_latency(latency,lcapture,bx0=None):
     # record the new latency for each elink
     new_latency = {}
-    # record the poisition at which BX0 was found for each elink
+    # record the position at which BX0 was found for each elink (this needs to be the same for all elinks)
     found_BX0 = {}
 
     # set latency
@@ -86,6 +86,10 @@ def find_latency(latency,lcapture,bx0=None):
             if bx0:
                 if bx0[l]==bx0_i:
                     found_bx0=True
+            elif found_BX0.has_key(0):
+                print('already found bx0 for link 0 - now all need to be the same')
+                if found_BX0[0]==bx0_i:
+                    found_bx0=True
             else:
                 found_bx0 =True
                     
@@ -96,14 +100,15 @@ def find_latency(latency,lcapture,bx0=None):
                 found_BX0[l] = bx0_i
                 daq_data.append([int(d) for d in data])
             else:
+                #if l==0:
+                #    for i,d in enumerate(data):
+                #        print(hex(d))
                 # print(bx0_i,found_bx0)
-                logger.warning('%s did not find BX0 word for link%i'%(lcapture,l))
+                logger.warning('Latency %i: %s did not find BX0 word for link%i, bx0 word found at %i'%(latency[l],lcapture,l,bx0_i))
                 new_latency[l] = -1
         else:
             logger.warning('No captured data for ASIC')
 
-        fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
-        dev.dispatch()
     return new_latency,found_BX0,np.array(daq_data).T
         
 if __name__ == "__main__":
@@ -275,7 +280,7 @@ if __name__ == "__main__":
         logger.info('link reset econt counter %i'%lrc)
         dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
         dev.dispatch()
-        time.sleep(0.001)
+        time.sleep(0.1)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
@@ -301,6 +306,7 @@ if __name__ == "__main__":
             logger.error('ASIC link-capture is not aligned:')
             for i in range(len(lc_align)):
                 logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+            exit(1)
 
         # data to be captured
         all_data = {}
@@ -319,7 +325,7 @@ if __name__ == "__main__":
             # print(i,latency_asic)
             latency_asic,asic_found,daq_data = find_latency(latency_asic,'lc-ASIC')
             if -1 not in latency_asic.values():
-                print('found!',latency_asic,asic_found)
+                print('found ASIC!',latency_asic,asic_found)
                 all_data['lc-ASIC'] = daq_data
                 break
 
@@ -339,6 +345,16 @@ if __name__ == "__main__":
                 print('pos ',emulator_found,asic_found)
                 all_data['lc-emulator'] = daq_data
                 break
+
+        # read values of latency 
+        latency_values = {}
+        for lcapture in ['lc-ASIC','lc-emulator']:
+            latency_values[lcapture] = []
+            for l in range(output_nlinks):
+                latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
+                dev.dispatch()
+                latency_values[lcapture].append(int(latency))
+        print(latency_values)
 
         for key,data in all_data.items():
             save_testvector("%s-alignoutput.csv"%key, data)

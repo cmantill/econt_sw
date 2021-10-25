@@ -46,6 +46,21 @@ if __name__ == "__main__":
     # first, check that links are aligned
     isaligned = check_links(dev)
 
+    # read latency values from aligned link captures
+    latency_values = {}
+    for lcapture in ['lc-ASIC','lc-emulator']:
+        latency_values[lcapture] = []
+        for l in range(output_nlinks):
+            latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
+            dev.dispatch()
+            latency_values[lcapture].append(int(latency))
+            #latency_values[lcapture].append(int(latency)+20)
+            #latency_values[lcapture].append(int(latency)*4)
+    # hardcoding
+    #latency_values['lc-ASIC'] = [20]*output_nlinks
+    #latency_values['lc-emulator'] = [28]*output_nlinks
+    print('latency values ',latency_values)
+            
     # setup test-vectors
     out_brams = []
     testvectors_settings = {
@@ -73,7 +88,7 @@ if __name__ == "__main__":
         dev.dispatch()
 
     # set input data
-    fname = args.idir+"/testInput.csv" 
+    fname = args.idir+"/testInput.csv"
     data = read_testvector(fname)
 
     for l in range(input_nlinks):
@@ -95,20 +110,26 @@ if __name__ == "__main__":
     # configure link capture (both ASIC and emulator)
     acq_length = 300
     for lcapture in ['lc-ASIC','lc-emulator']:
-        lcapture = names[lcapture]['lc']
         for l in range(output_nlinks):
             # set lc to capture on L1A
-            dev.getNode(lcapture+".link%i"%l+".capture_mode_in").write(0x2)
-            dev.getNode(lcapture+".link%i"%l+".capture_L1A").write(0x1)
-            dev.getNode(lcapture+".link%i"%l+".capture_linkreset_ECONt").write(0x0)
-            dev.getNode(lcapture+".link%i"%l+".capture_linkreset_ROCd").write(0x0)
-            dev.getNode(lcapture+".link%i"%l+".capture_linkreset_ROCt").write(0x0)
-            dev.getNode(lcapture+".link%i"%l+".capture_linkreset_ECONd").write(0x0)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_mode_in").write(0x2)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_L1A").write(0x1)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONt").write(0x0)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCd").write(0x0)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCt").write(0x0)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONd").write(0x0)
 
-            dev.getNode(lcapture+".link%i"%l+".L1A_offset_or_BX").write(0)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".L1A_offset_or_BX").write(0)
             
-            dev.getNode(lcapture+".link%i"%l+".aquire_length").write(acq_length)
+            dev.getNode(names[lcapture]['lc']+".link%i"%l+".aquire_length").write(acq_length)
             dev.dispatch()
+            
+            # set latency?
+            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
+            dev.dispatch()
+            lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
+            dev.dispatch()
+            print(lcapture,l,int(lat))
 
     # check stream compare
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
@@ -146,7 +167,7 @@ if __name__ == "__main__":
     dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
     dev.dispatch()
 
-    time.sleep(0.001)
+    time.sleep(0.1)
 
     # check captured data
     all_data = {}
@@ -155,7 +176,7 @@ if __name__ == "__main__":
         
     # convert all data to format
     for key,data in all_data.items():
-        save_testvector( args.idir+"/%s-Output.csv"%key, data)    
+        save_testvector( args.idir+"/%s-Output_header.csv"%key, data, header=True)
 
     # reset fc
     dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
