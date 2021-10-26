@@ -72,11 +72,12 @@ def get_captured_data(dev,lcapture):
         fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
         if int(fifo_occupancy)>0:
+            logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
             data = dev.getNode(names[lcapture]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
             dev.dispatch()
             daq_data.append([int(d) for d in data])
         else:
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
-    print(lcapture,len(daq_data[0]))
+    if len(daq_data)>0:
+        print(lcapture,len(daq_data[0]))
     return np.array(daq_data).T
-

@@ -17,19 +17,17 @@ names = {
                     'fifo': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO",
             },
     'stream_compare': "capture-align-compare-compare-outputs-stream-compare-0",    
+    
+    'ASIC-IO': {'to': "IO-to-ECONT-IO-blocks-0",
+                'from': "IO-from-ECONT-IO-blocks-0",
+            },
+    'ASIC-lc-input': {'lc': "IO-to-ECONT-input-link-capture-link-capture-AXI-0",
+                      'fifo': "IO-to-ECONT-input-link-capture-link-capture-AXI-0_FIFO",
+                  },
+    'ASIC-lc-output': {'lc': "IO-from-ECONT-output-link-capture-link-capture-AXI-0",
+                       'emulator': "IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO",
+                   },
+    'ASIC-fc-recv': "fast-command-fastcontrol-recv-axi-0",
 }
 input_nlinks = 12
 output_nlinks = 13
-
-names_ASIC = {
-    'IO': {'to': "IO-to-ECONT-IO-blocks-0",
-           'from': "IO-from-ECONT-IO-blocks-0",
-       },
-    'lc-input': {'lc': "IO-to-ECONT-input-link-capture-link-capture-AXI-0",
-                 'fifo': "IO-to-ECONT-input-link-capture-link-capture-AXI-0_FIFO",
-             },
-    'lc-output': {'lc': "IO-from-ECONT-output-link-capture-link-capture-AXI-0",
-                  'emulator': "IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO",
-              },
-    'fc-recv': "fast-command-fastcontrol-recv-axi-0",
-}
