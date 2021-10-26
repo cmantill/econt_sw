@@ -13,7 +13,7 @@ from uhal_utils import check_links,read_testvector,get_captured_data,save_testve
 Event DAQ using uHAL python2.
 
 Usage:
-   python testing/uhal-eventDAQ.py --idir 
+   python testing/uhal-eventDAQ.py --idir INPUTDIR
 """
 
 if __name__ == "__main__":
@@ -21,6 +21,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
+    parser.add_argument("--capture", dest="capture", action="store",
+                        help="capture data with one of the options", choices=["l1a","compare","bx"], required=True)
     parser.add_argument('--idir',dest="idir",type=str, required=True, help='test vector directory')    
     args = parser.parse_args()
 
@@ -54,12 +56,7 @@ if __name__ == "__main__":
             latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
             dev.dispatch()
             latency_values[lcapture].append(int(latency))
-            #latency_values[lcapture].append(int(latency)+20)
-            #latency_values[lcapture].append(int(latency)*4)
-    # hardcoding
-    #latency_values['lc-ASIC'] = [20]*output_nlinks
-    #latency_values['lc-emulator'] = [28]*output_nlinks
-    print('latency values ',latency_values)
+    print('FIFO latency: ',latency_values)
             
     # setup test-vectors
     out_brams = []
@@ -90,7 +87,6 @@ if __name__ == "__main__":
     # set input data
     fname = args.idir+"/testInput.csv"
     data = read_testvector(fname)
-
     for l in range(input_nlinks):
         for i,b in enumerate(out_brams[l]):
             out_brams[l][i] = int(data[l][i%3564],16)
@@ -111,6 +107,7 @@ if __name__ == "__main__":
     acq_length = 300
     for lcapture in ['lc-ASIC','lc-emulator']:
         for l in range(output_nlinks):
+            # TODO: add bx option
             # set lc to capture on L1A
             dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_mode_in").write(0x2)
             dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_L1A").write(0x1)
@@ -141,8 +138,7 @@ if __name__ == "__main__":
     dev.dispatch()
     logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
 
-    issue_l1a=True
-    if issue_l1a:
+    if args.capture == "l1a"
         # send L1A
         dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
         dev.getNode(names['fc']+".periodic0.enable").write(0); # to get a L1A once - not every orbit
@@ -151,10 +147,12 @@ if __name__ == "__main__":
         dev.getNode(names['fc']+".periodic0.bx").write(3500);
         dev.getNode(names['fc']+".periodic0.request").write(1);
         dev.dispatch()
-    else:
+    elif args.capture == "compare":
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
+    else:
+        logger.error("No capture mode provided")
 
     # tell link capture to do an acquisition
     dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
@@ -168,6 +166,20 @@ if __name__ == "__main__":
     dev.dispatch()
 
     time.sleep(0.1)
+
+    # wait some time until acquisition has finished
+    for lcapture in ['lc-ASIC','lc-emulator']:
+        while True:
+            fifo_occupancies = []
+            for l in range(output_nlinks):
+                fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
+                dev.dispatch()
+                fifo_occupancies.append(int(fifo_occupancy))
+            try:
+                assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
+                break
+            except:
+                continue
 
     # check captured data
     all_data = {}
