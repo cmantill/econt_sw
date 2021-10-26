@@ -6,7 +6,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import get_captured_data,save_testvector
+from uhal_utils import get_captured_data,save_testvector,do_link_reset_econt_capture
 
 """
 Alignment sequence on tester using python2 uhal.
@@ -110,7 +110,31 @@ def find_latency(latency,lcapture,bx0=None):
             logger.warning('No captured data for ASIC')
 
     return new_latency,found_BX0,np.array(daq_data).T
-        
+
+def do_link_reset_econt_capture(dev,lcapture):
+    # do one capture on link reset
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+    dev.dispatch()
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
+    dev.dispatch()
+    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
+    dev.dispatch()
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+    dev.dispatch()
+
+    # wait some time till acquisition has finished
+    while True:
+        fifo_occupancies = []
+        for l in range(output_nlinks):
+            fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
+            dev.dispatch()
+            fifo_occupancies.append(int(fifo_occupancy))
+        try:
+            assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
+            break
+        except:
+            continue
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -306,6 +330,12 @@ if __name__ == "__main__":
             logger.error('ASIC link-capture is not aligned:')
             for i in range(len(lc_align)):
                 logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+            # capture data
+            raw_input("Need to capture data in output. Press key to continue...")
+            do_link_reset_econt_capture(dev,'lc-ASIC')
+            data = get_captured_data(dev,'lc-ASIC')
+            save_testvector("lc-ASIC-alignoutput_debug.csv", data)
+            raw_input("Sent link reset ECONT. Press key to continue...")
             exit(1)
 
         # data to be captured
