@@ -46,6 +46,7 @@ def configure_IO(dev,io,io_name='IO'):
         dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_mode").write(delay_mode)
     dev.getNode(names[io_name][io]+".global.global_rstb_links").write(0x1)
     dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
+    import time
     time.sleep(0.001)
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
@@ -126,7 +127,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks):
     dev.dispatch()
 
 # acquire with fast command
-def do_fc_capture(dev,fc="link_reset_econt",lcapture):
+def do_fc_capture(dev,fc,lcapture):
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
