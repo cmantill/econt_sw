@@ -19,9 +19,13 @@ if __name__ == "__main__":
         cwds[key] = './zmq_i2c'
 
     # i2c for alignment
-    orbsyn_cnt_snapshot = {'ASIC': 7,
+    orbsyn_cnt_snapshot = {# 'ASIC': 7,
+                           'ASIC': 3,
                            'emulator': 1,
                     }
+    orbsyn_cnt_load_val = {'ASIC': 0,
+                           'emulator': 0
+                       }
     match_pattern_val = 0x9cccccccaccccccc
 
     procs = {}
@@ -32,6 +36,7 @@ if __name__ == "__main__":
     i2c_sockets = {}
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), "configs/align.yaml")
+        i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['orbsyn_cnt_load_val']['value'] = orbsyn_cnt_load_val[key]
         i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['orbsyn_cnt_snapshot']['value'] = orbsyn_cnt_snapshot[key]
         i2c_sockets[key].yamlConfig['ECON-T']['RW']['ALIGNER_ALL']['registers']['match_pattern_val']['value'] = match_pattern_val
         i2c_sockets[key].configure()
