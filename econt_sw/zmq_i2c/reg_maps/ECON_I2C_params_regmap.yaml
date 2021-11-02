@@ -688,6 +688,7 @@ ECON-T:
      params:
       ref_clk_sel:
        param_mask: 0x01
+       param_shift: 15
       output_clk_sel:
        param_mask: 0x03
        param_shift: 12
