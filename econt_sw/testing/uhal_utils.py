@@ -1,6 +1,5 @@
 import os
 import uhal
-import numpy as np
 from uhal_config import names,input_nlinks,output_nlinks
 
 import logging
@@ -55,20 +54,30 @@ def configure_IO(dev,io,io_name='IO'):
 def check_IO(dev,io='from',nlinks=output_nlinks):
     IO_delayready = []
     for l in range(nlinks):
-        bit_tr = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
-        delay_ready = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.delay_ready").read()
-        dev.dispatch()
-        logger.debug("%s-IO link%i: bit_tr %d and delay ready %d"%(io,l,bit_tr,delay_ready))
+        i=0
+        delay_ready=0
+        while i < 100:
+            i+=1
+            bit_tr = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
+            delay_ready = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.delay_ready").read()
+            dev.dispatch()
+            logger.debug("%s-IO link%i: bit_tr %d and delay ready %d"%(io,l,bit_tr,delay_ready))
+            if delay_ready == 1:
+                break
         IO_delayready.append(delay_ready)
-    try:
-        assert np.all( np.array(IO_delayready) == 0x01)
-        logging.info("All links %s-IO are aligned"%io)
-    except:
-        logging.error("Not all links of %s-IO are aligned"%io)
-        raise
+    is_aligned = True
+    for delay in IO_delayready:
+        if delay!=1:
+            is_aligned = False
+    if is_aligned:
+        logging.info("Links %s-IO are aligned"%io)
+    else:
+        logging.info("Links %s-IO are not aligned"%io)
+    return is_aligned
     
 # is link capture aligned?
 def check_links(dev,capture='lc-ASIC',nlinks=output_nlinks):
+    import numpy as np
     lc_align = []
     for l in range(nlinks):
         aligned_c = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_aligned_count").read()
@@ -138,7 +147,12 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             fifo_occupancies.append(int(fifo_occupancy))
         try:
             assert(fifo_occupancies[0] == nwords)
-            assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
+            try: 
+                import numpy as np
+                assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
+            except:
+                for f in enumerate(fifo_occupancies):
+                    assert(fifo_occupancies[f] == fifo_occupancies[0])
             break
         except:
             continue
@@ -157,4 +171,10 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
     if len(daq_data)>0:
         print(lcapture,len(daq_data[0]))
-    return np.array(daq_data).T
+    try:
+        import numpy as np
+        transpose = np.array(daq_data).T
+        return transpose
+    except:
+        transpose = [list(x) for x in zip(*daq_data)]
+        return transpose

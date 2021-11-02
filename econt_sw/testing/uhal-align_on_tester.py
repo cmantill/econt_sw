@@ -52,7 +52,7 @@ def find_latency(latency,lcapture,bx0=None):
 
     # look for bx0
     BX0_word = 0xf922f922
-    BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero())
+    BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero()
     logger.debug(f'BX0 sync word found on rows    {BX0_rows}')
     logger.debug(f'BX0 sync word found on columns {BX0_cols}')
 

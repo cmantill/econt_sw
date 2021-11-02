@@ -47,9 +47,9 @@ ECON-T:
     orbsyn_cnt_max_val:
      value: 3563
     orbsyn_cnt_load_val:
-     value: 1
+     value: 0
     orbsyn_cnt_snapshot:
-     value: 15
+     value: 7
 
   FMTBUF_ALL:
    registers:
