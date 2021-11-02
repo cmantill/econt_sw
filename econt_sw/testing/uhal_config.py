@@ -25,7 +25,7 @@ names = {
                       'fifo': "IO-to-ECONT-input-link-capture-link-capture-AXI-0_FIFO",
                   },
     'ASIC-lc-output': {'lc': "IO-from-ECONT-output-link-capture-link-capture-AXI-0",
-                       'emulator': "IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO",
+                       'fifo': "IO-from-ECONT-output-link-capture-link-capture-AXI-0_FIFO",
                    },
     'ASIC-fc-recv': "fast-command-fastcontrol-recv-axi-0",
 }
