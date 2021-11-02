@@ -1,6 +1,5 @@
 import os
 import uhal
-import numpy as np
 from uhal_config import names,input_nlinks,output_nlinks
 
 import logging
@@ -30,6 +29,7 @@ def save_testvector(fname,data,header=False):
             writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
 def check_links(dev):
+    import numpy as np
     # is from-IO aligned?
     fromIO_delayready = []
     for l in range(output_nlinks):
@@ -80,4 +80,10 @@ def get_captured_data(dev,lcapture):
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
     if len(daq_data)>0:
         print(lcapture,len(daq_data[0]))
-    return np.array(daq_data).T
+    try:
+        import numpy as np
+        transpose = np.array(daq_data).T
+        return transpose
+    except:
+        transpose = [list(x) for x in zip(*daq_data)]
+        return transpose
