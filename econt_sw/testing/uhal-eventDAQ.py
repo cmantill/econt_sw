@@ -138,7 +138,8 @@ if __name__ == "__main__":
     dev.dispatch()
     logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
 
-    if args.capture == "l1a"
+    if args.capture == "l1a":
+        print('capture l1a')
         # send L1A
         dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
         dev.getNode(names['fc']+".periodic0.enable").write(0); # to get a L1A once - not every orbit
@@ -176,9 +177,11 @@ if __name__ == "__main__":
                 dev.dispatch()
                 fifo_occupancies.append(int(fifo_occupancy))
             try:
+                assert( fifo_occupancies[0] == 300)
                 assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
                 break
             except:
+                print('fifo occ ',fifo_occupancies)
                 continue
 
     # check captured data

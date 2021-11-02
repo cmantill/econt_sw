@@ -6,7 +6,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import get_captured_data,save_testvector,do_link_reset_econt_capture
+from uhal_utils import check_IO,configure_IO,get_captured_data,save_testvector
 
 """
 Alignment sequence on tester using python2 uhal.
@@ -30,43 +30,38 @@ def find_latency(latency,lcapture,bx0=None):
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency[l]);
     dev.dispatch()
 
-    # do one capture on link reset
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
-    dev.dispatch()
-    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
+    # read latency
+    read_latency = {}
+    for l in range(output_nlinks):
+        lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
+        dev.dispatch()
+        read_latency[l] = int(lat)
+    # print('Written latencies: ',latency)
+    # print('Read latencies: ',read_latency)
+
+    # do one capture on link reset econt
+    do_fc_capture(dev,"link_reset_econt",'lc-ASIC')
     
-    # wait some time till acquisition has finished
-    while True:
-        fifo_occupancies = []
-        for l in range(output_nlinks):
-            fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
-            dev.dispatch()
-            fifo_occupancies.append(int(fifo_occupancy))
-        try:
-            assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
-            break
-        except:
-            continue
-
     # check link reset econt counter
-    #lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
-    #dev.dispatch()
-    #logger.info('link reset econt counter %i'%lrc)
+    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read()
+    dev.dispatch()
+    # logger.error('link reset econt counter %i'%lrc) 
 
-    # data to be saved (for debug)
+    # save captured data
+    ASIC_data = get_captured_data(dev,'lc-ASIC')
+
+    # look for bx0
+    BX0_word = 0xf922f922
+    BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero())
+    logger.debug(f'BX0 sync word found on rows    {BX0_rows}')
+    logger.debug(f'BX0 sync word found on columns {BX0_cols}')
+
     daq_data = []
-
-    # check link capture 
     for l in range(output_nlinks):
         # look at fifo
         fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
         dev.dispatch()
-
+        
         if int(fifo_occupancy)>0:
             # position at which bx0 is found for each link 
             bx0_i = -1;
@@ -106,35 +101,13 @@ def find_latency(latency,lcapture,bx0=None):
                 # print(bx0_i,found_bx0)
                 logger.warning('Latency %i: %s did not find BX0 word for link%i, bx0 word found at %i'%(latency[l],lcapture,l,bx0_i))
                 new_latency[l] = -1
+                # to append wrong data
+                # daq_data.append([int(d) for d in data])
         else:
             logger.warning('No captured data for ASIC')
 
     return new_latency,found_BX0,np.array(daq_data).T
 
-def do_link_reset_econt_capture(dev,lcapture):
-    # do one capture on link reset
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
-    dev.dispatch()
-    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
-
-    # wait some time till acquisition has finished
-    while True:
-        fifo_occupancies = []
-        for l in range(output_nlinks):
-            fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
-            dev.dispatch()
-            fifo_occupancies.append(int(fifo_occupancy))
-        try:
-            assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
-            break
-        except:
-            continue
-    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -165,20 +138,8 @@ if __name__ == "__main__":
     
     if args.step == "tester-phase":
         # configure IO blocks
-        for io,io_name in names['IO'].items():
-            nlinks = input_nlinks if io=='to' else output_nlinks
-            for l in range(nlinks):
-                dev.getNode(io_name+".link"+str(l)+".reg0.tristate_IOBUF").write(0x0)
-                dev.getNode(io_name+".link"+str(l)+".reg0.bypass_IOBUF").write(0x0)
-                dev.getNode(io_name+".link"+str(l)+".reg0.invert").write(0x0)
-                dev.getNode(io_name+".link"+str(l)+".reg0.reset_link").write(0x0)
-                dev.getNode(io_name+".link"+str(l)+".reg0.reset_counters").write(0x1)
-                if io=='to':
-                    dev.getNode(io_name+".link"+str(l)+".reg0.delay_mode").write(0x0)
-                else:
-                    dev.getNode(io_name+".link"+str(l)+".reg0.delay_mode").write(0x1)
-            dev.getNode(io_name+".global.global_rstb_links").write(0x1)
-            dev.dispatch()
+        for io in names['IO'].keys():
+            configure_IO(dev,io,io_name='IO')
         
         # send PRBS
         testvectors_settings = {
@@ -200,15 +161,12 @@ if __name__ == "__main__":
         raw_input("IO blocks configured. Sending PRBS. Press key to continue...")
 
         # check that from-IO is aligned
-        for l in range(output_nlinks):
-            while True:
-                bit_tr = dev.getNode(names['IO']['from']+".link"+str(l)+".reg3.waiting_for_transitions").read()
-                delay_ready = dev.getNode(names['IO']['from']+".link"+str(l)+".reg3.delay_ready").read()
-                dev.dispatch()
-                logger.debug("from-IO link%i: bit_tr %d and delay ready %d"%(l,bit_tr,delay_ready))
-                if delay_ready==1:
-                    break
-        logger.info("from-IO aligned")
+        isIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
+        if isIO_aligned:
+            logger.info("from-IO aligned")
+        else:
+            logger.info("from-IO is not aligned")
+            exit(1)
 
     if args.step == "asic-word":
         # setup normal output in test-vectors
@@ -226,7 +184,7 @@ if __name__ == "__main__":
             for key,value in testvectors_settings.items():
                 dev.getNode(names['testvectors']['switch']+".link"+str(l)+"."+key).write(value)            
             # size of bram is 4096
-            out_brams.append([None] * 4096)
+            out_brams.append([None] * 4095)
         dev.dispatch()
 
         # set zero-data with headers
@@ -280,59 +238,36 @@ if __name__ == "__main__":
             time.sleep(0.001)
             dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x1)
             dev.dispatch()
+            # set align pattern
             for l in range(output_nlinks):
                 dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(0b00100100010)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(0)
-
-                # set lc to capture on link reset ECONT
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_mode_in").write(0x2)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_linkreset_ECONt").write(0x1)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_L1A").write(0x0)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_linkreset_ROCd").write(0x0)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_linkreset_ROCt").write(0x0)
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_linkreset_ECONd").write(0x0)
-                
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(4096)
                 dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(0);
+                dev.dispatch()
+            # set to acquire on linkreset-ECONt (4095 words)
+            configure_acquire(dev,lcapture,"linkreset_ECONt",nwords=4095,nlinks=output_nlinks)
             dev.dispatch()
 
         # send link reset econt (once)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
+        logger.info('link reset econt counter %i'%lrc)
+
         dev.getNode(names['fc']+".bx_link_reset_econt").write(3550)
         dev.dispatch()
-        logger.info('link reset econt counter %i'%lrc)
         dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
         dev.dispatch()
         time.sleep(0.1)
+
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
 
-        # check links
-        lc_align = []
-        for l in range(output_nlinks):
-            aligned_c = dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".link_aligned_count").read()
-            error_c = dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".link_error_count").read()
-            aligned = dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".status.link_aligned").read()
-            dev.dispatch()
-            lc_align.append((aligned_c,error_c,aligned))
-        aligned_counter = np.array([int(lc_align[i][0]) for i in range(len(lc_align))])
-        error_counter = np.array([int(lc_align[i][1]) for i in range(len(lc_align))])
-        is_aligned = np.array([int(lc_align[i][2]) for i in range(len(lc_align))])
-        # print(is_aligned,error_counter,aligned_counter)
-        try:
-            assert np.all(is_aligned==1)
-            assert np.all(aligned_counter==128)
-            assert np.all(error_counter==0)
-            logger.info('ASIC link-capture all links are aligned')
-        except AssertionError:
-            logger.error('ASIC link-capture is not aligned:')
-            for i in range(len(lc_align)):
-                logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+        # check that links are aligned
+        is_lcASIC_aligned = check_links(dev,capture='lc-ASIC',nlinks=output_nlinks)
+        if not is_lcASIC_aligned:
             # capture data
-            raw_input("Need to capture data in output. Press key to continue...")
-            do_link_reset_econt_capture(dev,'lc-ASIC')
+            raw_input("Need to capture data in output.do_fc_capture Press key to continue...")
+            do_fc_capture(dev,"link_reset_econt",'lc-ASIC')
             data = get_captured_data(dev,'lc-ASIC')
             save_testvector("lc-ASIC-alignoutput_debug.csv", data)
             raw_input("Sent link reset ECONT. Press key to continue...")
@@ -348,7 +283,7 @@ if __name__ == "__main__":
 	    latency_asic[l] = -1
 
         asic_found = {}
-        for i in range(0,511): # max fifo latency?
+        for i in range(0,31): # max fifo latency?
             for l in range(output_nlinks):
                 if latency_asic[l]==-1: 
                     latency_asic[l] = i
@@ -365,7 +300,7 @@ if __name__ == "__main__":
         for l in range(output_nlinks):
             latency_emulator[l] = -1
 
-        for i in range(0,511): # max fifo latency
+        for i in range(0,31): # max fifo latency
             for l in range(output_nlinks):
                 if latency_emulator[l]==-1:
                     latency_emulator[l] = i
@@ -389,7 +324,7 @@ if __name__ == "__main__":
         for key,data in all_data.items():
             save_testvector("%s-alignoutput.csv"%key, data)
 
-        # test stream-compare
+        # make sure that  stream-compare sees no errors
         dev.getNode(names['stream_compare']+".control.reset").write(0x1) # start the counters from zero
         time.sleep(0.001)
         dev.getNode(names['stream_compare']+".control.latch").write(0x1)
