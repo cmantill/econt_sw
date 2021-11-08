@@ -1,0 +1,85 @@
+<node>
+  <!-- Based on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/9007cb2dfede6382d2ad7996d0be2774c8a4a4b9/src/hdl/link_capture.v for global regs and offsets between links (see link_capture_axi.xml) 
+       and on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/9007cb2dfede6382d2ad7996d0be2774c8a4a4b9/src/hdl/AXI_decode.v for link register addresses
+  -->
+    <node id="interrupt_vec" tags="interrupt"  address="0x0"  permission="rw" description="interrupt registers to set to 1 to clear the interrupts">
+      <node id="link0"   mask="0x1"   permission="rw" />
+      <node id="link1"   mask="0x2"   permission="rw" />
+      <node id="link2"   mask="0x4"   permission="rw" />
+      <node id="link3"   mask="0x8"   permission="rw" />
+      <node id="link4"   mask="0x10"   permission="rw" />
+      <node id="link5"   mask="0x20"   permission="rw" />
+      <node id="link6"   mask="0x40"   permission="rw" />
+      <node id="link7"   mask="0x80"   permission="rw" />
+      <node id="link8"   mask="0x100"   permission="rw" />
+      <node id="link9"   mask="0x200"   permission="rw" />
+      <node id="link10"   mask="0x400"   permission="rw" />
+      <node id="link11"   mask="0x800"   permission="rw" />
+      <node id="link12"   mask="0x1000"   permission="rw" />
+    </node>
+    <node id="interrupt_enable" address="0x1"  permission="rw" description="interrupt register enable">
+      <node id="link0"   mask="0x1"   permission="rw" />
+      <node id="link1"   mask="0x2"   permission="rw" />
+      <node id="link2"   mask="0x4"   permission="rw" />
+      <node id="link3"   mask="0x8"   permission="rw" />
+      <node id="link4"   mask="0x10"   permission="rw" />
+      <node id="link5"   mask="0x20"   permission="rw" />
+      <node id="link6"   mask="0x40"   permission="rw" />
+      <node id="link7"   mask="0x80"   permission="rw" />
+      <node id="link8"   mask="0x100"   permission="rw" />
+      <node id="link9"   mask="0x200"   permission="rw" />
+      <node id="link10"   mask="0x400"   permission="rw" />
+      <node id="link11"   mask="0x800"   permission="rw" />
+      <node id="link12"   mask="0x1000"   permission="rw" />
+    </node>
+	<node id="link_enable"       address="0x2"            permission="rw" description="link enable (default: 1)">
+      <node id="link0"   mask="0x1"   permission="rw" />
+      <node id="link1"   mask="0x2"   permission="rw" />
+      <node id="link2"   mask="0x4"   permission="rw" />
+      <node id="link3"   mask="0x8"   permission="rw" />
+      <node id="link4"   mask="0x10"   permission="rw" />
+      <node id="link5"   mask="0x20"   permission="rw" />
+      <node id="link6"   mask="0x40"   permission="rw" />
+      <node id="link7"   mask="0x80"   permission="rw" />
+      <node id="link8"   mask="0x100"   permission="rw" />
+      <node id="link9"   mask="0x200"   permission="rw" />
+      <node id="link10"   mask="0x400"   permission="rw" />
+      <node id="link11"   mask="0x800"   permission="rw" />
+      <node id="link12"   mask="0x1000"   permission="rw" />
+	</node>
+
+	<node id="invert_backpressure" address="0x3" mask="0x1" permission="rw" description="Invert the polarity of the backpressure output signal; default: 0"/>
+	<node id="inhibit_dump"        address="0x3" mask="0x2" permission="rw" description="Inhibits the effect of the dump fast command (only for ROCv2 fast commands); default: 0"/>
+
+    <node id="aquire"            address="0x4" mask="0x1" permission="rw" description="global acquire reg; default: 0; self-resets to 0 after you write 1"/>
+    <node id="continous_acquire" address="0x5"            permission="rw" description="global continous acquire reg">
+      <node id="link0"   mask="0x1"   permission="rw" />
+      <node id="link1"   mask="0x2"   permission="rw" />
+      <node id="link2"   mask="0x4"   permission="rw" />
+      <node id="link3"   mask="0x8"   permission="rw" />
+      <node id="link4"   mask="0x10"   permission="rw" />
+      <node id="link5"   mask="0x20"   permission="rw" />
+      <node id="link6"   mask="0x40"   permission="rw" />
+      <node id="link7"   mask="0x80"   permission="rw" />
+      <node id="link8"   mask="0x100"   permission="rw" />
+      <node id="link9"   mask="0x200"   permission="rw" />
+      <node id="link10"   mask="0x400"   permission="rw" />
+      <node id="link11"   mask="0x800"   permission="rw" />
+      <node id="link12"   mask="0x1000"   permission="rw" />
+    </node>
+
+    <node id="explicit_align"    address="0x6" mask="0x1" permission="rw" description="global explicit align reg; default: 0; self-resets to 0 after you write 1"/>
+	<node id="align_on" address="0x6" permission="rw" description="select which of the four linkReset fast commands should start the alignment process; default depends on compile-time LINK_MODE">
+		<node id="linkReset_ROCt"  mask="0x2"  description="Align on linkReset_ROCt (default: 1 for LINK_MODE=TRIG)"/>
+		<node id="linkReset_ROCd"  mask="0x4"  description="Align on linkReset_ROCd (default: 1 for LINK_MODE=DAQ)"/>
+		<node id="linkReset_ECONt" mask="0x8"  description="Align on linkReset_ECONt (default: 1 for LINK_MODE=ECONT)"/>
+		<node id="linkReset_ECONd" mask="0x10" description="Align on linkReset_ECONd (default: 1 for LINK_MODE=ECOND)"/>
+	</node>
+
+    <node id="explicit_resetb"   address="0x7" mask="0x1" permission="rw" description="global explicit reset reg; default: 1; self-resets to 1 after you write 0"/>
+
+    <node id="num_links"         address="0x8" permission="r" description="number of elinks (e.g. 6 and 12 daq links for LD and HD resp., 12 trg links for both LD and HD)"/>
+    <node id="bram_size"         address="0x9" permission="r" description="size of the elinks BRAM"/>
+    <node id="modules_included"  address="0xa" permission="r" description="flag that tells if the elinks are DAQ or TRG elinks : 0xb for DAQ links, 0x7 for trigger links (see https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/-/blob/9007cb2dfede6382d2ad7996d0be2774c8a4a4b9/src/hdl/link_capture.v#L426-437 for more details)"/>
+	<node id="inter_link_locked" address="0xf" mask="0x1" permission="r" description="For LINK_MODE=TRIG only; 1 when inter-link alignment is achieved."/>
+</node>

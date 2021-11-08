@@ -52,15 +52,15 @@ def configure_IO(dev,io,io_name='IO'):
     dev.dispatch()
 
 # is IO block aligned?
-def check_IO(dev,io='from',nlinks=output_nlinks):
+def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):
     IO_delayready = []
     for l in range(nlinks):
         i=0
         delay_ready=0
         while i < 100:
             i+=1
-            bit_tr = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
-            delay_ready = dev.getNode(names['IO'][io]+".link"+str(l)+".reg3.delay_ready").read()
+            bit_tr = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
+            delay_ready = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.delay_ready").read()
             dev.dispatch()
             logger.debug("%s-IO link%i: bit_tr %d and delay ready %d"%(io,l,bit_tr,delay_ready))
             if delay_ready == 1:

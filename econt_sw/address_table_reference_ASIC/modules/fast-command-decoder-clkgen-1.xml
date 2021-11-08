@@ -1,0 +1,11 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/fast-control/blob/master/decode/src/hdl/manager/hgcal_fc_recv_manager.v -->
+
+<node>    
+  <node id="control" address="0x0">
+    <node id="EdgeSel"   mask="0x1" permission="rw" description="Edge of fast command clock to sample fast command data on.  0=rising, 1=falling"/>
+    <node id="Polarity"  mask="0x2" permission="rw" description="Polarity of fast command data.  1=invert, 0=do not invert"/>
+  </node>
+  <node id="status" address="0x1">
+    <node id="command_rx_inverted"   mask="0x1" permission="r" description="1=fast command data appears to be inverted, 0=fast command data appears to be correct"/>
+  </node>
+</node>
