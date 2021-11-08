@@ -52,6 +52,7 @@
 
   <node id="minimum_trigger_period" address="0xa" mask="0xfff" permission="rw" description="Minimum BX between external or random triggers"/>
   <node id="external_triggers_debounce" address="0xa" mask="0xf000" permission="rw" description="Input-by-input flags to indicate if external L1A should be debounced (generally a fine idea)"/>
+  <node id="external_triggers_burst_length" address="0xa" mask="0x3ff0000" permission="rw" description="Length of the L1A burst provoked by external L1A (default 1)"/>
 
   <node id="external_trigger_delay" address="11">
     <node id="bit0" mask="0xff" permission="rw" description="BX delay between request and L1 for external input 0"/>
@@ -68,6 +69,8 @@
     <node id="page" address="15" mask="0xff000000" permission="rw" description="Page selection for full memory of command sequence (only 256 words visible at a time)"/>
     <node id="contents" address="0x100" permission="rw" mode="incremental" size="256" description="Window into the sequence contents.  Bit 0 is L1A, bit 1 is calibration request"/>
   </node>
+
+  <node id="command_delay" address="16" mask="0x7" permission="rw" description="delay select for fast command output; range: 0-7; default: 0; units are one bit AKA one 320 MHz clock cycle"/>
 
   <node id="periodic0" address="0x20" module="file://fastcontrol_axi_periodic.xml"/>
   <node id="periodic1" address="0x22" module="file://fastcontrol_axi_periodic.xml"/>

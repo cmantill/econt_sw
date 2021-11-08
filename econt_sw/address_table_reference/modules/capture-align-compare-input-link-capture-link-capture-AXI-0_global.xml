@@ -15,7 +15,6 @@
       <node id="link9"   mask="0x200"   permission="rw" />
       <node id="link10"   mask="0x400"   permission="rw" />
       <node id="link11"   mask="0x800"   permission="rw" />
-      <node id="link12"   mask="0x1000"   permission="rw" />
     </node>
     <node id="interrupt_enable" address="0x1"  permission="rw" description="interrupt register enable">
       <node id="link0"   mask="0x1"   permission="rw" />
@@ -30,7 +29,6 @@
       <node id="link9"   mask="0x200"   permission="rw" />
       <node id="link10"   mask="0x400"   permission="rw" />
       <node id="link11"   mask="0x800"   permission="rw" />
-      <node id="link12"   mask="0x1000"   permission="rw" />
     </node>
 	<node id="link_enable"       address="0x2"            permission="rw" description="link enable (default: 1)">
       <node id="link0"   mask="0x1"   permission="rw" />
@@ -45,7 +43,6 @@
       <node id="link9"   mask="0x200"   permission="rw" />
       <node id="link10"   mask="0x400"   permission="rw" />
       <node id="link11"   mask="0x800"   permission="rw" />
-      <node id="link12"   mask="0x1000"   permission="rw" />
 	</node>
 
 	<node id="invert_backpressure" address="0x3" mask="0x1" permission="rw" description="Invert the polarity of the backpressure output signal; default: 0"/>
@@ -65,7 +62,6 @@
       <node id="link9"   mask="0x200"   permission="rw" />
       <node id="link10"   mask="0x400"   permission="rw" />
       <node id="link11"   mask="0x800"   permission="rw" />
-      <node id="link12"   mask="0x1000"   permission="rw" />
     </node>
 
     <node id="explicit_align"    address="0x6" mask="0x1" permission="rw" description="global explicit align reg; default: 0; self-resets to 0 after you write 1"/>

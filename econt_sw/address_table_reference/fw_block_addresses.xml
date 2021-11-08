@@ -3,11 +3,14 @@
   <node id="ASIC-IO-I2C-I2C-fudge-0"	    module="file://modules/ASIC-IO-I2C-I2C-fudge-0.xml"	          address="0x80001000"/>
   <node id="ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80002000"/>
   <node id="ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80003000"/>
+  <node id="ECONT-Emulator-axis-delay-0"	    module="file://modules/ECONT-Emulator-axis-delay-0.xml"	          address="0x80030000"/>
   <node id="capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80005000"/>
   <node id="capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0.xml"	          address="0x80006000"/>
   <node id="capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80007000"/>
   <node id="capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0.xml"	          address="0x80008000"/>
   <node id="capture-align-compare-compare-outputs-stream-compare-0"	    module="file://modules/capture-align-compare-compare-outputs-stream-compare-0.xml"	          address="0x80004000"/>
+  <node id="capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80010000"/>
+  <node id="capture-align-compare-input-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-input-link-capture-link-capture-AXI-0.xml"	          address="0x80020000"/>
   <node id="econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux"	    module="file://modules/econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux.xml"	          address="0x80009000"/>
   <node id="econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux"	    module="file://modules/econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux.xml"	          address="0x8000a000"/>
   <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block00-bram-ctrl"	    mode="block"	          address="0x80200000" size="0x00004000" permission="rw"/>
