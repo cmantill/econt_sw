@@ -83,7 +83,7 @@ def find_latency(latency,lcapture,bx0=None):
                 if bx0[l]==bx0_i:
                     found_bx0=True
             elif found_BX0.has_key(0):
-                print('already found bx0 for link 0 - now all need to be the same')
+                # print('already found bx0 for link 0 - now all need to be the same')
                 if found_BX0[0]==bx0_i:
                     found_bx0=True
             else:
@@ -237,6 +237,8 @@ if __name__ == "__main__":
         dev.getNode(names['delay']+".delay").write(delay)
 
         # configure link captures
+        sync_patterns = {'lc-ASIC': 0x122,
+                         'lc-emulator': 0x122}
         for lcapture in ['lc-ASIC','lc-emulator']:
             dev.getNode(names[lcapture]['lc']+".global.link_enable").write(0x1fff)
             dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x0)
@@ -245,13 +247,13 @@ if __name__ == "__main__":
             dev.dispatch()
             # set align pattern
             for l in range(output_nlinks):
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(0b00100100010)
+                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(sync_patterns[lcapture])
                 dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(0);
                 dev.dispatch()
-            # set to acquire on linkreset-ECONt (4095 words)
+                
+            # configure link captures to acquire on linkreset-ECONt (4095 words)
             configure_acquire(dev,lcapture,"linkreset_ECONt",nwords=4095,nlinks=output_nlinks)
-            dev.dispatch()
-
+            
         # send link reset econt (once)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
@@ -273,7 +275,10 @@ if __name__ == "__main__":
             # capture data
             raw_input("Need to capture data in output. Press key to continue...")
             do_fc_capture(dev,"link_reset_econt",'lc-ASIC')
-            data = get_captured_data(dev,'lc-ASIC')
+            lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+            dev.dispatch()
+            logger.info('link reset econt counter %i'%lrc)
+            data = get_captured_data(dev,'lc-ASIC',nwords=4095,nlinks=output_nlinks)
             save_testvector("lc-ASIC-alignoutput_debug.csv", data)
             raw_input("Sent link reset ECONT. Press key to continue...")
             #exit(1)

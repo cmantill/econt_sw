@@ -137,19 +137,29 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
             }
     if "BX" in mode:
         captures['mode_in'] = 1
-    elif "linkreset" in mode or 'L1A' in mode or 'orbitSync' in mode:
+    elif "linkreset" in mode:
+        captures["mode_in"] = 2
+    elif "L1A" in mode:
+        captures["mode_in"] = 2
+    elif "orbitSync" in mode:
         captures["mode_in"] = 2
     elif "inmediate" in mode:
         captures["mode_in"] = 0
     else:
         logger.warning("Not a valid capture mode!")
         return
+    if captures["mode_in"] == 2:
+        captures[mode] = 1
+    #logger.info("configure acquire with ")
+    #print(captures)
+    #print(mode)
 
     for l in range(nlinks):
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
         for key,val in captures.items():
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_%s"%key).write(val)
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire").write(1)
     dev.dispatch()
 
 # acquire with fast command
@@ -184,6 +194,9 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
             dev.dispatch()
             fifo_occupancies.append(int(fifo_occupancy))
+            if int(fifo_occupancy)==0: 
+                print('no data')
+                return []
         try:
             assert(fifo_occupancies[0] == nwords)
             for f in fifo_occupancies:
