@@ -46,7 +46,7 @@ if __name__ == "__main__":
     raw_input("IO blocks configured. Waiting for bit transitions. Press key to continue...")
 
     # check that to-IO is aligned
-    check_IO(dev,'to',nlinks=input_nlinks)
+    check_IO(dev,'to',nlinks=input_nlinks,io_name='ASIC-IO')
     
     # link captures
     lcapture_input = names["ASIC-lc-input"]

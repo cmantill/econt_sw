@@ -1,0 +1,24 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/-/blob/IO_blocks_map/IO_blocks/IPIF_DelayParamDecode.sv#L21-46 -->
+
+<node>    
+  <node id="reg0"          address="0x0">
+    <node id="reset_link"              mask="0x1"       permission="rw" description="Reset link (active-low reset)"/>
+    <node id="reset_counters"          mask="0x2"       permission="rw" description="Reset counters (active-high reset)"/>
+    <node id="delay_mode"              mask="0x4"       permission="rw" description="Delay mode: 0=manual delay setting, 1=automatic delay setting (default 0)"/>
+    <node id="delay_set"               mask="0x8"       permission="rw" description="Delay set: write 0 then 1 to this in manual mode to set the delays chosen in delay_in and delay_offset."/>
+    <node id="bypass_IOBUF"            mask="0x10"      permission="rw" description="Bypass IOBUF: 0=use data from IO pin, 1=use data from input stream (default 0)"/>
+    <node id="tristate_IOBUF"          mask="0x20"      permission="rw" description="Tristate IOBUF: 0=drive data to IO pin, 1=keep IO pin in high-impedance state (default 0)"/>
+    <node id="latch_counters"          mask="0x40"      permission="rw" description="Write 1 to save current counter values"/>
+    <node id="delay_in"                mask="0xff80"    permission="rw" description="Delay in: 9-bit delay to use in manual mode"/>
+    <node id="delay_offset"            mask="0x1ff0000" permission="rw" description="Delay offset: offset between P and N side to use in manual mode for bit-error monitoring"/>
+	<node id="invert"                  mask="0x2000000" permission="rw" description="Invert IO: (default 0) 1=invert the input and output, 0=do not invert"/>
+  </node>
+  <node id="bit_counter"   address="0x1" mask="0xffffffff" permission="r" description="Count the number of bits seen"/>
+  <node id="error_counter" address="0x2" mask="0xffffffff" permission="r" description="Count the number of bits that didn't match between P and N side"/>
+  <node id="reg3"          address="0x3">
+    <node id="delay_ready"             mask="0x00000001" permission="r" description="Delay ready"/>
+    <node id="delay_out"               mask="0x000003fe" permission="r" description="Delay out: 9-bit delay actually in use right now by P side"/>
+    <node id="delay_out_N"             mask="0x0007fc00" permission="r" description="Delay out N: in manual mode: delay used by N side; in automatic mode: size of the eye of zero bit errors"/>
+    <node id="waiting_for_transitions" mask="0x00080000" permission="r" description="Waiting for bit transitions"/>
+  </node>
+</node>

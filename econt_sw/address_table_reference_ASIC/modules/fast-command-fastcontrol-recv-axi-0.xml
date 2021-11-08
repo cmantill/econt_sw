@@ -1,0 +1,33 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/fast-control/blob/master/decode/src/hdl/manager/hgcal_fc_recv_manager.v -->
+
+<node>    
+  <node id="command" address="0x0">
+    <node id="reset_counters_io"       mask="0x10000000"  permission="rw" description="reset_counters_io"/>
+  </node>
+  <node id="firmware_version"            address="0x4"  permission="rw" description="firmware version"/>
+
+  <node id="counters" permission="r"> 
+    <node id="errors" address="6" description="Count of encoding errors/invalid requests for commands which cannot overlap"/>
+    <node id="l1a" address="10" description="Number of L1As sent since last counter reset"/>
+    <node id="l1a_nzs" address="11" description="Number of NZS L1As requested since last counter reset"/>
+    <node id="orbit_sync" address="8" description="Number of orbit syncs sent since last counter reset"/>
+    <node id="orbit_count_reset" address="9" description="Number of orbit count resets sent since last counter reset"/>
+    <node id="internal_calibration_pulse" address="12" description="Number of internal calibration pulses sent since last counter reset"/>
+    <node id="external_calibration_pulse" address="13" description="Number of external calibration pulses sent since last counter reset"/>
+    <node id="chipsync" address="14" description="Number of chipsyncs sent since last counter reset"/>
+    <node id="ecr" address="16" description="Number of event counter resets sent since last counter reset"/>
+    <node id="ebr" address="15" description="Number of event buffer resets sent since last counter reset"/>
+    <node id="link_reset_roct" address="17" description="Number of link reset ROC-T sent since last counter reset"/>
+    <node id="link_reset_rocd" address="18" description="Number of link reset ROC-D sent since last counter reset"/>
+    <node id="link_reset_econt" address="19" description="Number of link reset ECON-T sent since last counter reset"/>
+    <node id="link_reset_econd" address="20" description="Number of link reset ECON-D sent since last counter reset"/>
+    <node id="spare0" address="21" description="Number of spare0 commands sent since last counter reset"/>
+    <node id="spare1" address="22" description="Number of spare1 commands sent since last counter reset"/>
+    <node id="spare2" address="23" description="Number of spare2 commands sent since last counter reset"/>
+    <node id="spare3" address="24" description="Number of spare3 commands sent since last counter reset"/>
+    <node id="spare4" address="25" description="Number of spare4 commands sent since last counter reset"/>
+    <node id="spare5" address="26" description="Number of spare5 commands sent since last counter reset"/>
+    <node id="spare6" address="27" description="Number of spare6 commands sent since last counter reset"/>
+    <node id="spare7" address="28" description="Number of spare7 commands sent since last counter reset"/>
+  </node>
+</node>
