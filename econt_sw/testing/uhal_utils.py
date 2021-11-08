@@ -77,8 +77,7 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):
     return is_aligned
     
 # is link capture aligned?
-def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
-    import numpy as np
+def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
     lc_align = []
     for l in range(nlinks):
         aligned_c = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_aligned_count").read()
@@ -90,18 +89,34 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
         dev.dispatch()
         lc_align.append((aligned_c,error_c,aligned))
         logger.debug('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
-    aligned_counter = np.array([int(lc_align[i][0]) for i in range(len(lc_align))])
-    error_counter = np.array([int(lc_align[i][1]) for i in range(len(lc_align))])
-    is_aligned = np.array([int(lc_align[i][2]) for i in range(len(lc_align))])
-    try:
-        assert np.all(is_aligned==1)
-        assert np.all(aligned_counter==128)
-        assert np.all(error_counter==0)
-        logger.info('%s: all links are aligned!'%lcapture)
-    except AssertionError:
-        logger.error('%s: is not aligned:'%lcapture)
-        for i in range(len(lc_align)):
-            logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+    aligned_counter = [int(lc_align[i][0]) for i in range(len(lc_align))]
+    error_counter = [int(lc_align[i][1]) for i in range(len(lc_align))]
+    is_aligned = [int(lc_align[i][2]) for i in range(len(lc_align))]
+    if use_np:
+        import numpy as np
+        is_aligned = np.array(is_aligned)
+        aligned_counter = np.array(aligned_counter)
+        error_counter = np.array(error_counter)
+        try:
+            assert np.all(is_aligned==1)
+            assert np.all(aligned_counter==128)
+            assert np.all(error_counter==0)
+            logger.info('%s: all links are aligned!'%lcapture)
+        except AssertionError:
+            logger.error('%s: is not aligned:'%lcapture)
+            for i in range(len(lc_align)):
+                logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+        return False
+    else:
+        try:
+            for l,val in enumerate(aligned_counter):
+                assert(is_aligned[l] == 1)
+                assert(aligned_counter[l] == 128)
+                assert(error_counter[l] == 0)
+        except AssertionError:
+            logger.error('%s: is not aligned:'%lcapture)
+            for i in range(len(lc_align)):
+                logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
         return False
     return True
 
@@ -111,7 +126,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
 # mode: 1 (writes data starting on a specific BX count)
 # mode: 2 (writes data after receiving a fast command)
 # mode: 3 (auto-daq mode)
-def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks):
+def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     captures = {'mode_in': 0,
                 'L1A': 0,
                 'orbitSync': 0,
@@ -131,7 +146,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks):
         return
 
     for l in range(nlinks):
-        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(0)
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
         for key,val in captures.items():
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_%s"%key).write(val)
@@ -154,6 +169,8 @@ def do_capture(dev,lcapture):
     dev.dispatch()
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
     dev.dispatch()
+    import time
+    time.sleep(0.001)
     raw_input("ready to capture, press link to continue")
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()

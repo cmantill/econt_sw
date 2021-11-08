@@ -21,7 +21,7 @@ names = {
              },
     'stream_compare': "capture-align-compare-compare-outputs-stream-compare-0",    
     'delay': "ECONT-Emulator-axis-delay-0",
-    'fudge': "ASIC-IO-I2C-I2C-fudge-0"
+    'fudge': "ASIC-IO-I2C-I2C-fudge-0",
     
     'ASIC-IO': {'to': "IO-to-ECONT-IO-blocks-0",
                 'from': "IO-from-ECONT-IO-blocks-0",

@@ -5,35 +5,16 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import get_captured_data,save_testvector,configure_IO,check_IO
+from uhal_utils import get_captured_data,save_testvector,configure_acquire,do_capture
 
 """
 Alignment sequence on 'ASIC' - (emulator) using python2 uhal.
 
 Usage:
    python testing/uhal-align_on_ASIC.py 
+
+Possible capture modes: BX,L1A,linkreset_ROCt,linkreset_ROCd,linkreset_ECONt,linkreset_ECONd,orbitSync
 """
-
-# capture input data
-# possible capture modes: BX,L1A,linkreset_ROCt,linkreset_ROCd,linkreset_ECONt,linkreset_ECONd,orbitSync
-def getInputData(mode="linkreset_ROCt",nwords=300):
-    # capture lc
-    configure_acquire(dev,"ASIC-lc-input",mode,nwords,input_nlinks)
-    # do an acquisition
-    do_capture(dev,"ASIC-lc-input")
-    # get input data
-    input_data = get_captured_data(dev,"ASIC-lc-input",nwords,input_nlinks)
-    return input_data
-
-# capture output data
-def getOutputData(mode="linkreset_ECONt",nwords=4095):
-    # capture lc
-    configure_acquire(dev,"ASIC-lc-output",mode,nwords,output_nlinks)
-    # do an acquisition
-    do_capture(dev,"ASIC-lc-output")
-    # get output data
-    output_data = get_captured_data(dev,"ASIC-lc-output",nwords,output_nlinks)
-    return output_data
 
 if __name__ == "__main__":
 
@@ -71,14 +52,20 @@ if __name__ == "__main__":
     logger = logging.getLogger('capture:ASIC')
     logger.setLevel(logging.INFO)
 
+    lcapture = ""
     if args.capture=="input":
-        data = getInputData(args.mode,args.nwords)
-        if args.fname is not None:
-            save_testvector("lc-input"+args.fname+".csv", data)
+        lcapture = "ASIC-lc-input"
+    elif args.capture=="output":
+        lcapture = "ASIC-lc-output"
+    else:
+        logger.warning("not a valid lc")
 
-    if args.capture=="output":
-        data = getOutputData(args.mode,args.nwords)
-        if args.fname is not None:
-            save_testvector("lc-output"+args.fname+".csv", data)
-
-
+    # configure lc
+    nlinks = input_nlinks if args.capture=="input" else output_nlinks
+    configure_acquire(dev,lcapture,args.mode,args.nwords,nlinks)
+    # do an acquisition
+    do_capture(dev,lcapture)
+    # get data
+    data = get_captured_data(dev,lcapture,args.nwords,nlinks)
+    if args.fname is not None:
+        save_testvector(capture+"-"+args.fname+".csv", data)
