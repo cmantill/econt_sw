@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <node id="TOP">
-  <node id="ASIC-IO-I2C-I2C-fudge-0"	    module="file://modules/ASIC-IO-I2C-I2C-fudge-0.xml"	          address="0x80001000"/>
+  <node id="ASIC-IO-I2C-I2C-fudge-0"	    module="file://modules/I2C_fudge.xml"	          address="0x80001000"/>
   <node id="ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80002000"/>
   <node id="ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80003000"/>
   <node id="ECONT-Emulator-axis-delay-0"	    module="file://modules/ECONT-Emulator-axis-delay-0.xml"	          address="0x80030000"/>
