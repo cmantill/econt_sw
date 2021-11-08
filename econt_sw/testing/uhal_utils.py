@@ -77,7 +77,7 @@ def check_IO(dev,io='from',nlinks=output_nlinks):
     return is_aligned
     
 # is link capture aligned?
-def check_links(dev,capture='lc-ASIC',nlinks=output_nlinks):
+def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
     import numpy as np
     lc_align = []
     for l in range(nlinks):
@@ -148,21 +148,21 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             fifo_occupancies.append(int(fifo_occupancy))
         try:
             assert(fifo_occupancies[0] == nwords)
-            try: 
-                import numpy as np
-                assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
-            except:
-                for f in enumerate(fifo_occupancies):
-                    assert(fifo_occupancies[f] == fifo_occupancies[0])
+            for f in fifo_occupancies:
+                assert(f == fifo_occupancies[0])
+                print(f,fifo_occupancies[0])
             break
         except:
+            print('not same fifo occ ',fifo_occupancies)
             continue
 
     # now look at data
+    print('looking at data')
     daq_data = []
     for l in range(nlinks):
         fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
+        #print(fifo_occupancy)
         if int(fifo_occupancy)>0:
             logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
             data = dev.getNode(names[lcapture]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
