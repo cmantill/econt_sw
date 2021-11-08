@@ -237,8 +237,8 @@ This means that when running testing scripts remotely one needs to do port forwa
 - Slow control:
   - [x] Set a fixed address
   ```
-  python testing/i2c_set_address.py --i2c ASIC --addr 0
-  python testing/i2c_set_address.py --i2c emulator --addr 1
+  python testing/uhal-i2c_set_address.py --i2c ASIC --addr 0
+  python testing/uhal-i2c_set_address.py --i2c emulator --addr 1
   ```
   - [x] Test a fixed address, read/write from/to every bit of every register in the ASIC (only reads for RO registers)
   ```
@@ -317,14 +317,15 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] Crude delay scan in ASIC using PRBS error checking.
 
 - Data path tests:
-  - [X] Basic DAQ
-
+  - [X] Basic DAQ with repeater algorithm and counter dataset in TC:
+  ```
+  python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --start-server
+  ```
+  The output of the two link captures will be saved in `configs/test_vectors/counterPatternInTC/`.
   - [ ] MUX
   - [ ] Calibration
   - [ ] DropLSB
-
   - Algorithms:
-    - [ ] Repeater
     - [ ] Threshold Sum
     - [ ] STC
     - [ ] BC
@@ -348,4 +349,4 @@ This means that when running testing scripts remotely one needs to do port forwa
 - ETX:
   - [ ] Test inversion
   
-    
+- SEU detection:

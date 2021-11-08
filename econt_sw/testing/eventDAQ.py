@@ -40,7 +40,7 @@ if __name__ == "__main__":
         print(read_socket)
 
     # daq
-    os.system('python testing/uhal-eventDAQ.py --idir %s'%args.idir)
+    os.system('python testing/uhal-eventDAQ.py --idir %s --capture l1a'%args.idir)
 
     # terminate i2c servers
     for key,proc in procs.items():

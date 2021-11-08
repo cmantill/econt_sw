@@ -6,7 +6,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import check_IO,configure_IO,get_captured_data,save_testvector
+from uhal_utils import check_IO,check_links,configure_IO,get_captured_data,save_testvector,configure_acquire,do_fc_capture
 
 """
 Alignment sequence on tester using python2 uhal.
@@ -36,27 +36,28 @@ def find_latency(latency,lcapture,bx0=None):
         lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
         dev.dispatch()
         read_latency[l] = int(lat)
-    # print('Written latencies: ',latency)
-    # print('Read latencies: ',read_latency)
+    print('Written latencies: ',latency)
+    print('Read latencies: ',read_latency)
 
     # do one capture on link reset econt
-    do_fc_capture(dev,"link_reset_econt",'lc-ASIC')
+    do_fc_capture(dev,"link_reset_econt",lcapture)
     
     # check link reset econt counter
     lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read()
     dev.dispatch()
-    # logger.error('link reset econt counter %i'%lrc) 
+    logger.info('link reset econt counter %i'%lrc) 
 
     # save captured data
-    ASIC_data = get_captured_data(dev,'lc-ASIC')
+    #ASIC_data = get_captured_data(dev,'lc-ASIC')
 
     # look for bx0
-    BX0_word = 0xf922f922
-    BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero()
-    logger.debug(f'BX0 sync word found on rows    {BX0_rows}')
-    logger.debug(f'BX0 sync word found on columns {BX0_cols}')
+    #BX0_word = 0xf922f922
+    #BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero()
+    #logger.debug('BX0 sync word found on rows',BX0_rows)
+    #logger.debug('BX0 sync word found on columns',BX0_cols)
 
     daq_data = []
+
     for l in range(output_nlinks):
         # look at fifo
         fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
@@ -104,7 +105,7 @@ def find_latency(latency,lcapture,bx0=None):
                 # to append wrong data
                 # daq_data.append([int(d) for d in data])
         else:
-            logger.warning('No captured data for ASIC')
+            logger.warning('No captured data, fifo occ %s'%fifo_occupancy)
 
     return new_latency,found_BX0,np.array(daq_data).T
 
@@ -231,6 +232,10 @@ if __name__ == "__main__":
         raw_input("Sent link reset ROCT. Press key to continue...")
 
     if args.step == "asic-tester":
+        # set delay
+        delay = 4
+        dev.getNode(names['delay']+".delay").write(delay)
+
         # configure link captures
         for lcapture in ['lc-ASIC','lc-emulator']:
             dev.getNode(names[lcapture]['lc']+".global.link_enable").write(0x1fff)
@@ -263,15 +268,15 @@ if __name__ == "__main__":
         logger.info('link reset econt counter %i'%lrc)
 
         # check that links are aligned
-        is_lcASIC_aligned = check_links(dev,capture='lc-ASIC',nlinks=output_nlinks)
+        is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
         if not is_lcASIC_aligned:
             # capture data
-            raw_input("Need to capture data in output.do_fc_capture Press key to continue...")
+            raw_input("Need to capture data in output. Press key to continue...")
             do_fc_capture(dev,"link_reset_econt",'lc-ASIC')
             data = get_captured_data(dev,'lc-ASIC')
             save_testvector("lc-ASIC-alignoutput_debug.csv", data)
             raw_input("Sent link reset ECONT. Press key to continue...")
-            exit(1)
+            #exit(1)
 
         # data to be captured
         all_data = {}
@@ -307,7 +312,8 @@ if __name__ == "__main__":
             latency_emulator,emulator_found,daq_data = find_latency(latency_emulator,'lc-emulator',asic_found)
             if -1 not in latency_emulator.values():
                 print('found!',latency_emulator)
-                print('pos ',emulator_found,asic_found)
+                print('pos emulator ',emulator_found,asic_found)
+                print('data len ',daq_data)
                 all_data['lc-emulator'] = daq_data
                 break
 
@@ -324,7 +330,7 @@ if __name__ == "__main__":
         for key,data in all_data.items():
             save_testvector("%s-alignoutput.csv"%key, data)
 
-        # make sure that  stream-compare sees no errors
+        # make sure that stream-compare sees no errors
         dev.getNode(names['stream_compare']+".control.reset").write(0x1) # start the counters from zero
         time.sleep(0.001)
         dev.getNode(names['stream_compare']+".control.latch").write(0x1)

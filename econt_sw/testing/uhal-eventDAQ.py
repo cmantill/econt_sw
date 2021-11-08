@@ -7,7 +7,7 @@ logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
 
-from uhal_utils import check_links,read_testvector,get_captured_data,save_testvector
+from uhal_utils import check_links,read_testvector,get_captured_data,save_testvector,check_IO
 
 """
 Event DAQ using uHAL python2.
@@ -45,8 +45,13 @@ if __name__ == "__main__":
     logger = logging.getLogger('eventDAQ')
     logger.setLevel(logging.INFO)
 
-    # first, check that links are aligned
-    isaligned = check_links(dev)
+    # first, check alignment
+    is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
+    # with current firmware lc ASIC counters do not show alignment
+    is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    if not is_fromIO_aligned or not is_lcASIC_aligned:
+        print('not aligned! Exiting...')
+        #exit(1)
 
     # read latency values from aligned link captures
     latency_values = {}
@@ -85,7 +90,7 @@ if __name__ == "__main__":
         dev.dispatch()
 
     # set input data
-    fname = args.idir+"/testInput.csv"
+    fname = args.idir+"/../testInput.csv"
     data = read_testvector(fname)
     for l in range(input_nlinks):
         for i,b in enumerate(out_brams[l]):
@@ -103,8 +108,23 @@ if __name__ == "__main__":
     dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
 
-    # configure link capture (both ASIC and emulator)
+    # configure input link capture
     acq_length = 300
+
+    for lcapture in ['lc-input']:
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_mode_in").write(0x2)
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_L1A").write(0x1)
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONt").write(0x0)
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCd").write(0x0)
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCt").write(0x0)
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONd").write(0x0)
+        
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".L1A_offset_or_BX").write(0)
+        
+        dev.getNode(names[lcapture]['lc']+".link%i"%l+".aquire_length").write(acq_length)
+        dev.dispatch()
+
+    # configure link capture (both ASIC and emulator)
     for lcapture in ['lc-ASIC','lc-emulator']:
         for l in range(output_nlinks):
             # TODO: add bx option
@@ -122,11 +142,11 @@ if __name__ == "__main__":
             dev.dispatch()
             
             # set latency?
-            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
-            dev.dispatch()
-            lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
-            dev.dispatch()
-            print(lcapture,l,int(lat))
+            #dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
+            #dev.dispatch()
+            #lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
+            #dev.dispatch()
+            #print(lcapture,l,int(lat))
 
     # check stream compare
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
@@ -177,17 +197,18 @@ if __name__ == "__main__":
                 dev.dispatch()
                 fifo_occupancies.append(int(fifo_occupancy))
             try:
-                assert( fifo_occupancies[0] == 300)
+                #assert( fifo_occupancies[0] == 300)
                 assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
+                print('fifo occ ',fifo_occupancies)
                 break
             except:
-                print('fifo occ ',fifo_occupancies)
+                #print('fifo occ ',fifo_occupancies)
                 continue
 
     # check captured data
     all_data = {}
     for lcapture in ['lc-ASIC','lc-emulator']:
-        all_data[lcapture] = get_captured_data(dev,lcapture)
+        all_data[lcapture] = get_captured_data(dev,lcapture,nwords=900)
         
     # convert all data to format
     for key,data in all_data.items():

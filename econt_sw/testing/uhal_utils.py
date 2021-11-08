@@ -84,8 +84,12 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
         aligned_c = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_aligned_count").read()
         error_c = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_error_count").read()
         aligned = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.link_aligned").read()
+        delay_ready = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.delay_ready").read()
+        waiting_for_trig = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.waiting_for_trig").read()
+        writing = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.writing").read()
         dev.dispatch()
         lc_align.append((aligned_c,error_c,aligned))
+        logger.debug('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
     aligned_counter = np.array([int(lc_align[i][0]) for i in range(len(lc_align))])
     error_counter = np.array([int(lc_align[i][1]) for i in range(len(lc_align))])
     is_aligned = np.array([int(lc_align[i][2]) for i in range(len(lc_align))])
@@ -102,6 +106,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks):
     return True
 
 # set link capture to acquire
+# mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
 # mode: 0 (inmediate - writes data to BRAM)
 # mode: 1 (writes data starting on a specific BX count)
 # mode: 2 (writes data after receiving a fast command)
@@ -115,9 +120,15 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks):
                 'linkreset_ROCt': 0,
                 'linkreset_ROCd': 0,
             }
-    captures[mode] = 1
-    if "linkreset" in mode or 'L1A' in mode or 'orbitSync' in mode:
+    if "BX" in mode:
+        captures['mode_in'] = 1
+    elif "linkreset" in mode or 'L1A' in mode or 'orbitSync' in mode:
         captures["mode_in"] = 2
+    elif "inmediate" in mode:
+        captures["mode_in"] = 0
+    else:
+        logger.warning("Not a valid capture mode!")
+        return
 
     for l in range(nlinks):
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(0)
@@ -137,6 +148,16 @@ def do_fc_capture(dev,fc,lcapture):
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
 
+# acquire
+def do_capture(dev,lcapture):
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+    dev.dispatch()
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
+    dev.dispatch()
+    raw_input("ready to capture, press link to continue")
+    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+    dev.dispatch()
+
 # get captured data
 def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
     # wait some time until acquisition finishes 
@@ -150,7 +171,7 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             assert(fifo_occupancies[0] == nwords)
             for f in fifo_occupancies:
                 assert(f == fifo_occupancies[0])
-                print(f,fifo_occupancies[0])
+                # print(f,fifo_occupancies[0])
             break
         except:
             print('not same fifo occ ',fifo_occupancies)
