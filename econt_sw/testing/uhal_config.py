@@ -16,7 +16,7 @@ names = {
     'lc-emulator': {'lc': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0",
                     'fifo': "capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO_FIFO",
             },
-    'lc-input': {'lc':, "capture-align-compare-input-link-capture-link-capture-AXI-0",
+    'lc-input': {'lc': "capture-align-compare-input-link-capture-link-capture-AXI-0",
                  'fifo': "capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO_FIFO",
              },
     'stream_compare': "capture-align-compare-compare-outputs-stream-compare-0",    
