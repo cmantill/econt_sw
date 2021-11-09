@@ -7,7 +7,7 @@ logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
 
-from uhal_utils import check_links,read_testvector,get_captured_data,save_testvector,check_IO
+from uhal_utils import check_links,read_testvector,get_captured_data,save_testvector,check_IO,configure_acquire,do_capture
 
 """
 Event DAQ using uHAL python2.
@@ -48,10 +48,10 @@ if __name__ == "__main__":
     # first, check alignment
     is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
     # with current firmware lc ASIC counters do not show alignment
-    is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
-    if not is_fromIO_aligned or not is_lcASIC_aligned:
-        print('not aligned! Exiting...')
-        #exit(1)
+    #is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    #if not is_fromIO_aligned or not is_lcASIC_aligned:
+    #    print('not aligned! Exiting...')
+    #exit(1)
 
     # read latency values from aligned link captures
     latency_values = {}
@@ -61,8 +61,11 @@ if __name__ == "__main__":
             latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
             dev.dispatch()
             latency_values[lcapture].append(int(latency))
-    print('FIFO latency: ',latency_values)
-            
+    # print('FIFO latency: ',latency_values)
+    #for l in range(output_nlinks):
+    #    latency_values['lc-emulator'][l] = 3
+    #print(latency_values)
+
     # setup test-vectors
     out_brams = []
     testvectors_settings = {
@@ -104,50 +107,31 @@ if __name__ == "__main__":
         dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(0x1)
     dev.dispatch()
 
+    # configure delay again?
+    delay = 4
+    dev.getNode(names['delay']+".delay").write(delay)
+
     # configure fast commands
     dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
 
-    # configure input link capture
+    # configure link capture to capture on L1A
     acq_length = 300
-
-    for lcapture in ['lc-input']:
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_mode_in").write(0x2)
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_L1A").write(0x1)
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONt").write(0x0)
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCd").write(0x0)
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCt").write(0x0)
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONd").write(0x0)
+    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+        configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
         
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".L1A_offset_or_BX").write(0)
-        
-        dev.getNode(names[lcapture]['lc']+".link%i"%l+".aquire_length").write(acq_length)
-        dev.dispatch()
-
-    # configure link capture (both ASIC and emulator)
-    for lcapture in ['lc-ASIC','lc-emulator']:
-        for l in range(output_nlinks):
-            # TODO: add bx option
-            # set lc to capture on L1A
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_mode_in").write(0x2)
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_L1A").write(0x1)
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONt").write(0x0)
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCd").write(0x0)
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ROCt").write(0x0)
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".capture_linkreset_ECONd").write(0x0)
-
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".L1A_offset_or_BX").write(0)
-            
-            dev.getNode(names[lcapture]['lc']+".link%i"%l+".aquire_length").write(acq_length)
-            dev.dispatch()
-            
-            # set latency?
-            #dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
-            #dev.dispatch()
-            #lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
-            #dev.dispatch()
-            #print(lcapture,l,int(lat))
-
+        # set latency?
+        """
+        if 'input' not in lcapture:
+            for l in range(input_nlinks):
+                print('writing ',lcapture,l,latency_values[lcapture][l])
+                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
+                dev.dispatch()
+                lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
+                dev.dispatch()
+                print(lcapture,l,int(lat))
+        """
     # check stream compare
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
     time.sleep(0.001)
@@ -159,7 +143,6 @@ if __name__ == "__main__":
     logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
 
     if args.capture == "l1a":
-        print('capture l1a')
         # send L1A
         dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
         dev.getNode(names['fc']+".periodic0.enable").write(0); # to get a L1A once - not every orbit
@@ -168,50 +151,25 @@ if __name__ == "__main__":
         dev.getNode(names['fc']+".periodic0.bx").write(3500);
         dev.getNode(names['fc']+".periodic0.request").write(1);
         dev.dispatch()
+
     elif args.capture == "compare":
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
+
     else:
         logger.error("No capture mode provided")
 
     # tell link capture to do an acquisition
-    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
-    dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
-    dev.dispatch()
-    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(1)
-    dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(1)
-    dev.dispatch()
-    dev.getNode(names['lc-ASIC']['lc']+".global.aquire").write(0)
-    dev.getNode(names['lc-emulator']['lc']+".global.aquire").write(0)
-    dev.dispatch()
-
-    time.sleep(0.1)
-
-    # wait some time until acquisition has finished
-    for lcapture in ['lc-ASIC','lc-emulator']:
-        while True:
-            fifo_occupancies = []
-            for l in range(output_nlinks):
-                fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
-                dev.dispatch()
-                fifo_occupancies.append(int(fifo_occupancy))
-            try:
-                #assert( fifo_occupancies[0] == 300)
-                assert(np.all(np.array(fifo_occupancies) == fifo_occupancies[0]))
-                print('fifo occ ',fifo_occupancies)
-                break
-            except:
-                #print('fifo occ ',fifo_occupancies)
-                continue
-
-    # check captured data
     all_data = {}
-    for lcapture in ['lc-ASIC','lc-emulator']:
-        all_data[lcapture] = get_captured_data(dev,lcapture,nwords=900)
-        
+    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+        do_capture(dev,lcapture)
+        all_data[lcapture] = get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
+
     # convert all data to format
     for key,data in all_data.items():
+        # print('saving %s/%s-Output_header.csv'%(args.idir,key))
         save_testvector( args.idir+"/%s-Output_header.csv"%key, data, header=True)
 
     # reset fc
