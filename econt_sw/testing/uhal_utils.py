@@ -195,7 +195,7 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             dev.dispatch()
             fifo_occupancies.append(int(fifo_occupancy))
             if int(fifo_occupancy)==0: 
-                print('no data')
+                logger.warning('no data for %s'%lcapture)
                 return []
         try:
             assert(fifo_occupancies[0] == nwords)
@@ -208,12 +208,10 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             continue
 
     # now look at data
-    print('looking at data')
     daq_data = []
     for l in range(nlinks):
         fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link%i"%l+".fifo_occupancy").read()
         dev.dispatch()
-        #print(fifo_occupancy)
         if int(fifo_occupancy)>0:
             logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
             data = dev.getNode(names[lcapture]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
@@ -222,7 +220,7 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
         else:
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
     if len(daq_data)>0:
-        print(lcapture,len(daq_data[0]))
+        logger.info('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
     try:
         import numpy as np
         transpose = np.array(daq_data).T

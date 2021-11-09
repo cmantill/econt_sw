@@ -36,8 +36,8 @@ def find_latency(latency,lcapture,bx0=None):
         lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
         dev.dispatch()
         read_latency[l] = int(lat)
-    print('Written latencies: ',latency)
-    print('Read latencies: ',read_latency)
+    logger.debug('Written latencies: %s',latency)
+    logger.debug('Read latencies: %s',read_latency)
 
     # do one capture on link reset econt
     do_fc_capture(dev,"link_reset_econt",lcapture)
@@ -48,67 +48,43 @@ def find_latency(latency,lcapture,bx0=None):
     logger.info('link reset econt counter %i'%lrc) 
 
     # save captured data
-    #ASIC_data = get_captured_data(dev,'lc-ASIC')
+    ASIC_data = get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks)
+    save_testvector("debug.csv", ASIC_data)
 
     # look for bx0
-    #BX0_word = 0xf922f922
-    #BX0_rows,BX0_cols = (ASIC_data == 0xf922f922).nonzero()
-    #logger.debug('BX0 sync word found on rows',BX0_rows)
-    #logger.debug('BX0 sync word found on columns',BX0_cols)
+    BX0_word = 0xf922f922
+    BX0_rows,BX0_cols = (ASIC_data == BX0_word).nonzero()
 
-    daq_data = []
+    try:
+        assert len(BX0_rows) > 0
+        assert (BX0_cols==0).nonzero()
+    except AssertionError:
+        logger.error('BX0 sync word not found anywhere or in link 0')
+        for l in range(output_nlinks):
+            new_latency[l] = -1
+        return new_latency,found_BX0,ASIC_data
+
+    logger.debug('BX0 sync word found on columns %s',BX0_cols)
+    logger.debug('BX0 sync word found on rows %s',BX0_rows)
 
     for l in range(output_nlinks):
-        # look at fifo
-        fifo_occupancy = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_occupancy").read()
-        dev.dispatch()
-        
-        if int(fifo_occupancy)>0:
-            # position at which bx0 is found for each link 
-            bx0_i = -1;
-            
-            # retrieve data
-            data = dev.getNode(names[lcapture]['fifo']+".link%i"%l).readBlock(int(fifo_occupancy))
-            dev.dispatch()
-            logger.debug('%s fifo occupancy link%i %d %i' %(lcapture,l,fifo_occupancy,len(data)))
-
-            # look for BX0 word
-            for i,d in enumerate(data):
-                if d==0xf922f922:
-                    bx0_i = i
-                    break;
-                    
-            found_bx0 = False
+        try:
+            row_index = (BX0_cols==l).nonzero()[0][0]
+            row_link_0 = (BX0_cols==0).nonzero()[0][0]
+            assert BX0_rows[row_index] == BX0_rows[row_link_0]
             if bx0:
-                if bx0[l]==bx0_i:
-                    found_bx0=True
-            elif found_BX0.has_key(0):
-                # print('already found bx0 for link 0 - now all need to be the same')
-                if found_BX0[0]==bx0_i:
-                    found_bx0=True
+                assert BX0_rows[row_index] == bx0[row_index]
+            logger.debug('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+            new_latency[l] = latency[l]
+            found_BX0[l] = BX0_rows[row_index]
+        except AssertionError:
+            if bx0:
+                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
             else:
-                found_bx0 =True
-                    
-            # if BX0 word is found then set the latency for that elink and save the data
-            if(bx0_i>-1 and found_bx0):
-                logger.debug('Latency %i: %s found BX0 word at %d',latency[l],lcapture,bx0_i)
-                new_latency[l] = latency[l]
-                found_BX0[l] = bx0_i
-                daq_data.append([int(d) for d in data])
-            else:
-                #if l==0:
-                #    for i,d in enumerate(data):
-                #        print(hex(d))
-                # print(bx0_i,found_bx0)
-                logger.warning('Latency %i: %s did not find BX0 word for link%i, bx0 word found at %i'%(latency[l],lcapture,l,bx0_i))
-                new_latency[l] = -1
-                # to append wrong data
-                # daq_data.append([int(d) for d in data])
-        else:
-            logger.warning('No captured data, fifo occ %s'%fifo_occupancy)
-
-    return new_latency,found_BX0,np.array(daq_data).T
-
+                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+            new_latency[l] = -1
+    return new_latency,found_BX0,ASIC_data
+        
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -286,43 +262,38 @@ if __name__ == "__main__":
         # data to be captured
         all_data = {}
                 
-        # set fifo latency for lc-ASIC
-        # initiate dictionary with default values of latency
-        latency_asic = {}
-        for l in range(output_nlinks):
-	    latency_asic[l] = -1
+        # set fifo latency (initiate with default values of -1)
+        latency={'asic': dict.fromkeys(range(output_nlinks), -1),
+                 'emulator': dict.fromkeys(range(output_nlinks), -1),
+             }
+        found_bx0 = {'asic': dict.fromkeys(range(output_nlinks), -1),
+                     'emulator': dict.fromkeys(range(output_nlinks), -1),
+                 }
 
-        asic_found = {}
-        for i in range(0,31): # max fifo latency?
+        # loop over possible values of fifo latency
+        for i in range(0,31):
             for l in range(output_nlinks):
-                if latency_asic[l]==-1: 
-                    latency_asic[l] = i
-            # print(i,latency_asic)
-            latency_asic,asic_found,daq_data = find_latency(latency_asic,'lc-ASIC')
-            if -1 not in latency_asic.values():
-                print('found ASIC!',latency_asic,asic_found)
+                if latency['asic'][l]==-1: 
+                    latency['asic'][l] = i
+
+            latency['asic'],found_bx0['asic'],daq_data = find_latency(latency['asic'],'lc-ASIC')
+            if -1 not in latency['asic'].values():
+                logger.info('Found BX0 for ASIC %s, %s',latency['asic'],found_bx0['asic'])
                 all_data['lc-ASIC'] = daq_data
                 break
 
-        # set fifo latency for lc-emulator
-        # iterate over different fifo latencies
-        latency_emulator = {}
-        for l in range(output_nlinks):
-            latency_emulator[l] = -1
-
-        for i in range(0,31): # max fifo latency
+        # loop over possible values of fifo latency
+        for i in range(0,31):
             for l in range(output_nlinks):
-                if latency_emulator[l]==-1:
-                    latency_emulator[l] = i
-            latency_emulator,emulator_found,daq_data = find_latency(latency_emulator,'lc-emulator',asic_found)
-            if -1 not in latency_emulator.values():
-                print('found!',latency_emulator)
-                print('pos emulator ',emulator_found,asic_found)
-                print('data len ',daq_data)
+                if latency['emulator'][l]==-1:
+                    latency['emulator'][l] = i
+            latency['emulator'],found_bx0['emulator'],daq_data = find_latency(latency['emulator'],'lc-emulator',found_bx0['asic'])
+            if -1 not in latency['emulator'].values():
+                logger.info('Found BX0 for emulator %s, %s',latency['emulator'],found_bx0['emulator'])
                 all_data['lc-emulator'] = daq_data
                 break
 
-        # read values of latency 
+        # read values of latency (to cross check)
         latency_values = {}
         for lcapture in ['lc-ASIC','lc-emulator']:
             latency_values[lcapture] = []
@@ -330,8 +301,9 @@ if __name__ == "__main__":
                 latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
                 dev.dispatch()
                 latency_values[lcapture].append(int(latency))
-        print(latency_values)
+        logger.debug('Final latency values: %s',latency_values)
 
+        # save captured data
         for key,data in all_data.items():
             save_testvector("%s-alignoutput.csv"%key, data)
 
