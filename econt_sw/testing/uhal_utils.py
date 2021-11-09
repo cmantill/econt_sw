@@ -181,7 +181,7 @@ def do_capture(dev,lcapture):
     dev.dispatch()
     import time
     time.sleep(0.001)
-    raw_input("ready to capture, press link to continue")
+    #raw_input("ready to capture, press link to continue")
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
 
