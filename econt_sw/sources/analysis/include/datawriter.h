@@ -39,6 +39,16 @@ class DelayScanCSVDataWriter : public Writer
   std::ofstream ofs;
 };
 
+/*
+class RawDataWriter : public Writer
+{ 
+ public:
+  RawDataWriter(std::string aname);
+  ~RawDataWriter();
+  void fill(raw_data data);
+}
+*/
+
 class DataWriterFactory
 {
  public:

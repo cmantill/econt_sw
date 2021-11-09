@@ -14,13 +14,16 @@ ECON-SW
 - *Clone repository*:
     ```bash
     # clone repository in `src/` folder or other working directory:
-    git clone git@github.com:cmantill/econt_sw.git
+    git clone --recursive git@github.com:cmantill/econt_sw.git
+    # to update submodules
+    cd econt_sw/
+    git submodule --init --recursive
     ```
 
 - *uHal*: Visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
     ```bash
-    # go to first directory
-    cd econt-sw/
+    # go into econt_sw directory
+    cd econt_sw/
 
     # install libraries
     sudo yum install boost boost-devel
@@ -36,7 +39,6 @@ ECON-SW
     make -j2 Set=uhal
     make install -j2 Set=uhal
     ```
-
 ## Install:
 
 - **Basic installation of econt-sw on Zynq Trenz module**:
@@ -57,15 +59,28 @@ ECON-SW
 
 - **To re-load new firmware**:
 
-    In HGCAL-dev board:
     ```bash
-    # go to little-dt directory
+    # go to mylittledt directory
+    cd ${MYLITTLEDT}
     cd /home/HGCAL_dev/src/mylittledt/
 
-    # load new firmware, e.g. econ-t-IO-Aug12 and set permissions
-    sudo ./load.sh ~/firmware/econ-t-IO-Aug12 && sudo chmod a+rw /dev/uio* /dev/i2c-*
+    # load firmware and set permissions
+    sudo ./load.sh ${FIRMWARE_FOLDER}   && sudo chmod a+rw /dev/uio* /dev/i2c-*
+    ```
+
+    In HGCAL_dev board:
+    ```
+    ${MYLITTLEDT} = /home/HGCAL_dev/src/mylittledt/
+    ${FIRMWARE_FOLDER} = econ-t-IO-Aug12
     ```
     
+    In interposer setup:
+    ```
+    ${MYLITTLEDT} =  /home/HGCAL_dev/mylittledt/
+    ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-emu-solo-ROCv3-Sep24-3/`
+    ${FIRMWARE_FOLDER} TESTER: `~/firmware/econ-t-tester-ROCv3-Sep25/`
+    ```
+
     To check the version of the firmware:
     ```
     # check which version of the firmware was loaded
@@ -77,7 +92,7 @@ ECON-SW
     ```
 
 - **When loading new firmware**:
-    Need to link `address_table` directory. Default `fw_block_addresses.xml` files are available in the `econt_sw/econt_sw/` directory for comparison.
+    Need to link `address_table` directory. Default `fw_block_addresses.xml` files are available in the `econt_sw/econt_sw/address_table_reference_*/` directories for comparison.
     ```
     sudo ln -s /opt/hexactrl/uHAL_xml address_table
     ```    
@@ -108,11 +123,11 @@ This means that when running testing scripts remotely one needs to do port forwa
 
 ### ZYNQ ECON-T testers:
 ```
-    # econ-tester1 (ASIC with emu-solo firmware)
+    # econ-ASIC (ASIC with emu-solo firmware)
     # to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
     ssh HGCAL_dev@192.168.1.45
    
-    # econ-tester2 (Emulator with tester firmware)
+    # econ-emulator (Emulator with tester firmware)
     ssh HGCAL_dev@192.168.1.46
 ```
 
@@ -177,7 +192,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ssh -K hcalpro@cmsnghcal01.fnal.gov
 
   # Start a terminal session:
-  # Then, port forward to ZYNQ:
+  # Then, port forward to ZYNQ, e.g.:
   ssh -L 6678:localhost:6678 -L 8888:localhost:8888 -L 6677:localhost:6677 -L 5555:localhost:5555 -p 23 HGCAL_dev@wilsonjc.us
 
   # Start a terminal session (on the 14WH desktop):
@@ -197,7 +212,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
   python debug_tools/setupIOdelay.py
   ```
-  
+    
 - On the "Emulator":
   ```
   # start server for i2c with emulator
@@ -213,9 +228,132 @@ This means that when running testing scripts remotely one needs to do port forwa
   ./bin/zmq-server -L 6
   
   # test alignment
-  python3 testing/align_links.py
+  python3 testing/zmq-align_links.py
   ```
   
+## Tests:
+
+- Fast control:
+  - [ ] Test PLL locking with a range of frequencies
+  - [ ] Introduce FC errors
+  - [ ] OrbitSync (BCR): resets bunch counter to programmable value. Check misplaced BCR by looking at header errors (if it sees the BC0 pattern w/o BCR it will complain).
+  - [ ] LINK_RESET_ROCT: triggers programmable alignment pattern to be sent by HGCROC (elinkOutputs). See whether the ECON-T performs its alignment process in response.
+  - [ ] LINK_RESET_ECONT: triggers output alignment pattern to be sent to BE.
+  - [ ] ChipSync: same as soft reset but does not reset FC.
+
+- Slow control:
+  - [x] Set a fixed address
+  ```
+  python testing/uhal-i2c_set_address.py --i2c ASIC --addr 0
+  python testing/uhal-i2c_set_address.py --i2c emulator --addr 1
+  ```
+  - [x] Test a fixed address, read/write from/to every bit of every register in the ASIC (only reads for RO registers)
+  ```
+  python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address True
+  ```
+  - [x] Test every possible i2c address for the ASIC
+  ```
+  for i in {0..15}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address True; done
+  ```
+  - [ ] Read and write one single i2c register
+
+- Reset signals:
+
+  - [x] Send reset and release:
+  ```
+  # send reset
+  python testing/reset_signals.py --i2c ASIC --reset hard
+
+  # release
+  python testing/reset_signals.py --i2c ASIC --reset hard --release True
+  ```
+  - [x] Test hard reset: i2c register gets reset
+  ```
+  python3 testing/resets.py --i2c ASIC emulator  --server 5554,5555 --reset hard
+  ```
+  - [x] Test soft reset: i2c register left unchanged
+  ```
+  python3 testing/resets.py --i2c ASIC emulator  --server 5554,5555 --reset soft
+  ```
+
+- Alignment sequence:
+  - [ ] Phase alignment.
+    - [ ] In *ASIC*.
+    - [x] In interposer system: align `to-IO`.
+  - [x] *Tester* input phase alignment: align `from-IO`.
+  - [x] *ASIC* word alignment: send LINK_RESET_ROCT, check snapshot and `select` i2c ASIC status.
+  - [x] *Tester* link_capture-ASIC word alignment: send LINK-RESET-ECONT.
+  - [x] *Tester* link_capture-ASIC and link_capture-Emulator relative alignment: check relative alignment using `fifo_latency`.
+
+  In python uhal (on tester):
+  ```
+  # if i2c servers running in different windows
+  # python3 zmq_server.py --addr 0x20 --server 5554 # (ASIC)
+  # python3 zmq_server.py --addr 0x21 --server 5555 # (emulator)
+  python3 testing/align_links.py
+
+  # to run the i2c servers  in the same script
+  python3 testing/align_links.py --start-server
+  ```
+
+  1. On Tester:
+     Execute until: `IO blocks configured. Sending PRBS. Press key to continue...`
+  2. On ASIC:
+     ```
+     python2 testing/uhal-align_on_ASIC.py
+     ```
+     - Execute until: `IO blocks configured. Waiting for bit transitions. Press key to continue...`
+     - Press key.
+     - Execute until: `Link capture and counters checked. Waiting for link reset roct. Press key to continue...`
+  3. On Tester: Press key
+     - Execute until: `Sent link reset ROCT. Press key to continue...`
+
+- Alignment tests:
+  - [ ] Test different alignment patterns (i2c).
+  - [ ] Check that header errors are correctly detected and counted.
+
+- Delay scan:
+  - [X] from-IO delay scan on tester
+  ```
+  python testing/uhal-delayScan.py
+  ```
+
+- PRBS15 to ASIC:
+  - [ ] Set PRBS15 with headers (28 bit mode).
+  - [ ] Set PRBS15 without headers (32 bit mode).
+  - [ ] Crude delay scan in ASIC using PRBS error checking.
+
+- Data path tests:
+  - [X] Basic DAQ with repeater algorithm and counter dataset in TC:
+  ```
+  python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --start-server
+  ```
+  The output of the two link captures will be saved in `configs/test_vectors/counterPatternInTC/`.
+  - [ ] MUX
+  - [ ] Calibration
+  - [ ] DropLSB
+  - Algorithms:
+    - [ ] Threshold Sum
+    - [ ] STC
+    - [ ] BC
+    - [ ] AE
+  - Formatter/buffer (TS):
+    - [ ] Vary buffer thresholds
+    - [ ] Test T1 truncation
+    - [ ] Test T2/T3 truncation
+    - [ ] Fill the buffer
+  - Vary eTx enabled
+
+- Error handling logic:
+  - [ ] readout of errors
+  - [ ] masking of errors
+  - [ ] clearing of errors
+
+- ERX:
+  - [ ] Test inversion
+  - [ ] Test enable
+
+- ETX:
+  - [ ] Test inversion
   
-
-
+- SEU detection:

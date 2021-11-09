@@ -25,7 +25,6 @@ class Translator():
 
     def load_param_map(self, fname):
         """ Load a yaml register map into cache (as a dict). """
-        # print('Translator::Loading ',fname)
         if isinstance(fname, dict):
             paramMap = fname
         else:
@@ -39,7 +38,6 @@ class Translator():
         We can only recover a parameter from a pair when it is in the common cache.
         However, when we read (or write) a param the common cache is populated in advance.
         """
-        # print('Translator::cfg form pairs')
         if config:
             read_cfg = self.__expandVal_paramMap(config['ECON-T'])
         cfg = nested_dict()
@@ -51,7 +49,7 @@ class Translator():
                         if isinstance(pairs[addr][0],list):
                             reg_value = int.from_bytes(pairs[addr][0], 'little')
                         else:
-                            reg_value = int.from_bytes(pairs[addr], 'little')
+                            reg_value = pairs[addr][0]
                         cfg[access][block][param] = reg_value
 
                         if config:
@@ -62,7 +60,7 @@ class Translator():
 
         return cfg.to_dict()
 
-    def pairs_from_cfg(self, cfg=None, prevCache={}):
+    def pairs_from_cfg(self, cfg=None, prevCache={}, allowed=['RW','RO']):
         """
         Convert an input config dict to pairs of
         {address: [value, size_byte]}
@@ -73,6 +71,7 @@ class Translator():
 
         # print('Translator::Converting config into pairs')
         for access,accessDict in par_regs_cfg.items():
+            if access not in allowed: continue
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
                     # read keys from the default dict
@@ -85,10 +84,11 @@ class Translator():
 
                     is_infg = False
                     try:
+                        # print(access,block,param)
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
-                        # print('no cfgDict')
+                        print('no cfgDict')
                         pass
 
                     if is_incfg and cfgDict is not None:
@@ -97,7 +97,7 @@ class Translator():
                         elif 'params' in cfgDict:
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
-                            prev_regVal = int.from_bytes(prevCache[addr], 'little') if addr in prevCache else 0
+                            prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
                             for par, reg in defaultDict['params'].items():
                                 # get parameter values from previous register value 
                                 # TODO: does this do something?
@@ -116,6 +116,17 @@ class Translator():
                     pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
 
         return pairs
+
+    def convert_pairs(self, pairs,direction='to'):
+        new_pairs = {}
+        for addr in pairs.keys():
+            size_byte = pairs[addr][1]
+            if direction=='from':
+                reg_value = list(pairs[addr][0])
+            else:
+                reg_value = pairs[addr][0].from_bytes(size_byte, 'little')
+            new_pairs[addr] = [reg_value, pairs[addr][1]]
+        return new_pairs
     
     @memoize
     def __regs_from_paramMap(self):
@@ -183,6 +194,7 @@ class Translator():
                     values = paramDict['value'] if 'value' in paramDict else None
                     parDict = nested_dict()
                     if 'params' in paramDict:
+                        # print(paramDict['params'],param,block)
                         for par,pDict in paramDict['params'].items():
                             if 'param_value' in pDict: parDict[par]['param_value'] = pDict['param_value']
 

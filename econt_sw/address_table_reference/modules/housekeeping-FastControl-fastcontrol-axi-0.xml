@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<node>    
+  <node id="command" address="0x0" permission="rw">
+    <node id="enable_fast_ctrl_stream" mask="0x1"        description="Enable fast control stream (otherwise, constant zero)"/>
+    <node id="force_idles"             mask="0x2"        description="Force idles (disable any other signals)"/>
+    <node id="enable_orbit_sync"       mask="0x4"        description="Enable orbitsync"/>
+    <node id="global_l1a_enable"       mask="0x8"        description="Global L1A enable/disable.  L1A must be disabled when sending many special commands"/>
+    <node id="prel1a_offset"           mask="0x30"       description="Number of BX before L1A to send the preL1A message"/>
+    <node id="enable_external_l1as"    mask="0x780"      description="Enable external l1a inputs (0-3)"/>
+    <node id="enable_random_l1a"       mask="0x4000"     description="Enable random l1a generator"/>
+    <node id="enable_block_sequencer"  mask="0x8000"     description="Enable block command sequencer based on orbit prescaling"/>
+    <node id="enable_nzs_generator"    mask="0x10000"    description="Enable periodic NZS generation"/>
+    <node id="enable_nzs_jitter"       mask="0x20000"    description="Enable jittering the number of events between NZS using BX number"/>
+  </node>
+  <node id="request" address="0x1" permission="rw" > <!-- All nodes in this register auto-reset to zero -->
+    <node id="reset_nzs"               mask="0x1"         description="Reset the NZS generator (auto-clear)"/>
+    <node id="count_rst"               mask="0x2"         description="Reset counters (auto-clear)"/>
+    <node id="sequence_req"            mask="0x8000"      description="Request a single operation of the sequencer block"/>
+    <node id="orbit_count_reset"       mask="0x10000"     description="Send an orbit count reset at the next orbitsync (auto-clear)"/>
+    <node id="chipsync"                mask="0x20000"     description="Send a ChipSync (auto-clear)"/>
+    <node id="ebr"                     mask="0x40000"     description="Send an EventBufferReset (ebr) (auto-clear)"/>
+    <node id="ecr"                     mask="0x80000"     description="Send an EventCounterReset (ecr) (auto-clear)"/>
+    <node id="link_reset_roct"         mask="0x100000"    description="Send a link-reset_ROC_T (auto-clear)"/>
+    <node id="link_reset_rocd"         mask="0x200000"    description="Send a link-reset_ROC_D (auto-clear)"/>
+    <node id="link_reset_econt"        mask="0x400000"    description="Send a link-reset_ECON_T (auto-clear)"/>
+    <node id="link_reset_econd"        mask="0x800000"    description="Send a link-reset_ECON_D (auto-clear)"/>
+    <node id="spare0"                  mask="0x1000000"   description="Send a SPARE0 command (auto-clear)"/>
+    <node id="spare1"                  mask="0x2000000"   description="Send a SPARE1 command (auto-clear)"/>
+    <node id="spare2"                  mask="0x4000000"   description="Send a SPARE2 command (auto-clear)"/>
+    <node id="spare3"                  mask="0x8000000"   description="Send a SPARE3 command (auto-clear)"/>
+    <node id="spare4"                  mask="0x10000000"  description="Send a SPARE4 command (auto-clear)"/>
+    <node id="spare5"                  mask="0x20000000"  description="Send a SPARE5 command (auto-clear)"/>
+    <node id="spare6"                  mask="0x40000000"  description="Send a SPARE6 command (auto-clear)"/>
+    <node id="spare7"                  mask="0x80000000"  description="Send a SPARE7 command (auto-clear)"/>
+  </node>
+  <node id="bx_orbit_sync" address="0x2" mask="0xfff" permission="rw" description="BX for orbitsync"/>
+  <node id="bx_chipsync" address="0x2" mask="0xfff000" permission="rw" description="BX for chipsync"/>
+  <node id="bx_link_reset_roct" address="0x3" mask="0xfff" permission="rw" description="BX for link-reset_ROC_T"/>
+  <node id="bx_link_reset_rocd" address="0x3" mask="0xfff000" permission="rw" description="BX for link-reset_ROC_D"/>
+  <node id="bx_link_reset_econt" address="0x4" mask="0xfff" permission="rw" description="BX for link-reset_ECON_T"/>
+  <node id="bx_link_reset_econd" address="0x4" mask="0xfff000" permission="rw" description="BX for link-reset_ECON_D"/>
+  <node id="bx_ebr" address="0x5" mask="0xfff" permission="rw" description="BX for EventBufferReset (ebr)"/>
+  <node id="bx_ecr" address="0x5" mask="0xfff000" permission="rw" description="BX for EventCounterReset (ecr)"/>
+  <node id="bx_spare0" address="0x6" mask="0xfff" permission="rw" description="BX for SPARE0"/>
+  <node id="bx_spare1" address="0x6" mask="0xfff000" permission="rw" description="BX for SPARE1"/>
+  <node id="bx_spare2" address="0x7" mask="0xfff" permission="rw" description="BX for SPARE2"/>
+  <node id="bx_spare3" address="0x7" mask="0xfff000" permission="rw" description="BX for SPARE3"/>
+  <node id="bx_spare4" address="0x8" mask="0xfff" permission="rw" description="BX for SPARE4"/>
+  <node id="bx_spare5" address="0x8" mask="0xfff000" permission="rw" description="BX for SPARE5"/>
+  <node id="bx_spare6" address="0x9" mask="0xfff" permission="rw" description="BX for SPARE6"/>
+  <node id="bx_spare7" address="0x9" mask="0xfff000" permission="rw" description="BX for SPARE7"/>
+
+  <node id="minimum_trigger_period" address="0xa" mask="0xfff" permission="rw" description="Minimum BX between external or random triggers"/>
+  <node id="external_triggers_debounce" address="0xa" mask="0xf000" permission="rw" description="Input-by-input flags to indicate if external L1A should be debounced (generally a fine idea)"/>
+  <node id="external_triggers_burst_length" address="0xa" mask="0x3ff0000" permission="rw" description="Length of the L1A burst provoked by external L1A (default 1)"/>
+
+  <node id="external_trigger_delay" address="11">
+    <node id="bit0" mask="0xff" permission="rw" description="BX delay between request and L1 for external input 0"/>
+    <node id="bit1" mask="0xff00" permission="rw" description="BX delay between request and L1 for external input 1"/>
+    <node id="bit2" mask="0xff0000" permission="rw" description="BX delay between request and L1 for external input 2"/>
+    <node id="bit3" mask="0xff000000" permission="rw" description="BX delay between request and L1 for external input 3"/>
+  </node>
+  <node id="random_trigger_log2_period" address="12" mask="0x1f" permission="rw" description="LOG2(random period between L1A), each bigger step halves the average rate"/>
+
+  <node id="command_sequence">
+    <node id="length" address="14" mask="0x3ff" permission="rw" description="length of the command sequence"/>
+    <node id="bx" address="14" mask="0x3ff0000" permission="rw" description="BX for the start of the command sequence"/>
+    <node id="orbit_prescale" address="15" mask="0xfffff" permission="rw" description="Orbit prescale for repeated generation of the command sequence"/>
+    <node id="page" address="15" mask="0xff000000" permission="rw" description="Page selection for full memory of command sequence (only 256 words visible at a time)"/>
+    <node id="contents" address="0x100" permission="rw" mode="incremental" size="256" description="Window into the sequence contents.  Bit 0 is L1A, bit 1 is calibration request"/>
+  </node>
+
+  <node id="command_delay" address="16" mask="0x7" permission="rw" description="delay select for fast command output; range: 0-7; default: 0; units are one bit AKA one 320 MHz clock cycle"/>
+
+  <node id="periodic0" address="0x20" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic1" address="0x22" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic2" address="0x24" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic3" address="0x26" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic4" address="0x28" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic5" address="0x2A" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic6" address="0x2C" module="file://fastcontrol_axi_periodic.xml"/>
+  <node id="periodic7" address="0x2E" module="file://fastcontrol_axi_periodic.xml"/>
+  
+  <node id="firmware_version" address="64" mask="0xffff" permission="r" description="firmware block version"/>
+  <node id="num_periodic_generators" address="64" mask="0x1f000000" permission="r" description="number of periodic generators"/>
+
+  <node id="counters" permission="r"> 
+    <node id="errors" address="65" description="Count of encoding errors/invalid requests for commands which cannot overlap"/>
+    <node id="l1a_suppressed" address="66" description="Number of L1As suppressed by backpressure since last counter reset"/>
+    <node id="bx_suppressed" address="67" description="Number of BX with backpressure since last counter reset"/>
+    <node id="l1a" address="68" description="Number of L1As sent since last counter reset"/>
+    <node id="l1a_nzs" address="69" description="Number of NZS L1As requested since last counter reset"/>
+    <node id="orbit_sync" address="70" description="Number of orbit syncs sent since last counter reset"/>
+    <node id="orbit_count_reset" address="71" description="Number of orbit count resets sent since last counter reset"/>
+    <node id="internal_calibration_pulse" address="72" description="Number of internal calibration pulses sent since last counter reset"/>
+    <node id="external_calibration_pulse" address="73" description="Number of external calibration pulses sent since last counter reset"/>
+    <node id="chipsync" address="74" description="Number of chipsyncs sent since last counter reset"/>
+    <node id="ecr" address="75" description="Number of event counter resets sent since last counter reset"/>
+    <node id="ebr" address="76" description="Number of event buffer resets sent since last counter reset"/>
+    <node id="link_reset_roct" address="77" description="Number of link reset ROC-T sent since last counter reset"/>
+    <node id="link_reset_rocd" address="78" description="Number of link reset ROC-D sent since last counter reset"/>
+    <node id="link_reset_econt" address="79" description="Number of link reset ECON-T sent since last counter reset"/>
+    <node id="link_reset_econd" address="80" description="Number of link reset ECON-D sent since last counter reset"/>
+    <node id="spare0" address="81" description="Number of spare0 commands sent since last counter reset"/>
+    <node id="spare1" address="82" description="Number of spare1 commands sent since last counter reset"/>
+    <node id="spare2" address="83" description="Number of spare2 commands sent since last counter reset"/>
+    <node id="spare3" address="84" description="Number of spare3 commands sent since last counter reset"/>
+    <node id="spare4" address="85" description="Number of spare4 commands sent since last counter reset"/>
+    <node id="spare5" address="86" description="Number of spare5 commands sent since last counter reset"/>
+    <node id="spare6" address="87" description="Number of spare6 commands sent since last counter reset"/>
+    <node id="spare7" address="88" description="Number of spare7 commands sent since last counter reset"/>
+ 
+    <node id="external_l1a" address="128">
+      <node id="raw_requests0" address="0" description="Number of raw requests from source 0 sent since last counter reset"/>
+      <node id="raw_requests1" address="1" description="Number of raw requests from source 1 sent since last counter reset"/>
+      <node id="raw_requests2" address="2" description="Number of raw requests from source 2 sent since last counter reset"/>
+      <node id="raw_requests3" address="3" description="Number of raw requests from source 3 sent since last counter reset"/>
+      <node id="requests0" address="4" description="Number of requests from source 0 sent since last counter reset"/>
+      <node id="requests1" address="5" description="Number of requests from source 1 sent since last counter reset"/>
+      <node id="requests2" address="6" description="Number of requests from source 2 sent since last counter reset"/>
+      <node id="requests3" address="7" description="Number of requests from source 3 sent since last counter reset"/>
+      <node id="vetoed_requests0" address="8"  description="Number of vetoed requests from source 0 sent since last counter reset"/>
+      <node id="vetoed_requests1" address="9"  description="Number of vetoed requests from source 1 sent since last counter reset"/>
+      <node id="vetoed_requests2" address="10" description="Number of vetoed requests from source 2 sent since last counter reset"/>
+      <node id="vetoed_requests3" address="11" description="Number of vetoed requests from source 3 sent since last counter reset"/>
+    </node>
+
+  </node>
+</node>

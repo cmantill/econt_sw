@@ -1,0 +1,15 @@
+<node>
+      <node id="link0"   address="0x0" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link0" />
+      <node id="link1"   address="0x8" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link1" />
+      <node id="link2"   address="0x10" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link2" />
+      <node id="link3"   address="0x18" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link3" />
+      <node id="link4"   address="0x20" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link4" />
+      <node id="link5"   address="0x28" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link5" />
+      <node id="link6"   address="0x30" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link6" />
+      <node id="link7"   address="0x38" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link7" />
+      <node id="link8"   address="0x40" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link8" />
+      <node id="link9"   address="0x48" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link9" />
+      <node id="link10"   address="0x50" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link10" />
+      <node id="link11"   address="0x58" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link11" />
+      <node id="link12"   address="0x60" module="file://eLink_outputs_switch_channel.xml" description="Switch controls for link12" />
+</node>

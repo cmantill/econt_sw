@@ -1,0 +1,5 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/utilityip/blob/master/stream_compare/stream_compare_axi.xml -->
+
+<node>
+	<node id="delay" address="0x0" mask="0x3f" permission="rw" description="delay, in number of AXI-stream transactions; range: [0,32]; default: 0"/>
+</node>

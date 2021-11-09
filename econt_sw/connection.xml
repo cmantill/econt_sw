@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<connections>
+  <connection id="mylittlememory" uri="uioaxi-1.0://address_table/fw_block_addresses.xml" address_table="file://address_table/fw_block_addresses.xml" />
+</connections>

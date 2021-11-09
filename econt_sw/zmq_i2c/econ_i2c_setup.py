@@ -12,14 +12,14 @@ if translate:
     default = translator.pairs_from_cfg()
     
     # Load test map and expand config
-    paramMap = translator.load_param_map("configs/init_align.yaml")['ECON-T']
+    paramMap = translator.load_param_map("../configs/init_align.yaml")['ECON-T']
     pairs = translator.pairs_from_cfg(paramMap)
     
     # Read previous values of addresses in test map
     writeCaches = {}
     for addr,vals in pairs.items():
         size_byte = vals[1]
-        readback = i2c.read(0x20, addr, size_byte)
+        readback = i2c.read(0x21, addr, size_byte)
         '''
         if size_byte == 1:
             print("Prev value: ",hex(addr), "0x%02x"%tuple(readback))

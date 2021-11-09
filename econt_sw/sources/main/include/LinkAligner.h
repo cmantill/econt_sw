@@ -11,7 +11,7 @@
 #include <eLinkOutputsBlockHandler.h>
 
 #define ALIGN_PATTERN 0xACCCCCCC
-#define BX0_PATTERN 0x9CCCCCCC
+#define ALIGN_PATTERN_BX0 0x9CCCCCCC
 #define SYNC_WORD 0b00100100010
 #define BX0_WORD 0xf922f922
 #define NUM_INPUTLINKS 12
@@ -63,11 +63,17 @@ class LinkAligner
   LinkAligner(uhal::HwInterface* uhalHWInterface, FastControlManager* fc);
   ~LinkAligner(){;}
 
+  bool configure_IO(std::string, std::vector<link_description>, bool set_delay_mode=false);
+  bool configure_data();
   bool configure(const YAML::Node& config);
-  void align();
-  bool checkLinks();
 
-  void testPRBS();
+  bool checkLinkStatus(LinkCaptureBlockHandler lchandler);
+  bool checkLinkFIFO(LinkCaptureBlockHandler lchandler,std::vector<int> positions,,std::vector<int> positions_found);
+  bool alignRelative(int emulator_latency);
+  
+  void align_IO();
+  bool align();
+
   void testDelay(std::string elink_name, int delay);
   void delayScan();
 
@@ -77,13 +83,19 @@ class LinkAligner
   uhal::HwInterface* m_uhalHW;
   FastControlManager* m_fcMan;
   int m_port;
+  int m_verbose;
+  int m_save_input_data;
+
+  std::vector<link_description> m_elinksInput;
+  std::vector<link_description> m_elinksOutput;
 
   eLinkOutputsBlockHandler m_out;
-  LinkCaptureBlockHandler m_lchandler;
+  eLinkOutputsBlockHandler m_bypass;
   IOBlockHandler m_fromIO;
   IOBlockHandler m_toIO;
-  std::vector<std::string> m_eLinks;
-  std::vector<std::string> m_outputBrams;
+  std::vector<LinkCaptureBlockHandler> m_link_capture_block_handlers;
+  LinkCaptureBlockHandler m_lc_asic;
+  LinkCaptureBlockHandler m_lc_emulator;
 };
 
 #endif

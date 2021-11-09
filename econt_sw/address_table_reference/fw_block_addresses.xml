@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="TOP">
+  <node id="ASIC-IO-I2C-I2C-fudge-0"	    module="file://modules/I2C_fudge.xml"	          address="0x80001000"/>
+  <node id="ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80002000"/>
+  <node id="ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"	    module="file://modules/ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0.xml"	          address="0x80003000"/>
+  <node id="ECONT-Emulator-axis-delay-0"	    module="file://modules/ECONT-Emulator-axis-delay-0.xml"	          address="0x80030000"/>
+  <node id="capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80005000"/>
+  <node id="capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-ECONT-ASIC-link-capture-link-capture-AXI-0.xml"	          address="0x80006000"/>
+  <node id="capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80007000"/>
+  <node id="capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0.xml"	          address="0x80008000"/>
+  <node id="capture-align-compare-compare-outputs-stream-compare-0"	    module="file://modules/capture-align-compare-compare-outputs-stream-compare-0.xml"	          address="0x80004000"/>
+  <node id="capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO"	    module="file://modules/capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO_FIFO.xml"	          address="0x80010000"/>
+  <node id="capture-align-compare-input-link-capture-link-capture-AXI-0"	    module="file://modules/capture-align-compare-input-link-capture-link-capture-AXI-0.xml"	          address="0x80020000"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux"	    module="file://modules/econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux.xml"	          address="0x80009000"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux"	    module="file://modules/econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux.xml"	          address="0x8000a000"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block00-bram-ctrl"	    mode="block"	          address="0x80200000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block01-bram-ctrl"	    mode="block"	          address="0x80210000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block02-bram-ctrl"	    mode="block"	          address="0x80220000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block03-bram-ctrl"	    mode="block"	          address="0x80230000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block04-bram-ctrl"	    mode="block"	          address="0x80240000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block05-bram-ctrl"	    mode="block"	          address="0x80250000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block06-bram-ctrl"	    mode="block"	          address="0x80260000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block07-bram-ctrl"	    mode="block"	          address="0x80270000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block08-bram-ctrl"	    mode="block"	          address="0x80280000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block09-bram-ctrl"	    mode="block"	          address="0x80290000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block10-bram-ctrl"	    mode="block"	          address="0x802a0000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block11-bram-ctrl"	    mode="block"	          address="0x802b0000" size="0x00004000" permission="rw"/>
+  <node id="econt-emulator-bypass-option-expected-outputs-RAM-out-block12-bram-ctrl"	    mode="block"	          address="0x802c0000" size="0x00004000" permission="rw"/>
+  <node id="housekeeping-FastControl-fastcontrol-axi-0"	    module="file://modules/housekeeping-FastControl-fastcontrol-axi-0.xml"	          address="0x8000b000"/>
+  <node id="housekeeping-FastControl-fastcontrol-recv-axi-0"	    module="file://modules/housekeeping-FastControl-fastcontrol-recv-axi-0.xml"	          address="0x8000c000"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-ipif-stream-mux"	    module="file://modules/test-vectors-to-ASIC-and-emulator-test-vectors-ipif-stream-mux.xml"	          address="0x8000d000"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-ipif-switch-mux"	    module="file://modules/test-vectors-to-ASIC-and-emulator-test-vectors-ipif-switch-mux.xml"	          address="0x8000e000"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block00-bram-ctrl"	    mode="block"	          address="0x80300000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block01-bram-ctrl"	    mode="block"	          address="0x80310000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block02-bram-ctrl"	    mode="block"	          address="0x80320000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block03-bram-ctrl"	    mode="block"	          address="0x80330000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block04-bram-ctrl"	    mode="block"	          address="0x80340000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block05-bram-ctrl"	    mode="block"	          address="0x80350000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block06-bram-ctrl"	    mode="block"	          address="0x80360000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block07-bram-ctrl"	    mode="block"	          address="0x80370000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block08-bram-ctrl"	    mode="block"	          address="0x80380000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block09-bram-ctrl"	    mode="block"	          address="0x80390000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block10-bram-ctrl"	    mode="block"	          address="0x803a0000" size="0x00004000" permission="rw"/>
+  <node id="test-vectors-to-ASIC-and-emulator-test-vectors-out-block11-bram-ctrl"	    mode="block"	          address="0x803b0000" size="0x00004000" permission="rw"/>
+</node>

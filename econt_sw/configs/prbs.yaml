@@ -1,0 +1,107 @@
+ECON-T:
+ RW:
+  CH_ALIGNER_*INPUT_ALL:
+   registers:
+    config:
+     params:
+      prbs_chk_en:
+       param_value: 1
+      per_ch_align_en:
+       param_value: 1
+      sel_override_en:
+       param_value: 0
+      prbs28_en:
+       param_value: 0
+    sel_override_val:
+     value: 0
+     
+  FMTBUF_ALL:
+   registers:
+    tx_sync_word:
+     value: 0b00100100010
+    config:
+     params:
+      eporttx_numen:
+       # Number of output ports enabled
+       param_value: 13
+
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       param_value: 0
+  
+  MISC_ALL:
+   registers:
+    misc_rw_0:
+     params:
+      rw_ecc_err_clr:
+       param_value: 1
+
+read:
+ ECON-T:
+  RW: 
+   MFC_ALGORITHM_SEL_DENSITY:
+    registers:
+     algo:
+      params:
+       select:
+        param_value: 0
+       density:
+        param_value: 0
+
+   ALIGNER_ALL:
+    registers:
+     config:
+      params:
+       snapshot_en:
+        param_value: 0
+       snapshot_arm:
+        param_value: 0
+     match_pattern_val:
+      value: 0
+     match_mask_val:
+      value: 0
+     orbsyn_cnt_max_val:
+      value: 0
+     orbsyn_cnt_load_val:
+      value: 0
+     orbsyn_cnt_snapshot:
+      value: 0
+
+  RO:
+   CH_ALIGNER_*INPUT_ALL:
+    registers:
+     status:
+      params:
+       prbs_chk_err:
+        param_value: 0
+       orbsyn_fc_err:
+        param_value: 0
+       orbsyn_arr_err:
+        param_value: 0
+       orbsyn_hdr_err:
+        param_value: 0
+       align_seu_err:
+        param_value: 0
+       hdr_mm_err:
+        param_value: 0
+       snapshot_dv:
+        param_value: 0
+       pattern_match:
+        param_value: 0
+     select:
+      value: 0
+     snapshot:
+      value: 0
+     hdr_mm_cntr: 
+      value: 0
+     orbsyn_hdr_err_cnt:
+      value: 0
+     orbsyn_arr_err_cnt:
+      value: 0
+     orbsyn_fc_err_cnt:
+      value: 0
+     prbs_chk_err_cnt:
+      value: 0
