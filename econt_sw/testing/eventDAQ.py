@@ -32,12 +32,18 @@ if __name__ == "__main__":
 
     i2c_sockets = {}
     for key in server.keys():
-        i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), args.idir+"/init.yaml")
+        inityaml = args.idir+"/init.yaml"
+        try:
+            i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), args.idir+"/init.yaml")
+        except:
+            inityaml = args.idir+"/init_%s.yaml"%key
+            i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]), args.idir+"/init_%s.yaml"%key)
         i2c_sockets[key].configure()
 
         # read back i2c 
-        read_socket = i2c_sockets[key].read_config(args.idir+"/init.yaml")
+        read_socket = i2c_sockets[key].read_config(inityaml)
         #print(read_socket)
+
 
     # daq
     os.system('python testing/uhal-eventDAQ.py --idir %s --capture l1a'%args.idir)
