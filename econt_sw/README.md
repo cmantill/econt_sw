@@ -14,17 +14,16 @@ ECON-SW
 - *Clone repository*:
     ```bash
     # clone repository in `src/` folder or other working directory:
-    git clone git@github.com:cmantill/econt_sw.git
-
-    # for tester setup, switch branch:
-    git fetch origin
-    git checkout -b tester-emulator-ROCv3 origin/tester-emulator-ROCv3
+    git clone --recursive git@github.com:cmantill/econt_sw.git
+    # to update submodules
+    cd econt_sw/
+    git submodule --init --recursive
     ```
 
 - *uHal*: Visit https://gitlab.cern.ch/hgcal-daq-sw/ipbus-software
     ```bash
-    # go to first directory
-    cd econt-sw/
+    # go into econt_sw directory
+    cd econt_sw/
 
     # install libraries
     sudo yum install boost boost-devel
@@ -40,7 +39,6 @@ ECON-SW
     make -j2 Set=uhal
     make install -j2 Set=uhal
     ```
-
 ## Install:
 
 - **Basic installation of econt-sw on Zynq Trenz module**:
@@ -61,17 +59,28 @@ ECON-SW
 
 - **To re-load new firmware**:
 
-    In HGCAL-dev board:
-    - FIRMWARE_FOLDER ASIC: `~/firmware/econ-t-emu-solo-ROCv3-Sep24-3/`
-    - FIRMWARE_FOLDER TESTER: `~/firmware/econ-t-tester-ROCv3-Sep25/`
     ```bash
-    # go to little-dt directory
-    cd /home/HGCAL_dev/mylittledt/
+    # go to mylittledt directory
+    cd ${MYLITTLEDT}
+    cd /home/HGCAL_dev/src/mylittledt/
 
-    # load new firmware, $FIRMWARE_FOLDER and set permissions
-    sudo ./load.sh $FIRMWARE_FOLDER && sudo chmod a+rw /dev/uio* /dev/i2c-*
+    # load firmware and set permissions
+    sudo ./load.sh ${FIRMWARE_FOLDER}   && sudo chmod a+rw /dev/uio* /dev/i2c-*
+    ```
+
+    In HGCAL_dev board:
+    ```
+    ${MYLITTLEDT} = /home/HGCAL_dev/src/mylittledt/
+    ${FIRMWARE_FOLDER} = econ-t-IO-Aug12
     ```
     
+    In interposer setup:
+    ```
+    ${MYLITTLEDT} =  /home/HGCAL_dev/mylittledt/
+    ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-emu-solo-ROCv3-Sep24-3/`
+    ${FIRMWARE_FOLDER} TESTER: `~/firmware/econ-t-tester-ROCv3-Sep25/`
+    ```
+
     To check the version of the firmware:
     ```
     # check which version of the firmware was loaded
@@ -83,7 +92,7 @@ ECON-SW
     ```
 
 - **When loading new firmware**:
-    Need to link `address_table` directory. Default `fw_block_addresses.xml` files are available in the `econt_sw/econt_sw/` directory for comparison.
+    Need to link `address_table` directory. Default `fw_block_addresses.xml` files are available in the `econt_sw/econt_sw/address_table_reference_*/` directories for comparison.
     ```
     sudo ln -s /opt/hexactrl/uHAL_xml address_table
     ```    
@@ -114,16 +123,12 @@ This means that when running testing scripts remotely one needs to do port forwa
 
 ### ZYNQ ECON-T testers:
 ```
-    # econ-tester1 (ASIC with emu-solo firmware)
+    # econ-ASIC (ASIC with emu-solo firmware)
     # to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
     ssh HGCAL_dev@192.168.1.45
-    # or
-    sshECONT-ASIC
    
-    # econ-tester2 (Emulator with tester firmware)
+    # econ-emulator (Emulator with tester firmware)
     ssh HGCAL_dev@192.168.1.46
-    # or
-    sshECONT-Tester
 ```
 
 ### ZYNQ HGCAL_dev:
@@ -187,7 +192,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ssh -K hcalpro@cmsnghcal01.fnal.gov
 
   # Start a terminal session:
-  # Then, port forward to ZYNQ:
+  # Then, port forward to ZYNQ, e.g.:
   ssh -L 6678:localhost:6678 -L 8888:localhost:8888 -L 6677:localhost:6677 -L 5555:localhost:5555 -p 23 HGCAL_dev@wilsonjc.us
 
   # Start a terminal session (on the 14WH desktop):
@@ -195,8 +200,10 @@ This means that when running testing scripts remotely one needs to do port forwa
   cd cmantill/econt_sw/econt_sw/ # or to working directory with econt_sw
   ./bin/zmq-client -P 6678
 
-  # Start a terminal session (on the 14WH desktop) - run scripts:
-  # python3 align_links.py 
+  # Start a terminal session (on the 14WH desktop):
+  # Run the testing script, e.g.:
+  cd scripts/
+  python3 align_links.py 
   ```
   
 ### Running on tester setup:
@@ -205,7 +212,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
   python debug_tools/setupIOdelay.py
   ```
-  
+    
 - On the "Emulator":
   ```
   # start server for i2c with emulator
