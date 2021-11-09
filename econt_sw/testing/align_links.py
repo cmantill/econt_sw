@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # i2c for alignment
     orbsyn_cnt_snapshot = {# 'ASIC': 7,
                            'ASIC': 3,
-                           'emulator': 0, # 1
+                           'emulator': 3, # 1
                     }
     orbsyn_cnt_load_val = {'ASIC': 0,
                            'emulator': 0
