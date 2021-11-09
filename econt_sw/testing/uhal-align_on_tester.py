@@ -214,19 +214,23 @@ if __name__ == "__main__":
 
         # configure link captures
         sync_patterns = {'lc-ASIC': 0x122,
-                         'lc-emulator': 0x122}
-        for lcapture in ['lc-ASIC','lc-emulator']:
+                         'lc-emulator': 0x122,
+                         'lc-input': 0xaccccccc,
+                     }
+        for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             dev.getNode(names[lcapture]['lc']+".global.link_enable").write(0x1fff)
             dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x0)
             time.sleep(0.001)
             dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x1)
             dev.dispatch()
             # set align pattern
-            for l in range(output_nlinks):
+            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+            for l in range(nlinks):
                 dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(sync_patterns[lcapture])
                 dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(0);
                 dev.dispatch()
-                
+        
+        for lcapture in ['lc-ASIC','lc-emulator']:
             # configure link captures to acquire on linkreset-ECONt (4095 words)
             configure_acquire(dev,lcapture,"linkreset_ECONt",nwords=4095,nlinks=output_nlinks)
             
