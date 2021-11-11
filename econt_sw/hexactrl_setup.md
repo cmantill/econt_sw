@@ -6,7 +6,7 @@
      * To get `boot` file from scratch, go to [Trenz TE0820 website](https://shop.trenz-electronic.de/en/TE0820-04-2BE21FL-MPSoC-Module-with-Xilinx-Zynq-UltraScale-ZU2EG-1E-2-GByte-DDR4-4-x-5-cm-LP?path=Trenz_Electronic/Modules_and_Module_Carriers/4x5/TE0820/Reference_Design/2019.2/test_board) and look into `Reference Design - Source Code and Configuration Files` - download 1 File.
      * Unzip the file `TE0820-test_board-vivado_2020.2-build_5_20210601084124` and look into `prebuilt/boot_images`. 
      * The `BOOT.bin` comes from the folder `4cg_1e_2gb` (or for older versions `prebuilt/boot_images/3eg_2gb/`) but `image.ub` comes from the petalinux directory.
-     * You can mount it using 
+     * You can mount it using:
      ```
      mount boot
      mount root
@@ -30,7 +30,12 @@
      Replace it with the device name of yours. The of parameter (output file) specifies the file name to write to. I chose `sd_card_copy.img` in my home directory.
      You can also use `bs` that sets both input and output block size to n bytes
      
-     You will not see any output from the command until after the cloning is complete, and that might take a while, depending on the size of your SD card. Once it is complete, you will see an output like the following.`
+     You will not see any output from the command until after the cloning is complete, and that might take a while, depending on the size of your SD card. Once it is complete, you will see an output like the following:
+     ```
+     30727+1 records in
+     30727+1 records out
+     32220119040 bytes transferred in 5043.025013 secs (6389046 bytes/sec)
+     ```
     
      You can now remove the SD card. Enter the new one and do:
      ```
@@ -58,14 +63,15 @@
      ```
      # get mac address:
      [HGCAL_dev@localhost mylittledt]$ ip addr show
-   link/ether 04:91:62:bf:cb:cb brd ff:ff:ff:ff:ff:ff
-    # set that to econ-tester1
-    # then, restart dhcp server
-    service dhcpd restart
-    # then, reboot
-    # can't remember what this line was...env["SCA"]='blabla ../python'
-    sudo reboot
-    ```
+     # e.g. 
+     link/ether 04:91:62:bf:cb:cb brd ff:ff:ff:ff:ff:ff
+     # set that to econ-testerX
+     # then, restart dhcp server
+     service dhcpd restart
+     # then, reboot
+     # can't remember what this line was...env["SCA"]='blabla ../python'
+     sudo reboot
+     ```
 4. Copy version of the firmware into the board:
     ```
     # e.g. scp into hcalpro 
