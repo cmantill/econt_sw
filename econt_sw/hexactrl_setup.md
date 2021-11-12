@@ -43,35 +43,60 @@
      ```
 3. Replace SD card on the board.
 4. Connect to ethernet and power the board.
+   * If SD card has the correct boot files, the green light should be there, and the red light next to it should go off.
    * First, you need to find the IP address. 
      Try pinging until connected:
      ```
      for i in `seq 90 199`; do ping -w 1 192.168.1.$i; done
      ```
-     In hcalpro:
+     until, e.g.
      ```
+     PING 192.168.1.91 (192.168.1.91) 56(84) bytes of data.
+     64 bytes from 192.168.1.91: icmp_seq=1 ttl=64 time=0.111 ms
+
+     --- 192.168.1.91 ping statistics ---
+     1 packets transmitted, 1 received, 0% packet loss, time 0ms
+     rtt min/avg/max/mdev = 0.111/0.111/0.111/0.000 ms
+     PING 192.168.1.92 (192.168.1.92) 56(84) bytes of data.
+     ```
+     Now, log in and get the mac address, e.g.:
+     ```
+     ssh HGCAL_dev@192.168.1.91
+     ip addr show
+     ```
+     and it will show, e.g.
+     ```
+     # for econ-tester 1 (192.168.1.45)
+     link/ether 04:91:62:bf:cb:cb brd ff:ff:ff:ff:ff:ff
+     # for econ-tester 2 (192.168.1.46)
+     link/ether 04:91:62:bf:b9:ef
+     # for econ-tester 3 (hexacontroller from UMN) (192.168.1.48):
+     link/ether 04:91:62:bf:c0:d2 brd ff:ff:ff:ff:ff:ff
+     # for econ-tester 4 (hexacontroller from Aidan) (to be set up as 192.168.1.49):
+     
+     ```
+     
+     Now, log in to hcalpro (password 2013%hcalpro):
+     ```
+     # log in as sudo (password: WeLuVL8z8)
      su
-     # password: WeLuVL8z8
-     # then edit
+     # then edit to add a fixed address
      /etc/dhcp/dhcpd.conf
+     # e.g.
+     host econ-tester3{
+         hardware ethernet 04:91:62:bf:c0:d2;
+         fixed-address 192.168.1.48;
+     }
+     # then, restart dhcp server
+     service dhcpd restart
+     # then, reboot
+     sudo reboot
      ```     
      Then connect:
      ```
      ssh HGCAL_dev@192.168.1.XX
      ```
-   * Now we can set it with a fixed IP address:
-     ```
-     # get mac address:
-     [HGCAL_dev@localhost mylittledt]$ ip addr show
-     # e.g. 
-     link/ether 04:91:62:bf:cb:cb brd ff:ff:ff:ff:ff:ff
-     # set that to econ-testerX
-     # then, restart dhcp server
-     service dhcpd restart
-     # then, reboot
-     # can't remember what this line was...env["SCA"]='blabla ../python'
-     sudo reboot
-     ```
+     
 4. Copy version of the firmware into the board:
     ```
     # e.g. scp into hcalpro 
