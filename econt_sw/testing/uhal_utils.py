@@ -151,12 +151,15 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     #print(mode)
 
     for l in range(nlinks):
-        dev.getNode(names[lcapture]["lc"]+".link"+str(l)+".explicit_rstb_acquire").write(1)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".total_length").write(nwords)
         for key,val in captures.items():
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_%s"%key).write(val)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire").write(1)
+        dev.getNode(names[lcapture]["lc"]+".link"+str(l)+".explicit_rstb_acquire").write(0)
+        dev.dispatch()
+    dev.getNode(names[lcapture]["lc"]+".global.interrupt_enable").write(0)
     dev.dispatch()
 
 # acquire with fast command
