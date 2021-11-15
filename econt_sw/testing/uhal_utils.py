@@ -106,7 +106,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
             logger.error('%s: is not aligned:'%lcapture)
             for i in range(len(lc_align)):
                 logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
-        return False
+            return False
     else:
         try:
             for l,val in enumerate(aligned_counter):
@@ -137,11 +137,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
             }
     if "BX" in mode:
         captures['mode_in'] = 1
-    elif "linkreset" in mode:
-        captures["mode_in"] = 2
-    elif "L1A" in mode:
-        captures["mode_in"] = 2
-    elif "orbitSync" in mode:
+    elif "linkreset" in mode or "L1A" in mode or "orbitSync" in mode:
         captures["mode_in"] = 2
     elif "inmediate" in mode:
         captures["mode_in"] = 0
@@ -181,7 +177,7 @@ def do_capture(dev,lcapture):
     dev.dispatch()
     import time
     time.sleep(0.001)
-    #raw_input("ready to capture, press link to continue")
+    raw_input("ready to capture, press link to continue")
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
 
