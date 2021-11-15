@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
     parser.add_argument("--capture", dest="capture", action="store",
-                        help="capture data with one of the options", choices=["l1a","compare","bx"], required=True)
+                        help="capture data with one of the options", choices=["l1a","compare"], required=True)
     parser.add_argument('--idir',dest="idir",type=str, required=True, help='test vector directory')    
     args = parser.parse_args()
 
@@ -47,11 +47,10 @@ if __name__ == "__main__":
 
     # first, check alignment
     is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
-    # with current firmware lc ASIC counters do not show alignment
-    #is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
-    #if not is_fromIO_aligned or not is_lcASIC_aligned:
-    #    print('not aligned! Exiting...')
-    #exit(1)
+    is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    if not is_fromIO_aligned or not is_lcASIC_aligned:
+        print('not aligned! Exiting...')
+        #exit(1)
 
     # read latency values from aligned link captures
     latency_values = {}
@@ -89,7 +88,6 @@ if __name__ == "__main__":
             
         # size of bram is 4096
         out_brams.append([None] * 4096)
-        
         dev.dispatch()
 
     # set input data
@@ -114,24 +112,7 @@ if __name__ == "__main__":
     # configure fast commands
     dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
-
-    # configure link capture to capture on L1A
-    acq_length = 300
-    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
-        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-        configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
         
-        # set latency?
-        """
-        if 'input' not in lcapture:
-            for l in range(input_nlinks):
-                print('writing ',lcapture,l,latency_values[lcapture][l])
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency_values[lcapture][l])
-                dev.dispatch()
-                lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read()
-                dev.dispatch()
-                print(lcapture,l,int(lat))
-        """
     # check stream compare
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
     time.sleep(0.001)
@@ -143,6 +124,12 @@ if __name__ == "__main__":
     logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
 
     if args.capture == "l1a":
+        # configure lc to capture on L1A:
+        acq_length = 300
+        for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+            configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
+
         # send L1A
         dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
         dev.getNode(names['fc']+".periodic0.enable").write(0); # to get a L1A once - not every orbit
@@ -153,6 +140,10 @@ if __name__ == "__main__":
         dev.dispatch()
 
     elif args.capture == "compare":
+        acq_length = 511
+        for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+            configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
