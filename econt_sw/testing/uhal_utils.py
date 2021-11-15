@@ -88,7 +88,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
         writing = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.writing").read()
         dev.dispatch()
         lc_align.append((aligned_c,error_c,aligned))
-        logger.debug('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
+        logger.info('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
     aligned_counter = [int(lc_align[i][0]) for i in range(len(lc_align))]
     error_counter = [int(lc_align[i][1]) for i in range(len(lc_align))]
     is_aligned = [int(lc_align[i][2]) for i in range(len(lc_align))]
@@ -155,6 +155,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     #print(mode)
 
     for l in range(nlinks):
+        dev.getNode(names[lcapture]["lc"]+".link"+str(l)+".explicit_rstb_acquire").write(1)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
         for key,val in captures.items():
@@ -181,7 +182,7 @@ def do_capture(dev,lcapture):
     dev.dispatch()
     import time
     time.sleep(0.001)
-    #raw_input("ready to capture, press link to continue")
+    raw_input("ready to capture, press link to continue")
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
 
