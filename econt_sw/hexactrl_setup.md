@@ -39,6 +39,9 @@
     
      You can now remove the SD card. Enter the new one and do:
      ```
+     # this erases earlier content
+     diskutil unmountDisk /dev/disk2
+     # this copies the image
      sudo dd if=sd_card_copy.img of=/dev/disk2
      ```
 3. Replace SD card on the board.
