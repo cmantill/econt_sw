@@ -106,7 +106,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
             logger.error('%s: is not aligned:'%lcapture)
             for i in range(len(lc_align)):
                 logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
-        return False
+            return False
     else:
         try:
             for l,val in enumerate(aligned_counter):
@@ -137,11 +137,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
             }
     if "BX" in mode:
         captures['mode_in'] = 1
-    elif "linkreset" in mode:
-        captures["mode_in"] = 2
-    elif "L1A" in mode:
-        captures["mode_in"] = 2
-    elif "orbitSync" in mode:
+    elif "linkreset" in mode or "L1A" in mode or "orbitSync" in mode:
         captures["mode_in"] = 2
     elif "inmediate" in mode:
         captures["mode_in"] = 0
@@ -155,12 +151,15 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     #print(mode)
 
     for l in range(nlinks):
-        dev.getNode(names[lcapture]["lc"]+".link"+str(l)+".explicit_rstb_acquire").write(1)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".total_length").write(nwords)
         for key,val in captures.items():
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".capture_%s"%key).write(val)
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire").write(1)
+        dev.getNode(names[lcapture]["lc"]+".link"+str(l)+".explicit_rstb_acquire").write(0)
+        dev.dispatch()
+    dev.getNode(names[lcapture]["lc"]+".global.interrupt_enable").write(0)
     dev.dispatch()
 
 # acquire with fast command
