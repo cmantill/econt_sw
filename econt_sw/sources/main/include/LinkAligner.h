@@ -63,15 +63,16 @@ class LinkAligner
   LinkAligner(uhal::HwInterface* uhalHWInterface, FastControlManager* fc);
   ~LinkAligner(){;}
 
-  bool configure_IO(std::string, std::vector<link_description>, bool set_delay_mode=false);
-  bool configure_data();
+  bool configureIO(std::string, std::vector<link_description>, bool set_delay_mode=false);
+  void configureData();
   bool configure(const YAML::Node& config);
 
+  bool checkIO();
   bool checkLinkStatus(LinkCaptureBlockHandler lchandler);
-  bool checkLinkFIFO(LinkCaptureBlockHandler lchandler,std::vector<int> positions,,std::vector<int> positions_found);
-  bool alignRelative(int emulator_latency);
-  
-  void align_IO();
+  bool findBX0(LinkCaptureBlockHandler lchandler, int nwords, std::vector<int> &latencies, std::vector<int> &positions, int position_to_find);
+  bool findLatency(LinkCaptureBlockHandler lchandler, std::vector<int> &positions, int nwords, int position_to_find);
+
+  void alignIO();
   bool align();
 
   void testDelay(std::string elink_name, int delay);

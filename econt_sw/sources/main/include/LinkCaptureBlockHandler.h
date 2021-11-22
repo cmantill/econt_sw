@@ -69,6 +69,8 @@ class LinkCaptureBlockHandler
   const uint32_t getRegister(std::string elink,std::string regName);
   const uint32_t getGlobalRegister(std::string regName);
   void getData(std::string elink, std::vector<uint32_t> &data, uint32_t size);
+  void acquire(int capture_mode, int fc, int nwords, int bx);
+  bool getCapturedData( std::vector< std::vector<uint32_t> > &linksdata, int noutputlinks, int nwords);
 
  private:
   uhal::HwInterface* m_uhalHW;
