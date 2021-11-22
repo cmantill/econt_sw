@@ -65,9 +65,9 @@ if __name__ == "__main__":
     # check PRBS input?
     checkPRBS = True
     if checkPRBS:
-        configure_acquire(dev,"ASIC-lc-input","BX",300,input_nlinks)
+        configure_acquire(dev,"ASIC-lc-input","BX",4095,input_nlinks)
         do_capture(dev,"ASIC-lc-input")
-        input_data = get_captured_data(dev,"ASIC-lc-input",300,input_nlinks)
+        input_data = get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
         saveData = True
         if saveData:
             save_testvector("ASIC-lc-input-prbs.csv", input_data)
@@ -78,7 +78,16 @@ if __name__ == "__main__":
     reset_econt = dev.getNode(names['ASIC-fc-recv']+".counters.link_reset_econt").read()
     dev.dispatch()
     logger.info("Initial counters: link reset roct %d, econt %d"%(reset_roc,reset_econt))
-    raw_input("Link capture and counters checked. Waiting for link reset ROCt to align input link capture")
+
+    # save input data?
+    saveInputData = True
+    if saveInputData:
+        configure_acquire(dev,"ASIC-lc-input","linkreset_ROCt",4095,input_nlinks)
+        do_capture(dev,"ASIC-lc-input")
+        input_data = get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
+        save_testvector("ASIC-lc-input.csv", input_data)
+    else:
+        raw_input("Link capture and counters checked. Waiting for link reset ROCt to align input link capture")
 
     # read fc again
     reset_roc = dev.getNode(names['ASIC-fc-recv']+".counters.link_reset_roct").read()

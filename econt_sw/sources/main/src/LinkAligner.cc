@@ -63,7 +63,7 @@ LinkAligner::LinkAligner(uhal::HwInterface* uhalHWInterface,
   m_bypass = bypasshandler;
 }
 
-bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_description> elinks, bool set_delay_mode)
+bool LinkAligner::configureIO(std::string IO_block_name, std::vector<link_description> elinks, bool set_delay_mode)
 {
   IOBlockHandler IOhandler( m_uhalHW,
 			    IO_block_name,
@@ -96,7 +96,7 @@ bool LinkAligner::configure_IO(std::string IO_block_name, std::vector<link_descr
   return true;
 }
 
-bool LinkAligner::configure_data()
+void LinkAligner::configureData()
 {
   // setup normal output in test-vectors
   for(auto elink : m_out.getElinks()){
@@ -121,7 +121,7 @@ bool LinkAligner::configure_data()
   
   // set zero data with headers 
   int il=0;
-  uint32_t size_bram = 4096; // bram size (not the one on uHal)
+  uint32_t size_bram = 4095; // bram size (not the one on uHal)
   std::vector<std::vector<uint32_t> > dataList;
   for(auto bram : m_out.getBrams()){
     std::vector<uint32_t> outData;
@@ -149,8 +149,6 @@ bool LinkAligner::configure_data()
     // select data from the emulator as the source
     m_bypass.setSwitchRegister(elink.name(),"output_select",1);
   }
-  
-  return true;
 }
 
 bool LinkAligner::configure(const YAML::Node& config)
@@ -173,13 +171,19 @@ bool LinkAligner::configure(const YAML::Node& config)
     
     LinkCaptureBlockHandler lchandler_emulator( m_uhalHW,
 						std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
-						std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0"),
+						std::string("capture-align-compare-ECONT-emulator-link-capture-link-capture-AXI-0_FIFO"),
 						m_elinksOutput );
     m_link_capture_block_handlers.push_back(lchandler_emulator); // second lc is emulator
     m_lc_emulator = lchandler_emulator;
+
+    LinkCaptureBlockHandler lchandler_input( m_uhalHW,
+                                             std::string("capture-align-compare-input-link-capture-link-capture-AXI-0"),
+                                             std::string("capture-align-compare-input-link-capture-link-capture-AXI-0_FIFO"),
+                                             m_elinksInput); // third lc is input
+    m_link_capture_block_handlers.push_back(lchandler_input);
     
-    if( configure_IO(std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"), m_elinksInput) &&
-	configure_IO(std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"), m_elinksOutput, true)
+    if( configureIO(std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"), m_elinksInput) &&
+	configureIO(std::string("ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"), m_elinksOutput, true)
 	){
       IOBlockHandler toIOhandler( m_uhalHW,
 				  std::string("ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0"),
@@ -202,11 +206,46 @@ bool LinkAligner::configure(const YAML::Node& config)
   }
 }
 
-void LinkAligner::align_IO() {
+/*
+ * Check that IO is aligned
+ */
+bool LinkAligner::checkIO() {
+  for(auto elink : m_fromIO.getElinks()){
+    std::cout << "LinkAligner: delay mode fromIO " << m_fromIO.getRegister(elink.name(),"reg0.delay_mode") <<std::endl;
+    std::cout << "LinkAligner: waiting for transitions fromIO " << m_fromIO.getRegister(elink.name(),"reg3.waiting_for_transitions") <<std::endl;
+    int delay_ready = m_fromIO.getRegister(elink.name(),"reg3.delay_ready");
+    if(delay_ready!=1){
+      std::cout << "LinkAligner Warning: fromIO delay-ready " << delay_ready << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+/* Align IO
+ * configure IO blocks and send bit transitions
+ * (PRBS with repeater algorithm)
+ */
+void LinkAligner::alignIO() {
   // generate bit transitions 
   for(auto elink : m_out.getElinks()){
     // select PRBS mode
     m_out.setSwitchRegister(elink.name(),"output_select",1);
+    // send 256 words in the link reset pattern
+    m_out.setSwitchRegister(elink.name(),"n_idle_words",256);
+    // send this word for almost all BXs of the link reset pattern
+    m_out.setSwitchRegister(elink.name(),"idle_word",ALIGN_PATTERN);
+    // send this word on BX0 during the link reset pattern
+    m_out.setSwitchRegister(elink.name(),"idle_word_BX0",ALIGN_PATTERN_BX0);
+    // headers                                                                                                                                                                                        
+    m_out.setSwitchRegister(elink.name(),"header_mask",0xf0000000);
+    m_out.setSwitchRegister(elink.name(),"header",0xa0000000);
+    m_out.setSwitchRegister(elink.name(),"header_BX0",0x90000000);
+    // stream one complete orbit from RAM before looping
+    m_out.setStreamRegister(elink.name(),"sync_mode",1);
+    // determine pattern length in orbits: 1
+    m_out.setStreamRegister(elink.name(),"ram_range",1);
+    m_out.setStreamRegister(elink.name(),"force_sync",0);
   }
   
   // wait for user input after sending PRBS
@@ -214,14 +253,8 @@ void LinkAligner::align_IO() {
   std::cin.get();
   
   // check that from-IO is aligned
-  for(auto elink : m_fromIO.getElinks()){
-    std::cout << "LinkAligner: delay mode fromIO " << m_fromIO.getRegister(elink.name(),"reg0.delay_mode") <<std::endl;
-    std::cout << "LinkAligner: waiting for transitions fromIO " << m_fromIO.getRegister(elink.name(),"reg3.waiting_for_transitions") <<std::endl;
-    int delay_ready = m_fromIO.getRegister(elink.name(),"reg3.delay_ready");
-    if(delay_ready!=1){
-      std::cout << "LinkAligner Warning: fromIO delay-ready " << delay_ready << std::endl;
-    }
-  }
+  if(checkIO())
+    std::cout << "LinkAligner: from-IO is aligned " << std::endl;
 }
 
 bool LinkAligner::checkLinkStatus(LinkCaptureBlockHandler lchandler)
@@ -236,89 +269,99 @@ bool LinkAligner::checkLinkStatus(LinkCaptureBlockHandler lchandler)
     }
     if(!isaligned){
       std::cout << "LinkAligner: Error :  " << elink.name().c_str() << " is not aligned" << std::endl;
-      if(m_verbose){
+      if(m_verbose)
         std::cout << "LinkAligner: Warning! Incorrect counters for link alignemnt: aligned " << aligned << " errors " << errors << std::endl;
-      }
       return false;
     }
   }
   return true;
 }
-bool LinkAligner::checkLinkFIFO(LinkCaptureBlockHandler lchandler,std::vector<int> positions,,std::vector<int> positions_found)
-{
-  // check that fifos have the same occupancy
-  while(1){
-      std::vector<int> fifo_occupancies;
-      for( auto elink : lchandler.getElinks() ){
-          uint32_t fifo_occupancy =  lchandler.getRegister(elink.name(),"fifo_occupancy");
-          fifo_occupancies.push_back( (int)fifo_occupancy);
-      }
-      if ( std::adjacent_find( fifo_occupancies.begin(), fifo_occupancies.end(), std::not_equal_to<>() ) == fifo_occupancies.end() )
-      {
-          std::cout << "All fifo occupancies are the same " << std::endl;
-          break;
-      }
-  }
 
-  // check data integrity
+/* 
+ * Capture data with a link reset econt
+ * find bx0 pattern at the position we want for all the links
+ */
+bool LinkAligner::findBX0(LinkCaptureBlockHandler lchandler, int nwords, 
+                          std::vector<int> &latencies, std::vector<int> &positions, int position_to_find=-1)
+{
+  bool found_bx0 = false;
+
+  // get data
   auto linksdata = std::vector< std::vector<uint32_t> >(NUM_OUTPUTLINKS);
-  int id=0;
-  positions.clear();
-  for( auto elink : lchandler.getElinks() ){
-    uint32_t fifo_occupancy =  lchandler.getRegister(elink.name(),"fifo_occupancy");
-    lchandler.getData( elink.name(), linksdata[id], fifo_occupancy );
+  bool isDataFilled = lchandler.getCapturedData(linksdata,NUM_OUTPUTLINKS,nwords);
+    
+  if(isDataFilled){
+    // check if and where BX0 pattern is found
+    int ilink=0;
+    for(auto linkdata : linksdata){
+      // number of times BX0 was found
+      int nBX0 = (int)std::count( linkdata.begin(), linkdata.end(), BX0_WORD );
+      if( nBX0 == 0 ){
+        std::cout << "LinkAligner Error for elink " << ilink << ": expected pattern was not found in " << linkdata.size() << " words of the captured data " << std::endl;
+        latencies.at(ilink) =-1;
+      }
+      else{
+        auto posit = std::find( linkdata.begin(), linkdata.end(), BX0_WORD );
+        if (posit != linkdata.end()){
+          // record position at which BX0 was found
+          positions.push_back(posit - linkdata.begin());
+          std::cout << "LinkAligner: found for elink " << ilink << " in " << posit - linkdata.begin() << std::endl;
+        }
+        else{
+          // change latency for this link
+          latencies.at(ilink) = -1;
+        }
+      }
+      ilink++;
+    }
+    
+    // check that position is found always at the same place for all elinks
+    if(positions.size()>0){
+      if ( !std::equal(positions.begin() + 1, positions.end(), positions.begin()) ){
+        std::cout << "LinkAligner: Error: " << " not all alignments patterns are in the same position " << std::endl;
+      }
+      else{
+        if( position_to_find > -1){ 
+          if(positions.at(0)==position_to_find)
+            found_bx0 = true;
+        }
+        else
+          found_bx0 = true;
+      }
+    }
+    else{
+      std::cout << "LinkAligner: Error: no BX0 found " << std::endl;
+    }
 
-    // check where BX0 pattern is found
-    if(fifo_occupancy>0){
-        int nBX0 = (int)std::count( linksdata[id].begin(), linksdata[id].end(), BX0_WORD );
-        auto posit = std::find( linksdata[id].begin(), linksdata[id].end(), BX0_WORD );
-        if (posit !=  linksdata[id].end()){
-            positions.push_back(posit - linksdata[id].begin());
-            std::cout << "LinkAligner: found for " << elink.name() << " in " << posit - linksdata[id].begin() << std::endl;
-        }
-        if( nBX0 == 0 ){
-            std::cout << "LinkAligner Error: " << elink.name() << ": expected pattern was not found in " << linksdata[id].size() << " words of the captured data " << std::endl;
-        }
-      return false;
-    }
-    id++;
-  }
-  if(positions.size()>0){
-    if ( !std::equal(positions.begin() + 1, positions.end(), positions.begin()) ){
-      std::cout << "LinkAligner: Error: " << " not all alignments patterns are in the same position " << std::endl;
-      return false;
-    }
-    return true;
-  }
-  else{
-    return false;
-  }
+    // save data
+  } // end isDataFilled
+  return found_bx0;
 }
-bool LinkAligner::findLatency(std::vector<int> latencies,LinkCaptureBlockHandler lchandler,std::vector<int> found_positions)
+
+bool LinkAligner::findLatency(LinkCaptureBlockHandler lchandler, std::vector<int> &positions, int nwords, int position_to_find=-1)
 {
-  // set latency
-  for(auto elink : lchandler.getElinks()){
-      lchandler.setRegister(elink.name(),"fifo_latency",latencies.at();
+  bool found_bx0 = false;
+  std::vector<int> latencies((int)lchandler.getElinks().size(),-1);
+  for( int i=0; i<31; i++ ){
+    // set latency
+    int ilink=0;
+    for(auto elink : lchandler.getElinks()){
+      lchandler.setRegister(elink.name(),"fifo_latency",latencies.at(ilink));
+    }
+
+    // global acquire
+    lchandler.setRegister("global","aquire",1);
+
+    // send link reset ECONT
+    m_fcMan->bx_link_reset_econt(3550);
+    m_fcMan->request_link_reset_econt();
+
+    // find BX0 word on link capture for ASIC
+    if(findBX0(lchandler, nwords, latencies, positions, position_to_find))
+      found_bx0 = true;
+      break;
   }
-
-  // global acquire
-  lchandler.setRegister("global","aquire",0);
-  lchandler.setRegister("global","aquire",1);
-
-  // send link reset ECONT
-  m_fcMan->bx_link_reset_econt(3550);
-  m_fcMan->request_link_reset_econt();
-
-  // reset global acquire
-  lchandler.setRegister("global","aquire",0);
-
-  // find BX0 word on link capture for ASIC
-  if(
-  if( checkLinks( m_lc_asic ) && checkLinks( m_lc_emulator )){
-    return true;
-  }
-  else
-    return false;
+  return found_bx0;
 }
 
 /**
@@ -353,42 +396,40 @@ bool LinkAligner::findLatency(std::vector<int> latencies,LinkCaptureBlockHandler
 bool LinkAligner::align() {  
   
   // align IO blocks
-  align_IO();  
+  alignIO();
   
-  // configure data
-  bool isdata = configure_data();
-  
+  // configure data to zeros
+  configureData();
+
   // reset FC
   m_fcMan->resetFC();
-  
-  // reset FC counters (not working)
+    // reset FC counters (not working?)
   m_fcMan->setRecvRegister("command.reset_counters_io",0);
   m_fcMan->setRecvRegister("command.reset_counters_io",1);
-  
   // set bx at which link resets will be sent
   m_fcMan->bx_link_reset_roct(3500);
   m_fcMan->bx_link_reset_rocd(3501);
   m_fcMan->bx_link_reset_econt(3502);
   m_fcMan->bx_link_reset_econd(3503);
-  
-  if(m_verbose>0){
+
+  // send link reset roc-t  
+  if(m_verbose>0)
     std::cout << "LinkAligner: # Link-Reset-ROC-T FC: " << m_fcMan->getRecvRegister("counters.link_reset_roct") << std::endl;
-  }
-  
-  // send link reset roc-t
   m_fcMan->request_link_reset_roct();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  
-  if(m_verbose>0){
-    int roct_counters =m_fcMan->getRecvRegister("counters.link_reset_roct");
-    std::cout << "LinkAligner: # Link-Reset-ROC-T FC + 1: " << roct_counters << std::endl;
-  }
+  if(m_verbose>0)
+    std::cout << "LinkAligner: # Link-Reset-ROC-T FC + 1: " << m_fcMan->getRecvRegister("counters.link_reset_roct") << std::endl;
   
   // wait for user input
-  std::cout << "Sent link reset ROCT. Press key to continue..." << std::endl;
+  std::cout << "Sent link reset ROC-T. Press key to continue..." << std::endl;
   std::cin.get();
-  
-  // configure link captures for alignment
+
+  // set delay
+  int delay = 4;
+  m_uhalHW->getNode("ECONT-Emulator-axis-delay-0.delay").write(delay);
+  m_uhalHW->dispatch();
+
+  // configure link captures
   for(auto lchandler : m_link_capture_block_handlers){
     // enable all 13 links
     lchandler.setRegister("global","link_enable",0x1fff);
@@ -396,48 +437,56 @@ bool LinkAligner::align() {
     lchandler.setRegister("global","explicit_resetb",0x0);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     lchandler.setRegister("global","explicit_resetb",0x1);
+    // align pattern
+    int align_pattern = SYNC_WORD; // by default 0x122
+    if(lchandler.getElinks().size() == 12) 
+      align_pattern = 0xaccccccc;
     for(auto elink : lchandler.getElinks()){
-      // set the alignment pattern for all links (by default 0x122)
-      lchandler.setRegister(elink.name(),"align_pattern",SYNC_WORD);
-      // set the BX offset of all 13 links
-      lchandler.setRegister(elink.name(),"L1A_offset_or_BX",0);
-      
-      // set the capture mode of a link-reset-econt
-      lchandler.setRegister(elink.name(),"capture_mode_in",2); // 2 (Link-reset), 1 (manual)
-      lchandler.setRegister(elink.name(),"capture_linkreset_ECONt",1);
-      lchandler.setRegister(elink.name(),"capture_L1A",0);
-      lchandler.setRegister(elink.name(),"capture_linkreset_ROCd",0);
-      lchandler.setRegister(elink.name(),"capture_linkreset_ROCt",0);
-      lchandler.setRegister(elink.name(),"capture_linkreset_ECONd",0);
-      
-      // set the acquire length of all 13 links
-      lchandler.setRegister(elink.name(),"aquire_length",0x1000); // 4096 max memory of link capture
+      // set the alignment pattern for all links
+      lchandler.setRegister(elink.name(),"align_pattern",align_pattern);
+      // reset fifo latency to 0
+      lchandler.setRegister(elink.name(),"fifo_latency",0);
     }
   }
 
+  // configure to acquire on linkreset_ECONt
+  int nwords = 4095;
+  m_lc_asic.acquire(2,2,nwords,0);
+  m_lc_emulator.acquire(2,2,nwords,0);
+
   // send link reset econt
-  if(m_verbose>0){
-     std::cout << "LinkAligner: # Link-Reset-ECON-T FC: " << m_fcMan->getRecvRegister("counters.link_reset_econt") << std::endl;
-  }
+  if(m_verbose>0)
+    std::cout << "LinkAligner: # Link-Reset-ECON-T FC: " << m_fcMan->getRecvRegister("counters.link_reset_econt") << std::endl;
   m_fcMan->request_link_reset_econt();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  if(m_verbose>0){
-      std::cout << "LinkAligner: # Link-Reset-ECON-T FC: " << m_fcMan->getRecvRegister("counters.link_reset_econt") << std::endl;
-  }
+  if(m_verbose>0)
+    std::cout << "LinkAligner: # Link-Reset-ECON-T FC: " << m_fcMan->getRecvRegister("counters.link_reset_econt") << std::endl;
 
   // check link alignment
-  if(checkLinkStatus(m_lc_asic)){
-
-      for( int i=0; i<511; i++ ){
-          if(alignRelative(i)){
-              std::cout << "LinkAligner: found emulator latency " << i << std::endl;
-              break;
-          }
-      }
+  bool is_asic_aligned = checkLinkStatus(m_lc_asic);
+  if(!is_asic_aligned){
+      std::cout << "LinkAligner: ASIC lc is not aligned - checking data " << std::endl;
+    // do fc capture with link reset econt
+    m_lc_asic.setGlobalRegister("aquire",1); // self-resets to 0 after capture
+    m_fcMan->request_link_reset_econt();
+    auto linksdata = std::vector< std::vector<uint32_t> >(NUM_OUTPUTLINKS);
+    m_lc_asic.getCapturedData(linksdata,NUM_OUTPUTLINKS,nwords);
   }
+
+  //if(is_asic_aligned){
+  std::vector<int> positions_asic,positions_emulator;
+  bool found_bx0_asic = findLatency(m_lc_asic,positions_asic,nwords);
+  if(found_bx0_asic){
+    bool found_bx0_emulator = findLatency(m_lc_emulator,positions_emulator,nwords,positions_asic.at(0));
+    if(found_bx0_emulator){
+      return true;
+    }
+  }
+  //}
   else{
-      std::cout << "LinkAligner: ASIC link capture links are not aligned after link-reset-econt" << std::endl;
-      return false;
+    //std::cout << "LinkAligner: ASIC link capture links are not aligned after link-reset-econt" << std::endl;
+    std::cout << "LinkAligner: Could not find BX0 for ASIC link capture " << std::endl;
+    return false;
   }
   return true;
 }
