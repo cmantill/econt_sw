@@ -11,6 +11,8 @@ python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --s
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Event DAQ')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser.add_argument("--capture", dest="capture", action="store",
+                        help="capture data with one of the options", choices=["l1a","compare"], required=True)
     parser.add_argument('--idir',dest="idir", type=str, required=True, default=None, help='test vector directory')
     args = parser.parse_args()
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":
 
 
     # daq
-    os.system('python testing/uhal-eventDAQ.py --idir %s --capture l1a'%args.idir)
+    os.system('python testing/uhal-eventDAQ.py --idir %s --capture %s'%(args.idir,args.capture))
 
     # terminate i2c servers
     for key,proc in procs.items():

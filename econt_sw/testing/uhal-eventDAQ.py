@@ -121,7 +121,7 @@ if __name__ == "__main__":
     word_count = dev.getNode(names['stream_compare']+".word_count").read()
     err_count = dev.getNode(names['stream_compare']+".err_count").read()
     dev.dispatch()
-    logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
+    logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
 
     if args.capture == "l1a":
         # configure lc to capture on L1A:
@@ -161,7 +161,10 @@ if __name__ == "__main__":
     # convert all data to format
     for key,data in all_data.items():
         # print('saving %s/%s-Output_header.csv'%(args.idir,key))
-        save_testvector( args.idir+"/%s-Output_header.csv"%key, data, header=True)
+        fname = args.idir+"/%s-Output_header.csv"%key
+        if args.capture == "compare":
+            fname = fname.replace(".csv","_SC.csv")
+        save_testvector( fname, data, header=True)
 
     # reset fc
     dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
