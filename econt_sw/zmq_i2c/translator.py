@@ -28,6 +28,7 @@ class Translator():
         if isinstance(fname, dict):
             paramMap = fname
         else:
+            # print('Translator::loading yaml register map from file')
             with open(fname) as fin:
                 paramMap = safe_load(fin)
         return paramMap
@@ -38,6 +39,7 @@ class Translator():
         We can only recover a parameter from a pair when it is in the common cache.
         However, when we read (or write) a param the common cache is populated in advance.
         """
+        # print('Translator::getting config from pairs')
         if config:
             read_cfg = self.__expandVal_paramMap(config['ECON-T'])
         cfg = nested_dict()
@@ -51,6 +53,7 @@ class Translator():
                         else:
                             reg_value = pairs[addr][0]
                         cfg[access][block][param] = reg_value
+                        # print('access block param ',access,block,param,reg_value)
 
                         if config:
                             for read_par in read_cfg[access][block][param]['params']:
@@ -84,7 +87,6 @@ class Translator():
 
                     is_infg = False
                     try:
-                        # print(access,block,param)
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
@@ -98,6 +100,9 @@ class Translator():
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
                             prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
+                            #if addr in prevCacche:
+                            #    print('param ',param,' addr ',addr,' value ',prev_regVal)
+
                             for par, reg in defaultDict['params'].items():
                                 # get parameter values from previous register value 
                                 # TODO: does this do something?

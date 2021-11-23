@@ -31,10 +31,10 @@ def print_keys(d, read_keys, prefix=''):
 class econ_interface():
     """ Base class for interfacing with ECON at i2c register level """
 
-    def __init__(self, addr=0x20):
+    def __init__(self, addr=0x20, i2c=1):
         _init_logger()
         self._logger = logging.getLogger('i2c')
-        self.i2c = econ_i2c(1)
+        self.i2c = econ_i2c(i2c)
         self.translator = Translator('ECON-T')
         self.i2c_addr = addr
         self.writeCache = {}
@@ -58,20 +58,22 @@ class econ_interface():
 
             # get new default values
             writePairs = self.translator.pairs_from_cfg(paramMap,prevCache=self.writeCache,allowed=['RW'])
-            self._logger.info('Successfully loaded custom configuration pairs')
+            self._logger.info('Loaded custom configuration pairs')
         else:
             # read previous values of addresses in register:address dict
             self.writeCache = self.read_pairs(default_pairs)
 
             # get new default values 
             writePairs = self.translator.pairs_from_cfg(prevCache=self.writeCache,allowed=['RW'])
-            self._logger.info('Successfully loaded default configuration pairs')
+            self._logger.info('Loaded default configuration pairs')
 
         # update cache with new written pairs
         self.writeCache = self.translator.convert_pairs(writePairs,direction='from')
 
         # write registers (only write RW registers)
         self.write_pairs(writePairs)
+        self._logger.debug('Written addr-register pairs: ',writePairs)
+
         return "i2c: ECON Configured"
 
     def compare(self,access='RW'):
@@ -100,9 +102,11 @@ class econ_interface():
 
     def read(self, cfg=None):
         """ Read from configs or cache """
-        if cfg: 
+        if cfg:
+            self._logger.debug('Reading config ',cfg)
             return self.__read_fr_cfg(cfg)
         else: 
+            self._logger.debug('Reading from cache')
             return self.__read_fr_cache()
 
     def read_pairs(self, pairs):
@@ -125,13 +129,11 @@ class econ_interface():
 
     def __read_fr_cfg(self, cfg):
         """ Read addresses (=keys) in cfgs from rocs. """
-        # TODO: make this for multiple cfgs?
         paramMap = self.translator.load_param_map(cfg)['ECON-T']
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
         cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)
-        # print('cfgread ',cfg)
-        self._logger.info('Successfully read addresses from config')
+        self._logger.info('Read addresses from config')
         return cfgRead
 
     def __read_fr_cache(self):

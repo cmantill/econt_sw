@@ -18,6 +18,7 @@ def _init_logger():
 def merge(a, b, path=None):
     "merges b into a"
     if path is None: path = []
+    if a is None: return b
     for key in b:
         if key in a:
             if isinstance(a[key], dict) and isinstance(b[key], dict):
@@ -55,14 +56,12 @@ class zmqController:
                 config=yaml.safe_load(fin)
         else:
             print("ERROR in %s"%(__name__))
-        merge(self.yamlConfig,config)
+        self.yamlConfig = merge(self.yamlConfig,config)
 
     def configure(self,fname="",yamlNode=None):
-        #print('configure w. ',yamlNode,fname)
         self.socket.send_string("configure")
         rep = self.socket.recv_string()
         if rep.lower().find("ready")<0:
-            #print(rep)
             return
         if yamlNode:
             config=yamlNode
@@ -73,7 +72,6 @@ class zmqController:
             config = self.yamlConfig
         self.socket.send_string(yaml.dump(config))
         rep = self.socket.recv_string()
-        #print(rep)
 
 
 class i2cController(zmqController):    
@@ -97,7 +95,6 @@ class i2cController(zmqController):
         return rep
 
     def read_config(self,fname=None,key=None,yamlNode=None):
-        # print('read config ',fname)
         self.socket.send_string("read")
         rep = self.socket.recv_string()
         if fname:
@@ -107,21 +104,14 @@ class i2cController(zmqController):
                 config_dict = yaml.dump(config[key])
             else:
                 config_dict = yaml.dump(config)
-            #print('config ',config_dict)
             self.socket.send_string( config_dict )
         elif yamlNode:
             config_dict = yamlNode
             self.socket.send_string( yaml.dump(config_dict) )
         else:
-            #print('no fname')
             self.socket.send_string( "" )
-        yamlread = yaml.safe_load( self.socket.recv_string() )
-        #print('yaml read ',yamlread)
-        #print('i2cController::read back')
-        #for access,accessDict in yamlread.items():
-        #    for block,blockDict in accessDict.items():
-        #        for param, paramDict in blockDict.items():
-        #            print(access,block, param, hex(yamlread[access][block][param]))
+        recv = self.socket.recv_string()
+        yamlread = yaml.safe_load( recv ) 
         return( yamlread )
 
 class daqController(zmqController):

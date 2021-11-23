@@ -255,7 +255,13 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
   for i in {0..15}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address True; done
   ```
-  - [ ] Read and write one single i2c register
+  - [x] Read and write one single i2c register
+  ```
+  # to read
+  python3 testing/i2c_single_register.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot
+  # to write (and read)
+  python3 testing/i2c_single_register.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot --read
+  ```
 
 - Reset signals:
 
@@ -313,7 +319,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] Check that header errors are correctly detected and counted.
 
 - Delay scan:
-  - [X] from-IO delay scan on tester
+  - [x] from-IO delay scan on tester
   ```
   python testing/uhal-delayScan.py
   ```
@@ -324,7 +330,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] Crude delay scan in ASIC using PRBS error checking.
 
 - Data path tests:
-  - [X] Basic DAQ with repeater algorithm and counter dataset in TC:
+  - [x] Basic DAQ with repeater algorithm and counter dataset in TC:
   ```
   python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --start-server
   ```

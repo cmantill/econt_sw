@@ -22,6 +22,9 @@ if __name__ == "__main__":
     parser.add_argument('--server', type=str,
                         default='5555',
                         help='server for i2c')
+    parser.add_argument('--i2c', type=int,
+                        default=1,
+                        help='i2c device')
     args = parser.parse_args()
 
     """ ZMQ-Server: Redirect user request to Board. """
@@ -31,7 +34,7 @@ if __name__ == "__main__":
     print('[ZMQ] Server started')
     
     try:
-        board = econ_interface.econ_interface(args.addr)
+        board = econ_interface.econ_interface(args.addr,args.i2c)
         
         while True:
             string = socket.recv_string().lower()
