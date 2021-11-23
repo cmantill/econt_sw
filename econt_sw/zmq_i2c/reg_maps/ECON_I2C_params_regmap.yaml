@@ -26,7 +26,7 @@ ECON-T:
  noutput: 13
  WO:
   CH_ERR_*INPUT_ALL:
-   block_shift: 30
+   block_shift: 4
    addr_base: 0x0300
    registers:
     config:
