@@ -5,7 +5,10 @@ import zmq_controller as zmqctrl
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Align links')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser.add_argument('--steps', nargs="+", default=['tester-phase','asic-word','asic-tester'], help='alignment steps')
     args = parser.parse_args()
+
+    print(args)
 
     server={'ASIC': '5554', 'emulator': '5555'}
     addr={'ASIC':0, 'emulator':1}
@@ -19,13 +22,14 @@ if __name__ == "__main__":
         cwds[key] = './zmq_i2c'
 
     # i2c for alignment
-    orbsyn_cnt_snapshot = {# 'ASIC': 7,
-                           'ASIC': 3,
-                           'emulator': 3, # 1
-                    }
-    orbsyn_cnt_load_val = {'ASIC': 0,
-                           'emulator': 0
-                       }
+    orbsyn_cnt_snapshot = {
+        'ASIC': 3,
+        'emulator': 3,
+    }
+    orbsyn_cnt_load_val = {
+        'ASIC': 0,
+        'emulator': 0
+    }
     match_pattern_val = 0x9cccccccaccccccc
 
     procs = {}
@@ -45,39 +49,40 @@ if __name__ == "__main__":
         read_socket = i2c_sockets[key].read_config("configs/align.yaml")
         print('TX sync word %s '%key,hex(read_socket['RW']['FMTBUF_ALL']['tx_sync_word']))
 
-    # phase alignment for IO
-    os.system('python testing/uhal-align_on_tester.py --step tester-phase')
-    os.system('python testing/uhal-align_on_tester.py --step asic-word')
+    if "tester-phase" in args.steps:
+        # phase alignment for IO
+        os.system('python testing/uhal-align_on_tester.py --step tester-phase')
+    if "asic-word" in args.steps:
+        # send link reset ECON-T
+        os.system('python testing/uhal-align_on_tester.py --step asic-word')
 
-    # read i2c registers (select and status)
-    read_emulator = i2c_sockets['emulator'].read_config("configs/align.yaml","read")
-    read_asic = i2c_sockets['ASIC'].read_config("configs/align.yaml","read")
-
-    orbsyn_cnt_snapshot_asic = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
-    orbsyn_cnt_snapshot_emu = read_emulator['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
-    print('Orbit cnt snapshot emulator %i, ASIC %i'%(orbsyn_cnt_snapshot_emu,orbsyn_cnt_snapshot_asic))
-
-    for i in range(12):
-        # status should be 0x3
-        # alignment patern should be in snapshot
-        print('LINK %i:'%i)
-        snapshot = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['snapshot']
-        sel = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['select']
-        status = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status']
-        orbsyn_cnt_snapshot = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
-        print('Status: ',hex(status), ' Snapshot: ',hex(snapshot),' Select value: ',hex(sel))
-        print('Snapshot ',hex(snapshot >> sel))
-        try:
-            assert status==0x03
-        except AssertionError:
-            print('Failed to align ECON-T channel %i, status: %i'%(i,status))
-            raise
-
-    # relative alignment for IO
-    os.system('python testing/uhal-align_on_tester.py --step asic-tester')
-    
+        # read i2c registers (select and status)
+        read_emulator = i2c_sockets['emulator'].read_config("configs/align.yaml","read")
+        read_asic = i2c_sockets['ASIC'].read_config("configs/align.yaml","read")
+        
+        orbsyn_cnt_snapshot_asic = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
+        orbsyn_cnt_snapshot_emu = read_emulator['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
+        print('Orbit cnt snapshot emulator %i, ASIC %i'%(orbsyn_cnt_snapshot_emu,orbsyn_cnt_snapshot_asic))
+        
+        for i in range(12):
+            # status should be 0x3
+            # alignment patern should be in snapshot
+            print('LINK %i:'%i)
+            snapshot = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['snapshot']
+            sel = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['select']
+            status = read_asic['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['status']
+            orbsyn_cnt_snapshot = read_asic['RW']['ALIGNER_ALL']['orbsyn_cnt_snapshot']
+            print('Status: ',hex(status), ' Snapshot: ',hex(snapshot),' Select value: ',hex(sel))
+            print('Snapshot ',hex(snapshot >> sel))
+            try:
+                assert status==0x03
+            except AssertionError:
+                print('Failed to align ECON-T channel %i, status: %i'%(i,status))
+                raise
+    if "asic-tester" in args.steps:
+        # relative alignment for IO
+        os.system('python testing/uhal-align_on_tester.py --step asic-tester')
+        
     # terminate i2c servers
     for key,proc in procs.items():
         proc.terminate()
-
-
