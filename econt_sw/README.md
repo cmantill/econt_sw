@@ -322,6 +322,10 @@ ssh -p 23 HGCAL_dev@wilsonjc.us
 
   Alignment on ECON-T:
   ```
+  # first align IO blocks
+  python3 testing/align_links.py --start-server --steps tester-phase
+  # then, scan values of delay,orbsyn_snap,orbsyn_value
+  python3 testing/find_orb.py --start-server --delay 0 --snap 0 0 --val 0 0  
   ```
 
 - Alignment tests:
