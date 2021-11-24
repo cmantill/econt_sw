@@ -74,11 +74,11 @@ ECON-SW
     ${FIRMWARE_FOLDER} = econ-t-IO-Aug12
     ```
     
-    In interposer setup:
+    In emulator-to-emulator setup:
     ```
     ${MYLITTLEDT} =  /home/HGCAL_dev/mylittledt/
-    ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-emu-solo-ROCv3-Sep24-3/`
-    ${FIRMWARE_FOLDER} TESTER: `~/firmware/econ-t-tester-ROCv3-Sep25/`
+    ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-emu-solo-Nov12/
+    ${FIRMWARE_FOLDER} TESTER: `~/firmware/econ-t-tester-Nov12/
     ```
 
     To check the version of the firmware:
@@ -123,43 +123,39 @@ This means that when running testing scripts remotely one needs to do port forwa
 
 ### ZYNQ ECON-T testers:
 ```
-    # econ-ASIC (ASIC with emu-solo firmware)
-    # to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
-    ssh HGCAL_dev@192.168.1.45
+# econ-ASIC (ASIC with emu-solo firmware)
+# to fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server
+# see more instructions on hexactrl_setup.md
+ssh HGCAL_dev@192.168.1.45
    
-    # econ-emulator (Emulator with tester firmware)
-    ssh HGCAL_dev@192.168.1.46
+# econ-emulator (Emulator with tester firmware) 
+ssh HGCAL_dev@192.168.1.46
 ```
 
 ### ZYNQ HGCAL_dev:
 ```
-    ssh -p 23 HGCAL_dev@wilsonjc.us
+ssh -p 23 HGCAL_dev@wilsonjc.us
 ```
 
 ### Testing locally:
-1. Start a terminal session:
-```
-    # Run the i2c server
-    cd zmq_i2c/
-    python3 ./zmq_server.py
-```
-2. Start a terminal session:
-```
-    # Start the server
-    ./bin/zmq-server -I 6677 -f address_table/connection.xml
-    # To debug uHal add `-L 6`
-```
-3. Start a terminal session:
-```
-    # Start the client
-    ./bin/zmq-client -P 6678
-```
-4. Start a terminal session:
-```
-    # Run the testing script, e.g.:
-    cd scripts/
-    python3 align_links.py 
-```
+- i2c server
+  ```
+  cd zmq_i2c/
+  python3 ./zmq_server.py
+  ```
+- zmq server
+  ```
+  ./bin/zmq-server -I 6677 -f connection.xml
+  # To debug uHal add `-L 6`
+  ```
+- zmq client
+  ```
+  ./bin/zmq-client -P 6678
+  ```
+- testing script
+  ```
+  python3 testing/zmq_align_links.py 
+  ```
 
 ### Running on remote desktop:
 
@@ -172,9 +168,9 @@ This means that when running testing scripts remotely one needs to do port forwa
   
   # Start a terminal session:
   # Start the server
-  ./bin/zmq-server -I 6677 -f address_table/connection.xml
+  ./bin/zmq-server -I 6677 -f connection.xml
   ```
-    
+  
   Alternatively, one can use the webserver:
   ```
   # start the server
@@ -242,6 +238,12 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [ ] ChipSync: same as soft reset but does not reset FC.
 
 - Slow control:
+
+  - [x] Test slow control connection:
+  ```
+  cd zmq_i2c/
+  python3 simple_setup.py
+  ```
   - [x] Set a fixed address
   ```
   python testing/uhal-i2c_set_address.py --i2c ASIC --addr 0
@@ -250,6 +252,9 @@ This means that when running testing scripts remotely one needs to do port forwa
   - [x] Test a fixed address, read/write from/to every bit of every register in the ASIC (only reads for RO registers)
   ```
   python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address True
+  # this does not start a server so it needs servers
+  python3 zmq_server.py --addr 0x20 --server 5554
+  python3 zmq_server.py --addr 0x21 --server 5555
   ```
   - [x] Test every possible i2c address for the ASIC
   ```
@@ -283,6 +288,7 @@ This means that when running testing scripts remotely one needs to do port forwa
   ```
 
 - Alignment sequence:
+
   - [ ] Phase alignment.
     - [ ] In *ASIC*.
     - [x] In interposer system: align `to-IO`.
@@ -314,6 +320,10 @@ This means that when running testing scripts remotely one needs to do port forwa
   3. On Tester: Press key
      - Execute until: `Sent link reset ROCT. Press key to continue...`
 
+  Alignment on ECON-T:
+  ```
+  ```
+
 - Alignment tests:
   - [ ] Test different alignment patterns (i2c).
   - [ ] Check that header errors are correctly detected and counted.
@@ -332,15 +342,28 @@ This means that when running testing scripts remotely one needs to do port forwa
 - Data path tests:
   - [x] Basic DAQ with repeater algorithm and counter dataset in TC:
   ```
-  python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --start-server
+  python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/RPT/ --start-server
+  # if need to capture with l1a
+  python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/RPT/ --start-server --capture l1a
   ```
   The output of the two link captures will be saved in `configs/test_vectors/counterPatternInTC/`.
-  - [ ] MUX
-  - [ ] Calibration
-  - [ ] DropLSB
+  - [x] MUX
+  ```
+  for i in {1..47..1}
+   do
+    python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC_by2/RPT_MUX_${i}/ --start-server
+   done
+  ```
+  - [x] Calibration
+  ```
+  ```
+  - [x] DropLSB
+  ```
+  configs/test_vectors/counterPatternInTC/
+  ```
   - Algorithms:
-    - [ ] Threshold Sum
-    - [ ] STC
+    - [x] Threshold Sum
+    - [x] STC
     - [ ] BC
     - [ ] AE
   - Formatter/buffer (TS):

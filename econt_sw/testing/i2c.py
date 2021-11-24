@@ -104,7 +104,7 @@ if __name__ == "__main__":
         i2c_read = i2c_socket.read_and_compare()
         logger.info(f'Unmatched {i2c_read}')        
         i2c_read = i2c_socket.read_and_compare('RO')
-        logger.info(f'Unmatched {i2c_read}')
+        logger.info(f'Unmatched RO {i2c_read}')
 
     # terminate processes
     for key,proc in procs.items():
