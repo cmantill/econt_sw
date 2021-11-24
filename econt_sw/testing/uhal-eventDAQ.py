@@ -124,38 +124,54 @@ if __name__ == "__main__":
     logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
 
     if args.capture == "l1a":
+        logger.info('Capture with l1a')
+        l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
+        dev.dispatch()
+        logger.debug('L1A counter %i'%(int(l1a_counter)))
+        
         # configure lc to capture on L1A:
         acq_length = 300
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
             configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
+            # tell link capture to acquire when it sees the trigger
+            do_capture(dev,lcapture)
 
         # send L1A
-        dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
-        dev.getNode(names['fc']+".periodic0.enable").write(0); # to get a L1A once - not every orbit
+        logger.info('Sending l1a')
+        dev.getNode(names['fc']+".command.global_l1a_enable").write(0x1);
+        dev.getNode(names['fc']+".periodic0.enable").write(0x0); # to get a L1A once
+        #dev.getNode(names['fc']+".periodic0.enable").write(0x1); # to get a L1A every orbit
         dev.getNode(names['fc']+".periodic0.flavor").write(0); # 0 to get a L1A
         dev.getNode(names['fc']+".periodic0.enable_follow").write(0); # does not depend on other generator
         dev.getNode(names['fc']+".periodic0.bx").write(3500);
-        dev.getNode(names['fc']+".periodic0.request").write(1);
+        dev.getNode(names['fc']+".periodic0.request").write(0x1);
         dev.dispatch()
 
+        import time
+        time.sleep(0.001)
+        l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
+        dev.dispatch()
+        logger.debug('L1A counter %i'%(int(l1a_counter)))
+
     elif args.capture == "compare":
+        logger.info('Capture with stream compare ')
         acq_length = 511
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
             configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
+            # tell link capture to acquire when it sees the trigger 
+            do_capture(dev,lcapture)
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
-
     else:
         logger.error("No capture mode provided")
 
-    # tell link capture to do an acquisition
+    # get data
     all_data = {}
     for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
         nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-        do_capture(dev,lcapture)
         all_data[lcapture] = get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
 
     # convert all data to format

@@ -49,7 +49,7 @@ def find_latency(latency,lcapture,bx0=None):
 
     # save captured data
     ASIC_data = get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks)
-    save_testvector("debug.csv", ASIC_data)
+    # save_testvector("lc-ASIC-findlatency-debug.csv", ASIC_data)
 
     # look for bx0
     BX0_word = 0xf922f922
@@ -191,6 +191,10 @@ if __name__ == "__main__":
         dev.getNode(names['fc']+".bx_link_reset_econt").write(3502)
         dev.getNode(names['fc']+".bx_link_reset_econd").write(3503)
         
+        # set delay
+        delay = 4
+        dev.getNode(names['delay']+".delay").write(delay)
+
         # send link reset roct 
         # this will align the emulator on the ASIC board and the emulator on the tester board simultaneously
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
@@ -208,10 +212,6 @@ if __name__ == "__main__":
         raw_input("Sent link reset ROCT. Press key to continue...")
 
     if args.step == "asic-tester":
-        # set delay
-        delay = 4
-        dev.getNode(names['delay']+".delay").write(delay)
-
         # configure link captures
         sync_patterns = {'lc-ASIC': 0x122,
                          'lc-emulator': 0x122,

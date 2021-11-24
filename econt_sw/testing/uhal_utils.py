@@ -88,7 +88,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
         writing = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".status.writing").read()
         dev.dispatch()
         lc_align.append((aligned_c,error_c,aligned))
-        logger.info('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
+        logger.debug('%s link%i aligned: %d delayready: %d waiting: %d writing: %d aligned_c: %d error_c: %d'%(lcapture, l, aligned, delay_ready, waiting_for_trig, writing, aligned_c, error_c))
     aligned_counter = [int(lc_align[i][0]) for i in range(len(lc_align))]
     error_counter = [int(lc_align[i][1]) for i in range(len(lc_align))]
     is_aligned = [int(lc_align[i][2]) for i in range(len(lc_align))]
@@ -146,12 +146,12 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
         return
     if captures["mode_in"] == 2:
         captures[mode] = 1
-    #logger.info("configure acquire with ")
-    #print(captures)
-    #print(mode)
+    logger.debug("configure acquire with captures ",captures)
 
     for l in range(nlinks):
-        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx)
+        # offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx) 
+        # acquire length
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".aquire_length").write(nwords)        
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".total_length").write(nwords)
         for key,val in captures.items():
@@ -170,20 +170,18 @@ def do_fc_capture(dev,fc,lcapture):
     dev.dispatch()
     dev.getNode(names['fc']+".request.%s"%fc).write(0x1);
     dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
 
 # acquire
-def do_capture(dev,lcapture):
+def do_capture(dev,lcapture,wait=False):
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
     dev.dispatch()
-    import time
-    time.sleep(0.001)
-    raw_input("ready to capture, press link to continue")
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
+    if wait:
+        import time
+        time.sleep(0.001)
+        raw_input("ready to capture, press link to continue")
+
 
 # get captured data
 def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
@@ -201,9 +199,10 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
             assert(fifo_occupancies[0] == nwords)
             for f in fifo_occupancies:
                 assert(f == fifo_occupancies[0])
-                # print(f,fifo_occupancies[0])
+                logger.debug('fifo occupancies ',fifo_occupancies[0],f)
             break
         except:
+            
             print('not same fifo occ ',fifo_occupancies)
             continue
 
