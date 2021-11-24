@@ -36,5 +36,6 @@ if __name__ == "__main__":
     dev = man.getDevice("mylittlememory")
     
     # set i2c address 
+    print('Writing to '"ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address"%args.i2c,args.addr)
     dev.getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address"%args.i2c).write(args.addr);
     dev.dispatch()
