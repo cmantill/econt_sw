@@ -110,15 +110,19 @@
     scp -r FIRMWARE_VERSION.tar.gz  HGCAL_dev@192.168.1.45:~HGCAL_dev/firmware/
     ```
 5. Unpack it in ~HGCAL_dev/firmware/ and rename it if necessary (e.g. to include the date on which it was built)
-6. Install `mylittledt`
+   ```
+   # e.g.
+   tar -xf  econ-t-tester-Nov12.tar.gz
+   ```
+7. Install `mylittledt`
     ```
+    git clone ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/mylittledt.git
     cd mylittledt/
-    git remote add hgcal-daq-sw ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/mylittledt.git
-    git fetch hgcal-daq-sw
-    git checkout -b tileboard hgcal-daq-sw/tileboard
+    git fetch origin
+    git checkout -b tileboard origin/tileboard
     chmod +x load.sh
     ```
 7. Load firmware:
     ```
-    [HGCAL_dev@localhost mylittledt]$ sudo ./load.sh ~/firmware/econ-t-emu-solo-ROCv3-Sep9 && sudo chmod a+rw /dev/i2c-* /dev/uio*
+    [HGCAL_dev@localhost mylittledt]$ sudo ./load.sh ~/firmware/econ-t-tester-Nov12/ && sudo chmod a+rw /dev/i2c-* /dev/uio*
     ```
