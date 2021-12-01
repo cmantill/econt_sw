@@ -557,15 +557,15 @@ ECON-T:
      params:
       fromMemToLJCDR_CONFIG_FF_CAP_WL:
        param_mask: 0x07
-       param_shift: 9
+       param_shift: 12
       fromMemToLJCDR_PLL_R_CONFIG_WL:
        param_mask: 0x0f
-       param_shift: 5
+       param_shift: 8
       fromMemToLJCDR_CONFIG_P_PLL_WL:
        param_mask: 0x0f
-       param_shift: 1
+       param_shift: 4
       fromMemToLJCDR_CONFIG_I_PLL_WL:
-       param_mask: 0x01
+       param_mask: 0x0f
        param_shift: 0
     pll_bytes_17to13:
      addr_offset: 0x0d
@@ -612,7 +612,7 @@ ECON-T:
        param_mask: 0x0f
        param_shift: 0
     pll_bytes_21to18:
-     addr_offset: 0x13
+     addr_offset: 0x12
      size_byte: 4
      value: 0x0188c888
      params:
@@ -656,7 +656,7 @@ ECON-T:
        param_mask: 0x0f
        param_shift: 0     
     pll_bytes_24to22:
-     addr_offset: 0x17
+     addr_offset: 0x16
      size_byte: 3
      value: 0x000e00
      params:
@@ -682,15 +682,15 @@ ECON-T:
        param_mask: 0x01
        param_shift: 0
     pll_bytes_26to25:
-     addr_offset: 0x1a
+     addr_offset: 0x19
      size_byte: 2
-     value: 0x0038
+     value: 0x8008
      params:
       ref_clk_sel:
        param_mask: 0x01
        param_shift: 15
       output_clk_sel:
-       param_mask: 0x03
+       param_mask: 0x07
        param_shift: 12
       refClk_setCommonMode:
        param_mask: 0x01
@@ -705,16 +705,16 @@ ECON-T:
        param_mask: 0x01
        param_shift: 0
     pll_bytes_27:
-     addr_offset: 0x1c
+     addr_offset: 0x1b
      size_byte: 1
      value: 0x00
      params:
       reset_eTx_par_enable_intr:
        param_mask: 0x01
-       param_shift: 4
+       param_shift: 3
       reset_pll_not_locked_intr:
        param_mask: 0x01
-       param_shift: 3
+       param_shift: 2
 
   AUTOENCODER_*INPUT:
    block_shift: 143

@@ -1,0 +1,30 @@
+{
+    "run": ["RW", "MISC_ALL", "misc_rw_0", "run"],
+    "fc_edge_sel": ["RW", "FCTRL_ALL", "config", "EdgeSel_T1"],
+    "fc_invert": ["RW", "FCTRL_ALL", "config", "invert_command_rx"],
+    "fc_locked": ["RO", "FCTRL_ALL", "status", "locked"],
+    "fc_command_inverted": ["RO", "FCTRL_ALL", "status", "command_rx_inverted"],
+    "fc_error": ["RO", "FCTRL_ALL", "status", "error"],
+    "PLL_ref_clk_sel": ["RW","PLL_ALL","pll_bytes_26to25","ref_clk_sel"],
+    "PLL_output_clk_sel": ["RW","PLL_ALL","pll_bytes_26to25","output_clk_sel"],
+    "PLL_VCObypass": ["RW","PLL_ALL","pll_bytes_17to13","VCObypass"],
+    "PLL_lfEnable": ["RW", "PLL_ALL", "pll_bytes_21to18", "fromMemToLJCDR_lfEnable"],
+    "PLL_lfLockThrCounter": ["RW", "PLL_ALL", "pll_bytes_21to18", "fromMemToLJCDR_lfLockThrCounter"],
+    "PLL_lfReLockThrCounter": ["RW", "PLL_ALL", "pll_bytes_21to18", "fromMemToLJCDR_lfReLockThrCounter"],
+    "PLL_lfUnLockThrCounter": ["RW", "PLL_ALL", "pll_bytes_21to18", "fromMemToLJCDR_lfUnLockThrCounter"],
+    "PLL_smstate": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "smState"],
+    "PLL_smlocked": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "smLocked"],
+    "PLL_lflocked": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "lfLocked"],
+    "PLL_lfInstLock": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "lfInstLock"],
+    "PLL_lfstate": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "lfState"],
+    "PLL_lflosscount": ["RO", "PLL_ALL", "pll_read_bytes_2to0", "lfLossOfLockCount"],
+    "PLL_not_locked_timeout": ["RO", "PLL_ALL", "pll_read_bytes_4to3", "pll_not_locked_timeout"],
+    "PUSM_state": ["RO", "MISC_ALL", "misc_ro_0",  "PUSM_state"],
+    "err_config_mux_0": ["RW", "ERX_ALL", "config_mux_0"],
+    "err_config_mux_1": ["RW", "ERX_ALL", "config_mux_1"],
+    "err_config_mux_2": ["RW", "ERX_ALL", "config_mux_2"],
+    "misc_rw_0": ["RW", "MISC_ALL", "misc_rw_0"]
+
+}
+
+    
