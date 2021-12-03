@@ -2,7 +2,6 @@ import argparse
 import os
 import zmq_controller as zmqctrl
 import logging
-import numpy as np
 
 logging.basicConfig()
 logger = logging.getLogger("test-prbs")
@@ -23,6 +22,7 @@ def parse_prbs_registers(read):
     orbsyn_arr_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_arr_err_cnt'] for i in range(12)]
     orbsyn_hdr_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['orbsyn_hdr_err_cnt'] for i in range(12)]
     prbs_chk_err_cnt = [read['RO']['CH_ALIGNER_%iINPUT_ALL'%i]['prbs_chk_err_cnt'] for i in range(12)]
+    import numpy as np
     with np.printoptions(formatter={'int':lambda x: f'{x:08x}'}, linewidth=120):
         for i in range(12):
             logger.info(f'Link {i:02d} prbs-chk-err 0x{prbs_chck_err[i]:02x}, header-mismatch 0x{hdr_mm_err[i]:02x}')

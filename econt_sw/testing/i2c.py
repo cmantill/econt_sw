@@ -1,4 +1,3 @@
-import uhal
 import argparse
 import os
 

@@ -4,6 +4,7 @@ import zmq_controller as zmqctrl
 
 """
 To be run after IO blocks are aligned.
+python3 testing/find_orb.py --delay 4 --snap 3 3 --val 0 0 --start-server
 """
 
 if __name__ == "__main__":
@@ -27,10 +28,12 @@ if __name__ == "__main__":
         cwds[key] = './zmq_i2c'
 
     # i2c for alignment
+    # this is the bunch counter value on which to take a snapshot
     orbsyn_cnt_snapshot = {
         'ASIC': int(args.snap[0]),
         'emulator': int(args.snap[1]),
     }
+    # this is the bunch counter value on an orbit sync fast command
     orbsyn_cnt_load_val = {
         'ASIC': int(args.val[0]),
         'emulator': int(args.val[1])
@@ -79,7 +82,7 @@ if __name__ == "__main__":
             assert status==0x03
         except AssertionError:
             print('Failed to align ECON-T channel %i, status: %i'%(i,status))
-            raise
+            break
 
     # terminate i2c servers
     for key,proc in procs.items():
