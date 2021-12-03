@@ -1,7 +1,6 @@
 import uhal
 import time
 import argparse
-import numpy as np
 import logging
 logging.basicConfig()
 

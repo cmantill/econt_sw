@@ -1,7 +1,6 @@
 import uhal
 import time
 import argparse
-import numpy as np
 import logging
 logging.basicConfig()
 
@@ -66,8 +65,10 @@ if __name__ == "__main__":
         while 1:
             delay_ready = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_ready").read()
             delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
+            delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
             dev.dispatch()
             if delay_out==delay and delay_ready==1:
+                print('delay out ',int(delay_out),int(delay_out_N))
                 return True
             else:
                 time.sleep(0.001)
