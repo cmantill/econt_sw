@@ -84,10 +84,7 @@ if __name__ == "__main__":
                 register = names_to_register[name][2]
 
                 if args.value:
-                    try:
-                        value = int(values[i])
-                    except:
-                        value = int(values[i],16)
+                    value = int(values[i])
                 else:
                     value = 0
 
@@ -130,14 +127,7 @@ if __name__ == "__main__":
                 values = [0 for p in parameters]
             new_config = {"ECON-T": {args.rw: {args.block: {"registers":{args.register: {"params": dict.fromkeys(parameters)} } } } } }
             for p,parameter in enumerate(parameters):
-                if args.value:
-                    try:
-                        value = int(values[p])
-                    except:
-                        value = int(values[p],16)
-                else:
-                    value = 0
-                new_config["ECON-T"][args.rw][args.block]["registers"][args.register]["params"][parameter] = {"param_value": value}
+                new_config["ECON-T"][args.rw][args.block]["registers"][args.register]["params"][parameter] = {"param_value": int(values[p])}
         else:
             if args.value:
                 value = args.value
@@ -145,8 +135,6 @@ if __name__ == "__main__":
                 value = 0
             new_config = {"ECON-T": {args.rw: {args.block: {"registers":{args.register: {"value": value} } } } } }
             
-
-
     i2c_sockets = {}
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]))
