@@ -408,7 +408,7 @@ ECON-T:
        param_shift: 1
       enable:
        param_mask: 0x01
-       param_shift: 1
+       param_shift: 0
     config_mux_*:
      addr_shift: 1
      addr_offset: 0x0c
@@ -540,15 +540,36 @@ ECON-T:
      params:
       fromMemToLJCDR_COenableFD:
        param_mask: 0x01
-       param_shift: 5
+       param_shift: 31
       fromMemToLJCDR_COenableCDR:
        param_mask: 0x01
-       param_shift: 4
+       param_shift: 30
       fromMemToLJCDR_COdisDataCounterRef:
        param_mask: 0x01
-       param_shift: 3
-      fromMemToLJCDR_COdisDESvbiasge:
+       param_shift: 29
+      fromMemToLJCDR_COdisDESvbiasgen:
        param_mask: 0x01
+       param_shift: 26
+      fromMemToLJCDR_ENABLE_CDR_R:
+       param_mask: 0x01
+       param_shift: 25
+      fromMemToLJCDR_dataMuxCfg:
+       param_mask: 0x03
+       param_shift: 19
+      fromMemToLJCDR_CONFIG_P_FF_CDR:
+       param_mask: 0x0f
+       param_shift: 15
+      fromMemToLJCDR_CONFIG_P_CDR:
+       param_mask: 0x0f
+       param_shift: 11
+      fromMemToLJCDR_CONFIG_I_FLL:
+       param_mask: 0x0f
+       param_shift: 7
+      fromMemToLJCDR_CONFIG_I_CDR:
+       param_mask: 0x0f
+       param_shift: 3
+      fromMemToLJCDR_CONFIG_FF_CAP:
+       param_mask: 0x07
        param_shift: 0
     pll_bytes_12to9:
      addr_offset: 0x09
@@ -557,14 +578,26 @@ ECON-T:
      params:
       fromMemToLJCDR_CONFIG_FF_CAP_WL:
        param_mask: 0x07
-       param_shift: 12
+       param_shift: 28
       fromMemToLJCDR_PLL_R_CONFIG_WL:
        param_mask: 0x0f
-       param_shift: 8
+       param_shift: 24
       fromMemToLJCDR_CONFIG_P_PLL_WL:
        param_mask: 0x0f
-       param_shift: 4
+       param_shift: 20
       fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_CONFIG_I_FLL_WL:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_CONFIG_P_FF_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_CONFIG_P_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_CONFIG_I_CDR_WL:
        param_mask: 0x0f
        param_shift: 0
     pll_bytes_17to13:
@@ -854,7 +887,7 @@ ECON-T:
        param_shift: 6
       phaseSelect:
        param_mask: 0x0f
-       param_shift: 1
+       param_shift: 2
       dllState:
        param_mask: 0x03
        param_shift: 0
