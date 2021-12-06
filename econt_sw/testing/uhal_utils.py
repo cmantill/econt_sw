@@ -7,11 +7,23 @@ logging.basicConfig()
 logger = logging.getLogger('utils')
 logger.setLevel(logging.INFO)
 
-# input test vector (input nlinks)
+def configure_fc(dev):
+    """
+    Configure FC
+    Do not enable L1A (since this disables link resets)
+    """
+    dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
+    dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
+    dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
+    dev.dispatch()
+
 def read_testvector(fname):
+    """
+    Read input test vector
+    TODO: assumes input_nlinks active..
+    """
     import csv
     data = [[] for l in range(input_nlinks)]
-
     with open(fname) as f:
         csv_reader = csv.reader(f, delimiter=',')
         for i,row in enumerate(csv_reader):
@@ -20,8 +32,11 @@ def read_testvector(fname):
                 data[l].append(row[l])
     return data
 
-# output test vector (output nlinks)
 def save_testvector(fname,data,header=False):
+    """
+    Save test vector in csv
+    TODO: Writes header as TX
+    """
     import csv
     with open( fname, 'w') as f:
         writer = csv.writer(f, delimiter=',')
@@ -30,20 +45,34 @@ def save_testvector(fname,data,header=False):
         for j in range(len(data)):
             writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-# configure IO blocks
-def configure_IO(dev,io,io_name='IO'):
+def configure_IO(dev,io,io_name='IO',invert=False):
+    """
+    Configures IO blocks.
+    """
+    ioblock_settings = {
+        "reg0.tristate_IOBUF": 0,
+        "reg0.bypass_IOBUF": 0,
+        "reg0.invert": 0,
+        "reg0.reset_link": 0,
+        "reg0.reset_counters": 1,
+        "reg0.delay_mode": 0, 
+    }
     nlinks = input_nlinks if io=='to' else output_nlinks
-    delay_mode=0
+    # set delay mode to 1 to those blocks that need to be aligned
     if (io_name == "ASIC-IO" and io=="to") or (io_name == "IO" and io=="from"):
+        ioblock_settings["reg0.delay_mode"] = 1
         delay_mode = 1
+    # set invert to 1
+    if invert:
+        ioblock_settings["reg0.invert"] = 1
 
+    # set 
     for l in range(nlinks):
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.tristate_IOBUF").write(0x0)
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.bypass_IOBUF").write(0x0)
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.invert").write(0x0)
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.reset_link").write(0x0)
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.reset_counters").write(0x1)
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_mode").write(delay_mode)
+        for key,value in ioblock_settings.items():
+            dev.getNode(names[io_name][io]+".link"+str(l)+"."+key).write(value)
+        dev.dispatch()
+
+    # reset
     dev.getNode(names[io_name][io]+".global.global_rstb_links").write(0x1)
     dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
     import time
@@ -51,13 +80,15 @@ def configure_IO(dev,io,io_name='IO'):
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
 
-# is IO block aligned?
-def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):
+def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=1000):
+    """
+    Checks whether IO block is aligned.
+    """
     IO_delayready = []
     for l in range(nlinks):
         i=0
         delay_ready=0
-        while i < 10000:
+        while i < nit:
             i+=1
             bit_tr = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
             delay_ready = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.delay_ready").read()
@@ -76,8 +107,11 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):
         logging.info("Links %s-IO are not aligned"%io)
     return is_aligned
     
-# is link capture aligned?
 def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=False):
+    """
+    Is link capture aligned?
+    Check status registers.
+    """
     lc_align = []
     for l in range(nlinks):
         aligned_c = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_aligned_count").read()
@@ -120,21 +154,24 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=False):
         return False
     return True
 
-# set link capture to acquire
-# mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
-# mode: 0 (inmediate - writes data to BRAM)
-# mode: 1 (writes data starting on a specific BX count)
-# mode: 2 (writes data after receiving a fast command)
-# mode: 3 (auto-daq mode)
 def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
-    captures = {'mode_in': 0,
-                'L1A': 0,
-                'orbitSync': 0,
-                'linkreset_ECONt': 0,
-                'linkreset_ECONd': 0,
-                'linkreset_ROCt': 0,
-                'linkreset_ROCd': 0,
-            }
+    """
+    Set link capture to acquire.
+    mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
+    mode: 0 (inmediate - writes data to BRAM) 
+    mode: 1 (writes data starting on a specific BX count) 
+    mode: 2 (writes data after receiving a fast command)
+    mode: 3 (auto-daq mode)
+    """
+    captures = {
+        'mode_in': 0,
+        'L1A': 0,
+        'orbitSync': 0,
+        'linkreset_ECONt': 0,
+        'linkreset_ECONd': 0,
+        'linkreset_ROCt': 0,
+        'linkreset_ROCd': 0,
+    }
     if "BX" in mode:
         captures['mode_in'] = 1
     elif "linkreset" in mode or "L1A" in mode or "orbitSync" in mode:
@@ -162,8 +199,10 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     dev.getNode(names[lcapture]["lc"]+".global.interrupt_enable").write(0)
     dev.dispatch()
 
-# acquire with fast command
 def do_fc_capture(dev,fc,lcapture):
+    """
+    Acquire data and send a fast command.
+    """
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
@@ -171,8 +210,10 @@ def do_fc_capture(dev,fc,lcapture):
     dev.getNode(names['fc']+".request.%s"%fc).write(0x1);
     dev.dispatch()
 
-# acquire
 def do_capture(dev,lcapture,wait=False):
+    """
+    Acquire
+    """
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
     dev.dispatch()
     dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
@@ -182,9 +223,10 @@ def do_capture(dev,lcapture,wait=False):
         time.sleep(0.001)
         raw_input("ready to capture, press link to continue")
 
-
-# get captured data
 def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
+    """
+    Get captured data
+    """
     # wait some time until acquisition finishes 
     while True:
         fifo_occupancies = []
@@ -227,3 +269,82 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
     except:
         transpose = [list(x) for x in zip(*daq_data)]
         return transpose
+
+def find_latency(latency,lcapture,bx0=None,savecap=False):
+    """
+    Find if with that latency we see the BX0 word.
+    Uses numpy!
+    
+    It does captures on link reset econt so capture block needs to set acquire to that.
+    If `bx0[l]` is set, then check that that position at which BX0 word is found, is the same as bx0.
+    """
+    # record the new latency for each elink
+    new_latency = {}
+    # record the position at which BX0 was found for each elink (this needs to be the same for all elinks) 
+    found_BX0 = {}
+
+    # set latency
+    for l in range(output_nlinks):
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(latency[l]);
+    dev.dispatch()
+
+    # read latency
+    read_latency = {}
+    for l in range(output_nlinks):
+        lat = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
+        dev.dispatch()
+        read_latency[l] = int(lat)
+    logger.debug('Written latencies: %s',latency)
+    logger.debug('Read latencies: %s',read_latency)
+
+    # capture on link reset econt
+    do_fc_capture(dev,"link_reset_econt",lcapture)
+    
+    # check link reset econt counter 
+    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read()
+    dev.dispatch()
+    logger.debug('link reset econt counter %i'%lrc)
+
+    # get captured data
+    data = get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks)
+    if savecap:
+        save_testvector("lc-%s-findlatency-debug.csv"%lcapture, data) 
+
+    # find BX0 in data and in link 0
+    BX0_word = 0xf922f922
+    BX0_rows,BX0_cols = (data == BX0_word).nonzero()
+    logger.debug('BX0 sync word found on columns %s',BX0_cols)
+    logger.debug('BX0 sync word found on rows %s',BX0_rows)
+    try:
+        assert len(BX0_rows) > 0
+        assert (BX0_cols==0).nonzero()
+    except AssertionError:
+        logger.error('BX0 sync word not found anywhere or in link 0')
+        for l in range(output_nlinks):
+            new_latency[l] = -1
+        return new_latency,found_BX0,ASIC_data    
+
+    # check that BX0 is found in the same position for all output links
+    for l in range(output_nlinks):
+        try:
+            row_index = (BX0_cols==l).nonzero()[0][0]
+            row_link_0 = (BX0_cols==0).nonzero()[0][0]
+            assert BX0_rows[row_index] == BX0_rows[row_link_0]
+            if bx0:
+                assert BX0_rows[row_index] == bx0[row_index]
+            logger.debug('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+            new_latency[l] = latency[l]
+            found_BX0[l] = BX0_rows[row_index]
+        except AssertionError:
+            if bx0:
+                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
+            else:
+                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+            new_latency[l] = -1
+
+    return new_latency,found_BX0,ASIC_data
+
+
+    
+
+    

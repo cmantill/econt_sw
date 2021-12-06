@@ -30,4 +30,3 @@ python3 testing/i2c_single_register.py --name ALGO_drop_lsb --value 3
 for i in {0..47}; do python3 testing/i2c_single_register.py --name ALGO_threshold_val_${i} --value 47; done;
 
 python3 testing/i2c_single_register.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,3
-
