@@ -28,8 +28,9 @@ if __name__ == "__main__":
                                            'capture',
                                            ],
                         help='alignment steps')
-    parser.add_argument('--invertIO', type=bool, default=False, help='invert IO')
+    parser.add_argument('--invertIO', action='store_true', default=False, help='invert IO')
     parser.add_argument('--delay', type=int, default=4, help='delay data for emulator on tester')
+    parser.add_argument('--alignpos', type=int, default=0, help='override align position by shifting it by this number')
     args = parser.parse_args()
 
     if args.logLevel.find("ERROR")==0:
@@ -160,6 +161,8 @@ if __name__ == "__main__":
             "n_idle_words": 255,
             "idle_word": 0xaccccccc,
             "idle_word_BX0": 0x9ccccccc,
+            #"idle_word": 0xa0000000, # useful for debug
+            #"idle_word_BX0": 0x90000000,
             "header_mask": 0x00000000,
             "header": 0xa0000000,
             "header_BX0": 0x90000000,
@@ -193,8 +196,7 @@ if __name__ == "__main__":
         dev.getNode(names['delay']+".delay").write(args.delay)
         dev.dispatch()
 
-        # send link reset roct 
-        # this will align the emulator on the ASIC board and the emulator on the tester board simultaneously
+        # send a link reset roct
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
         dev.dispatch()
         logger.info('link reset roct counter %i'%lrc)
@@ -207,6 +209,33 @@ if __name__ == "__main__":
         dev.dispatch()
         logger.info('link reset roct counter %i'%lrc)
         raw_input("Sent link reset ROCT. Press key to continue...")
+        
+        """
+        if args.saveinput:
+            # configure lc input
+            sync_patterns = {
+                'lc-input': 0xaccccccc,
+            }
+            for lcapture in ['lc-input']:
+                dev.getNode(names[lcapture]['lc']+".global.link_enable").write(0x1fff)
+                dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x0)
+                time.sleep(0.001)
+                dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x1)
+                dev.dispatch()
+                nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+                for l in range(nlinks):
+                    dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(sync_patterns[lcapture])
+                    dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(0);
+                    dev.dispatch()
+                nwords = 4095
+                configure_acquire(dev,lcapture,"linkreset_ROCt",nwords=nwords,nlinks=nlinks)
+
+            # send another
+            do_fc_capture(dev,"link_reset_econt",'lc-input')
+            nwords = 4095
+            data = get_captured_data(dev,'lc-input',nwords=nwords,nlinks=input_nlinks)
+            save_testvector("lc-input-alignoutput_debug.csv", data)
+        """
 
     if args.step == "lr-econt":
         """
@@ -269,7 +298,7 @@ if __name__ == "__main__":
             dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".override_align_position").write(1);
             dev.dispatch()
             # set align position (manually to +/-16 in this case)
-            dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".align_position").write(int(align_pos)-16);
+            dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".align_position").write(int(align_pos)+args.alignpos);
             dev.dispatch()
             # force to autoalign
             dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".explicit_align").write(1);
