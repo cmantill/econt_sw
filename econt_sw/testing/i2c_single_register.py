@@ -1,7 +1,7 @@
 import argparse
 import os
 import zmq_controller as zmqctrl
-
+import re
 """
 Writing a single i2c register.
 - One needs to provide:
@@ -37,8 +37,35 @@ if __name__ == "__main__":
     parser.add_argument('--register', type=str, default=None, help="Register's name")
     parser.add_argument('--parameter', type=str, default=None, help="Parameter's name")
     parser.add_argument('--value', type=str, default=None, help="Value to write")
+    parser.add_argument('--yaml', type=str, default=None, help="YAML file of registers to read from")
+    parser.add_argument('--write', default=False, action='store_true', help='write registers when using yaml file, rather than just read')
+    parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
     
     args = parser.parse_args()
+
+    ### adds capability to simply print the list of accessible registers.
+    ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
+    if args.listRegisters:
+        import json
+        with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
+            names_to_register = json.load(f)
+        if args.name:
+            p2 = re.compile('^(\w*)\*(\w*)$')
+            regList = []
+            if p2.match(args.name):
+                name_start, name_end = p2.match(args.name).groups()
+            else:
+                name_start=args.name
+                name_end=''
+            for reg in names_to_register.keys():
+                if reg.startswith(name_start) and reg.endswith(name_end):
+                    regList.append(reg)
+            for r in regList:
+                print(r)
+        else:
+            for r in names_to_register.keys():
+                print(r)
+        exit()
 
     i2ckeys = [args.i2c]
     addresses = [int(addr) for addr in args.addr.split(',')]
@@ -63,31 +90,69 @@ if __name__ == "__main__":
         for key in server.keys():
             procs[key] = Popen(cmds[key], cwd=cwds[key],stdout=PIPE, universal_newlines=True, env=env)
 
+    readOnly=True
+    if args.value:
+        readOnly=False
+    
     # build the config
     if args.name:
         import json
         with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
             names_to_register = json.load(f)
+        names = args.name.split(',')
+        p = re.compile('^(\w*)\[(\d*)-(\d*)\](\w*)$')
+        p2 = re.compile('^(\w*)\*(\w*)$')
+        regList = []
+        for n in names:
+            if n=='ALL':
+                regList = list(names_to_register.keys())
+                break
+            if p.match(n):
+                a,b,c,d = p.match(n).groups()
+                for i in range(int(b),int(c)+1):
+                    regList.append(f"{a}{i}{d}")
+            elif p2.match(n):
+                name_start, name_end = p2.match(n).groups()
+                for reg in names_to_register.keys():
+                    if reg.startswith(name_start) and reg.endswith(name_end):
+                        regList.append(reg)
+            else:
+                regList.append(n)
 
         if args.value:
-            try:
-                values = args.value.split(',')
-            except:
-                values = [args.value]
+            values_split = args.value.split(',')
+            values = []
+            p1 = re.compile('^\[(\w*)\]\*(\w*)$')
+            p2 = re.compile('^(\w*)\*\[(\w*)\]$')
+            for v in values_split:
+                if p1.match(v):
+                    x,n = p1.match(v).groups()
+                    x = int(x,16) if x.startswith('0x') else int(x)
+                    values += [x]*int(n)
+                elif p2.match(v):
+                    n,x = p2.match(v).groups()
+                    x = int(x,16) if x.startswith('0x') else int(x)
+                    values += [x]*int(n)
+                else:
+                    x = int(v,16) if v.startswith('0x') else int(v)
+                    values += [x]
+            if len(values)==1 and len(regList)>1:
+                values = values*len(regList)
+
+            if len(values) != len(regList):
+                print(f'ERROR: Mismatch between number of registers ({len(regList)}) and number of values ({len(values)}) supplied')
+                exit()
 
         from nested_dict import nested_dict
         config = nested_dict()
-        for i,name in enumerate(args.name.split(',')):
+        for i,name in enumerate(regList):
             if name in names_to_register:
                 rw = names_to_register[name][0]
                 block = names_to_register[name][1]
                 register = names_to_register[name][2]
 
                 if args.value:
-                    try:
-                        value = int(values[i])
-                    except:
-                        value = int(values[i],16)
+                    value = int(values[i])
                 else:
                     value = 0
 
@@ -98,26 +163,12 @@ if __name__ == "__main__":
                     config["ECON-T"][rw][block]["registers"][register] = {"value": value}
             else:
                 print(f'---register {name} not found')
-        new_config = {}
-        for i in config.keys():
-            new_config[i] = {}
-            for j in config[i].keys():
-                new_config[i][j] = {}
-                for k in config[i][j].keys():
-                    new_config[i][j][k] = {}
-                    for h in config[i][j][k].keys():
-                        new_config[i][j][k][h] = {}
-                        for g,val in config[i][j][k][h].items():
-                            if 'params' in config[i][j][k][h][g].keys():
-                                new_config[i][j][k][h][g] ={}
-                                for d in  config[i][j][k][h][g].keys():
-                                    new_config[i][j][k][h][g][d] = {}
-                                    for s in config[i][j][k][h][g][d].keys():
-                                        #print(config[i][j][k][h][g][d][s])
-                                        new_config[i][j][k][h][g][d][s] = config[i][j][k][h][g][d][s]
-                            else:
-                                new_config[i][j][k][h][g] = config[i][j][k][h][g]
-        #print(new_config)
+        new_config = config.to_dict()
+    elif args.yaml:
+        from yaml import safe_load
+        with open(args.yaml) as _file:
+            new_config=safe_load(_file)
+        readOnly= not args.write
     else:
         if args.parameter:
             parameters = args.parameter.split(',')
@@ -130,35 +181,34 @@ if __name__ == "__main__":
                 values = [0 for p in parameters]
             new_config = {"ECON-T": {args.rw: {args.block: {"registers":{args.register: {"params": dict.fromkeys(parameters)} } } } } }
             for p,parameter in enumerate(parameters):
-                if args.value:
-                    try:
-                        value = int(values[p])
-                    except:
-                        value = int(values[p],16)
-                else:
-                    value = 0
-                new_config["ECON-T"][args.rw][args.block]["registers"][args.register]["params"][parameter] = {"param_value": value}
+                new_config["ECON-T"][args.rw][args.block]["registers"][args.register]["params"][parameter] = {"param_value": int(values[p])}
         else:
             if args.value:
                 value = args.value
             else: 
                 value = 0
+            if (args.rw is None) or (args.block is None) or (args.register is None):
+                print('Insufficient register information provided')
+                exit()
             new_config = {"ECON-T": {args.rw: {args.block: {"registers":{args.register: {"value": value} } } } } }
-            
-
 
     i2c_sockets = {}
+    if new_config=={}:
+        print('No registers specified to read or write')
+        exit()
+
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]))
+
         i2c_sockets[key].update_yamlConfig(yamlNode=new_config)
 
-        # write only if value is given
-        if args.value:
-            i2c_sockets[key].configure()
 
+        # write only if value is given
+        if not readOnly:
+            i2c_sockets[key].configure()
         # read back i2c 
         read_socket = i2c_sockets[key].read_config(yamlNode=new_config)
-        #print(read_socket)
+        # print(read_socket)
         for access,accessDict in read_socket.items():
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
