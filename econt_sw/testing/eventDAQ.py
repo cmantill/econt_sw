@@ -46,7 +46,6 @@ if __name__ == "__main__":
         read_socket = i2c_sockets[key].read_config(inityaml)
         #print(read_socket)
 
-
     # daq
     os.system('python testing/uhal-eventDAQ.py --idir %s --capture %s'%(args.idir,args.capture))
 

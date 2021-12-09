@@ -45,11 +45,11 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     # first, check alignment
-    is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
-    is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
-    if not is_fromIO_aligned or not is_lcASIC_aligned:
-        print('not aligned! Exiting...')
-        #exit(1)
+    #is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
+    #is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    #if not is_fromIO_aligned or not is_lcASIC_aligned:
+    #    print('not aligned! Exiting...')
+    #exit(1)
 
     # read latency values from aligned link captures
     latency_values = {}
@@ -59,10 +59,7 @@ if __name__ == "__main__":
             latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
             dev.dispatch()
             latency_values[lcapture].append(int(latency))
-    # print('FIFO latency: ',latency_values)
-    #for l in range(output_nlinks):
-    #    latency_values['lc-emulator'][l] = 3
-    #print(latency_values)
+    logger.info('latency values ',latency_values)
 
     # setup test-vectors
     out_brams = []
@@ -84,9 +81,7 @@ if __name__ == "__main__":
         for st in ['switch','stream']:
             for key,value in testvectors_settings[st].items():
                 dev.getNode(names['testvectors'][st]+".link"+str(l)+"."+key).write(value)
-            
-        # size of bram is 4096
-        out_brams.append([None] * 4096)
+        out_brams.append([None] * 4095)
         dev.dispatch()
 
     # set input data
@@ -104,13 +99,10 @@ if __name__ == "__main__":
         dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(0x1)
     dev.dispatch()
 
-    # configure delay again?
-    delay = 4
-    dev.getNode(names['delay']+".delay").write(delay)
-
     # configure fast commands
     dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
+    dev.dispatch()
         
     # check stream compare
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
@@ -127,9 +119,9 @@ if __name__ == "__main__":
         l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
         dev.dispatch()
         logger.debug('L1A counter %i'%(int(l1a_counter)))
-        
+
         # configure lc to capture on L1A:
-        acq_length = 300
+        acq_length = 4095
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
             configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
@@ -137,7 +129,7 @@ if __name__ == "__main__":
             do_capture(dev,lcapture)
 
         # send L1A
-        logger.info('Sending l1a')
+        logger.debug('Sending l1a')
         dev.getNode(names['fc']+".command.global_l1a_enable").write(0x1);
         dev.getNode(names['fc']+".periodic0.enable").write(0x0); # to get a L1A once
         #dev.getNode(names['fc']+".periodic0.enable").write(0x1); # to get a L1A every orbit
@@ -154,7 +146,7 @@ if __name__ == "__main__":
         logger.debug('L1A counter %i'%(int(l1a_counter)))
 
     elif args.capture == "compare":
-        logger.info('Capture with stream compare ')
+        logger.debug('Capture with stream compare ')
         acq_length = 511
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
@@ -167,6 +159,64 @@ if __name__ == "__main__":
     else:
         logger.error("No capture mode provided")
 
+    for lcapture in ['lc-input']:
+        reg_links = ['delay.in',
+                     'delay.idelay_error_offset',
+                     'delay.set',
+                     'delay.mode',
+                     'delay.invert',
+                     'align_pattern',
+                     'capture_mode_in',
+                         'capture_L1A',
+                         'capture_orbitSync',
+                         'capture_linkreset_ROCd',
+                         'capture_linkreset_ROCt',
+                         'capture_linkreset_ECONd',
+                         'capture_linkreset_ECONt',
+                         'L1A_offset_or_BX',
+                         'fifo_latency',
+                         'aquire',
+                         'continuous_acquire',
+                         'acquire_lock',
+                         'aquire_length',
+                         'total_length',
+                         'explicit_align',
+                         'override_align_position',
+                         'align_position',
+                         'explicit_resetb',
+                         'explicit_rstb_acquire',
+                         'reset_counters',
+                         'link_align_inhibit',
+                         'status.link_aligned',
+                         'status.delay_ready',
+                         'status.waiting_for_trig',
+                         'status.writing',
+                         'delay_out',
+                         'delay_out_N',
+                         'link_aligned_count',
+                         'link_error_count',
+                         'walign_state',
+                         'bit_align_errors',
+                         'word_errors',
+                         'fifo_occupancy',
+                         ]
+        for l in range(input_nlinks):
+            reads = {}
+            for key in reg_links:
+                r = dev.getNode(names[lcapture]['lc']+".link"+str(l)+"."+key).read()
+                dev.dispatch()
+                reads[key] = int(r)
+            logger.info('input link %i %s'%(l,reads))
+        reads = {}
+        regs = [#'interrupt_vec','interrupt_enable',                                                                                                                                                                                                                                                                                                             
+            'link_enable','invert_backpressure','inhibit_dump','aquire','continous_acquire',
+            'explicit_align','align_on','explicit_resetb','num_links','bram_size','modules_included','inter_link_locked']
+        for key in regs:
+            r = dev.getNode(names[lcapture]['lc']+".global."+key).read()
+            dev.dispatch()
+            reads[key] = int(r)
+        logger.info('input global %s'%(reads))
+
     # get data
     all_data = {}
     for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
@@ -175,7 +225,6 @@ if __name__ == "__main__":
 
     # convert all data to format
     for key,data in all_data.items():
-        # print('saving %s/%s-Output_header.csv'%(args.idir,key))
         fname = args.idir+"/%s-Output_header.csv"%key
         if args.capture == "compare":
             fname = fname.replace(".csv","_SC.csv")

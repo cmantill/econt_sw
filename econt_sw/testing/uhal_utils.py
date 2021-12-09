@@ -37,13 +37,14 @@ def save_testvector(fname,data,header=False):
     Save test vector in csv
     TODO: Writes header as TX
     """
-    import csv
-    with open( fname, 'w') as f:
-        writer = csv.writer(f, delimiter=',')
-        if header:
-            writer.writerow(['TX_DATA_%i'%l for l in range(len(data[0]))])
-        for j in range(len(data)):
-            writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
+    if len(data)>0:
+        import csv
+        with open( fname, 'w') as f:
+            writer = csv.writer(f, delimiter=',')
+            if header:
+                writer.writerow(['TX_DATA_%i'%l for l in range(len(data[0]))])
+            for j in range(len(data)):
+                writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
 def configure_IO(dev,io,io_name='IO',invert=False):
     """
@@ -76,14 +77,21 @@ def configure_IO(dev,io,io_name='IO',invert=False):
     dev.getNode(names[io_name][io]+".global.global_rstb_links").write(0x1)
     dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
     import time
-    time.sleep(0.001)
+    time.sleep(1)
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
 
-def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=1000):
+def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
     """
     Checks whether IO block is aligned.
     """
+    # reset the counters
+    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
+    import time
+    time.sleep(1)
+    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
+    dev.dispatch()
+    # check the counters
     IO_delayready = []
     for l in range(nlinks):
         i=0
@@ -92,8 +100,10 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=1000):
             i+=1
             bit_tr = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.waiting_for_transitions").read()
             delay_ready = dev.getNode(names[io_name][io]+".link"+str(l)+".reg3.delay_ready").read()
+            error_counter = dev.getNode(names[io_name][io]+".link"+str(l)+".error_counter").read()
+            bit_counter = dev.getNode(names[io_name][io]+".link"+str(l)+".bit_counter").read()
             dev.dispatch()
-            logger.info("%s-IO link%i: bit_tr %d and delay ready %d"%(io,l,bit_tr,delay_ready))
+            logger.info("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(io,l,bit_tr,delay_ready,error_counter,bit_counter))
             if delay_ready == 1:
                 break
         IO_delayready.append(delay_ready)
@@ -107,7 +117,7 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=1000):
         logging.info("Links %s-IO are not aligned"%io)
     return is_aligned
     
-def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=False):
+def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
     """
     Is link capture aligned?
     Check status registers.
@@ -139,7 +149,9 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=False):
         except AssertionError:
             logger.error('%s: is not aligned:'%lcapture)
             for i in range(len(lc_align)):
-                logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+                bit_err =  dev.getNode(names[lcapture]['lc']+".link"+str(l)+".bit_align_errors").read()
+                dev.dispatch()
+                logger.error('LINK-%i: is_aligned %d, aligned_counter %d, error_counter %d, bit err %i'%(i, is_aligned[i], aligned_counter[i], error_counter[i],bit_err))
             return False
     else:
         try:
@@ -150,7 +162,9 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=False):
         except AssertionError:
             logger.error('%s: is not aligned:'%lcapture)
             for i in range(len(lc_align)):
-                logger.error('LINK-%i: %d %d %d'%(i, is_aligned[i], aligned_counter[i], error_counter[i]))
+                bit_err =  dev.getNode(names[lcapture]['lc']+".link"+str(l)+".bit_align_errors").read()
+                dev.dispatch()
+                logger.error('LINK-%i: is_aligned %d, aligned_counter %d, error_counter %d, bit err %i'%(i, is_aligned[i], aligned_counter[i], error_counter[i],bit_err))
         return False
     return True
 
@@ -270,7 +284,7 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
         transpose = [list(x) for x in zip(*daq_data)]
         return transpose
 
-def find_latency(latency,lcapture,bx0=None,savecap=False):
+def find_latency(dev,latency,lcapture,bx0=None,savecap=False):
     """
     Find if with that latency we see the BX0 word.
     Uses numpy!
@@ -307,14 +321,14 @@ def find_latency(latency,lcapture,bx0=None,savecap=False):
 
     # get captured data
     data = get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks)
-    if savecap:
-        save_testvector("lc-%s-findlatency-debug.csv"%lcapture, data) 
+    #if savecap:
+    save_testvector("lc-%s-findlatency-debug.csv"%lcapture, data) 
 
     # find BX0 in data and in link 0
     BX0_word = 0xf922f922
     BX0_rows,BX0_cols = (data == BX0_word).nonzero()
-    logger.debug('BX0 sync word found on columns %s',BX0_cols)
-    logger.debug('BX0 sync word found on rows %s',BX0_rows)
+    logger.info('BX0 sync word found on columns %s',BX0_cols)
+    logger.info('BX0 sync word found on rows %s',BX0_rows)
     try:
         assert len(BX0_rows) > 0
         assert (BX0_cols==0).nonzero()
@@ -322,7 +336,7 @@ def find_latency(latency,lcapture,bx0=None,savecap=False):
         logger.error('BX0 sync word not found anywhere or in link 0')
         for l in range(output_nlinks):
             new_latency[l] = -1
-        return new_latency,found_BX0,ASIC_data    
+        return new_latency,found_BX0,data    
 
     # check that BX0 is found in the same position for all output links
     for l in range(output_nlinks):
@@ -332,7 +346,7 @@ def find_latency(latency,lcapture,bx0=None,savecap=False):
             assert BX0_rows[row_index] == BX0_rows[row_link_0]
             if bx0:
                 assert BX0_rows[row_index] == bx0[row_index]
-            logger.debug('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+            logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
             new_latency[l] = latency[l]
             found_BX0[l] = BX0_rows[row_index]
         except AssertionError:
@@ -342,7 +356,7 @@ def find_latency(latency,lcapture,bx0=None,savecap=False):
                 logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
             new_latency[l] = -1
 
-    return new_latency,found_BX0,ASIC_data
+    return new_latency,found_BX0,data
 
 
     

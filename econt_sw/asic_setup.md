@@ -12,13 +12,16 @@ python3 zmq_server.py --addr 0x21 --server 5555
 
 - To check all registers in ASIC:
 ```
-source check_all.sh 
+python3 testing/i2c.py --yaml configs/init.yaml
+# to check PUSM
+python3 testing/i2c.py --name PUSM_state
 ```
 
 - To lock pll manually in ASIC:
 ```
-source pll_manual.sh
+python3 testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,200
 ```
+
 This sets: `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CBOvcoCapSelect`.
 And should change `pll_read_bytes_2to0_lfLocked 0x1`.
 Then it should be in PUSM_state (8): `STATE_WAIT_CHNS_LOCK`
@@ -33,7 +36,7 @@ This should change ` misc_ro_0_PUSM_state 0x9` (`STATE_FUNCTIONAL`).
 
 - Then, set run bit in ASIC:
 ```
-python3 testing/i2c_single_register.py --name MISC_run --value 1
+python3 testing/i2c.py --name MISC_run --value 1
 ```
 
 ## Alignment:
@@ -41,18 +44,9 @@ python3 testing/i2c_single_register.py --name MISC_run --value 1
 - First, set up the alignment registers 
 ```
 # for ASIC
-source align_set.sh
+python3 testing/i2c.py --yaml configs/align.yaml --write
 # for emulator
-source align_set_emulator.sh
-```
-This sets:
-```
-ASIC: 
-orbsyn_cnt_load_val: 0 # bunch counter value on an orbit sync fast command
-orbsyn_cnt_snapshot: 3 # bunch counter value on which to take a snapshot
-Emulator:
-orbsyn_cnt_load_val: 0
-orbsyn_cnt_snapshot: 3
+python3 testing/i2c.py --yaml configs/align.yaml --i2c emulator --write
 ```
 
 - Then, send link reset ROC-T.
@@ -63,15 +57,17 @@ python testing/uhal-align_on_tester.py --step lr-roct
 
 - Then, read the registers:
 ```
-source align_read.sh
-source align_read_emulator.sh
+python3 testing/i2c.py --yaml configs/align_read.yaml
+python3 testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
 ```
 
 - If the `9cccccccaccccccc` matching pattern is not appearing in the snapshot you can try changing the registers, then sending another link-reset-ROCT and reading again, e.g.:
 ```
-python3 testing/i2c_single_register.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
+# orbsyn_cnt_load_val: bunch counter value on an orbit sync fast command
+# orbsyn_cnt_snapshot: bunch counter value on which to take a snapshot
+python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
 python testing/uhal-align_on_tester.py --step lr-roct
-source align_read.sh
+python3 testing/i2c.py --yaml configs/align_read.yaml
 ```
 
 - Once you see the alignment pattern in the snapshot and status aligned:
@@ -103,11 +99,11 @@ RO CH_ALIGNER_11INPUT_ALL snapshot 0xffffffffffffffffcccccccaccccccc9cccccccaccc
 RO CH_ALIGNER_11INPUT_ALL status 0x3
 ```
 
-- Once you have found the values for `orbsyn_cnt_snapshot` and `orbsyn_cnt_load_val`, e.g. 0,3, set the same for the emulator, and use delay to find the delay of getting data to the ASIC
+- Once you have found the values for `orbsyn_cnt_snapshot` and `orbsyn_cnt_load_val`, set the same for the emulator, and use delay to find the delay of getting data to the ASIC
 ```
-python3 testing/i2c_single_register.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,3 --i2c emulator --addr 1 --server 5555
+python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X --i2c emulator
 python testing/uhal-align_on_tester.py --step lr-roct --delay X
-source align_read_emulator.sh
+python3 testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
 ```
 
 - You should see the alignment pattern in the snapshot of the emulator (the status will still be 0x2):
@@ -137,17 +133,17 @@ RO CH_ALIGNER_10INPUT_ALL status 0x2
 RO CH_ALIGNER_11INPUT_ALL snapshot 0xacccccccacccccccacccccccaccccccc9cccccccaccccccc
 RO CH_ALIGNER_11INPUT_ALL status 0x2
 ```
-
-We want to see the snapshot at the same position. It does not have to be exactly the same. 
+We want to see the snapshot at ~ the same position. It does not have to be exactly the same. 
 A leftward shift of less than 32 bits is OK.
 A rightward shift is not, because then the ASIC will not be able to align (it has to see the complete 0x9cccccccaccccccc pattern).
-Select points at the first bit of 9 in 0x9cccccccaccccccc, right? So we need select in the ASIC to be in the interval [0x20, 0x3f].
+The `select` register in the emulator should be such that the `select` register in the ASIC is in the interval [select_emulator, select_emulator+31bits].
+In the example above, `select` for ASIC needs to be in the interval [0x20, 0x3f].
+The emulator ALWAYS needs to end in `9cccccccaccccccc`.
 
 - Then, set to threshold sum (by default), set to maximum threshold and send zero-data
 ```
-python3 testing/i2c_single_register.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --value 0
-for i in {0..47}; do python3 testing/i2c_single_register.py --name ALGO_threshold_val_${i} --value 4194303; done;
-for i in {0..47}; do python3 testing/i2c_single_register.py --name ALGO_threshold_val_${i} --value 4194303 --i2c emulator --addr 1 --server 5555; done;
+#python3 testing/i2c.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --value 0 --i2c ASIC,emulator 
+#python3 testing/i2c.py --name ALGO_threshold_val_[0-47] --value 4194303 --i2c ASIC,emulator 
 python testing/uhal-align_on_tester.py --step configure-IO --invertIO
 python testing/uhal-align_on_tester.py --step zero-data 
 python testing/uhal-align_on_tester.py --step check-IO
@@ -158,6 +154,8 @@ python testing/uhal-align_on_tester.py --step check-IO
 python testing/uhal-align_on_tester.py --step lr-econt
 # check if it is aligned
 python testing/uhal-align_on_tester.py --step check-lcASIC
+# capture data
+python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC
 ```
 - To manually align:
   - Check the output saved in the `check-lcASIC` step: lc-ASIC-alignoutput_debug.csv:
@@ -172,7 +170,7 @@ python testing/uhal-align_on_tester.py --step check-lcASIC
     ```
   - Then check again:
     ```
-    python testing/uhal-align_on_tester.py --step check-lcASIC
+    python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC
     ```
     You should have
     ```
@@ -181,7 +179,9 @@ python testing/uhal-align_on_tester.py --step check-lcASIC
     ```
 - Then, align link captures:
 ```
-python testing/uhal-align_on_tester.py --step capture
+# this finds the latency
+python testing/uhal-align_on_tester.py --step latency
+# then compare
 python testing/uhal-align_on_tester.py --step compare
 ```
 
@@ -191,4 +191,12 @@ python testing/uhal-align_on_tester.py --step compare
 python3 testing/eventDAQ.py --idir  configs/test_vectors/XXX/XXX --capture l1a
 # or
 python3 testing/eventDAQ.py --idir  configs/test_vectors/XXX/XXX --capture compare
+```
+
+## Taking snapshot:
+
+```
+python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 1,1,[0]*12,0 --i2c ASIC,emulator
+python3 testing/i2c.py --name ALIGNER_snapshot_arm --value 1 --i2c ASIC,emulator
+python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
 ```
