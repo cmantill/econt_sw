@@ -80,11 +80,8 @@ class Translator():
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
                     # read keys from the default dict
-                    #print(par_regs[access].keys())
                     defaultDict = par_regs[access][block][param]
-                    #print(access,block,param,defaultDict['addr'])
                     addr = defaultDict['addr']
-                    #print(par_regs[access][block])
                     size_byte = defaultDict['size_byte']
 
                     # values are taken from the default map if not in the cfg
@@ -95,7 +92,7 @@ class Translator():
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
-                        print('no cfgDict')
+                        print('No cfgDict')
                         pass
 
                     if is_incfg and cfgDict is not None:
@@ -104,34 +101,29 @@ class Translator():
                         elif 'params' in cfgDict:
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
-                            print('prev reg value ',addr,prevCache)
+                            # print('prev reg value ',addr,prevCache)
                             try:
                                 prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
                             except:
                                 print('address is a nested dict')
                                 continue
-                            #if addr in prevCacche:
-                            print('param ',param,' addr ',addr,' value ',prev_regVal)
                             
-                            for par, reg in defaultDict['params'].items():
-                                # get parameter values from previous register value 
-                                # TODO: does this do something?
-                                tmpVal = self.__paramVal_from_regVal(reg, prev_regVal)
-                                print('param value from regval ',par,tmpVal)
+                            for par, parDict in defaultDict['params'].items():
                                 # get parameter values from new dict
                                 if par in cfgDict['params']:
-                                    print('par in cfgdict')
                                     tmpVal =  cfgDict['params'][par]['param_value']
+                                # get parameter values from previous register value
+                                else:
+                                    tmpVal = self.__paramVal_from_regVal(parDict, prev_regVal)
+                                    # print('prev param value from cache ',par, tmpVal)
                                 tmpparamDict[par]['param_value'] = tmpVal
-                                print('param value ',par,tmpVal)
                             paramVal = self.__regVal_from_paramValues(tmpparamDict)
-                            print('reg val from param ',paramVal)
+
                         else:
-                            print('WARNING: No value given for register ',param)
+                            print('No value given for register ',param)
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
-                    # print('addr ',hex(addr), ' val ',paramVal, ' size_byte  ', size_byte)
                     pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
 
         return pairs
@@ -238,7 +230,6 @@ class Translator():
     
     def __regVal_from_paramValues(self, param_dict, prev_param_value=0):
         """ Convert parameter values (from config dictionary) into register value. """
-        print('prev_param_value ',prev_param_value)
         reg_value = prev_param_value
         for par, reg in param_dict.items():
             param_val = (reg["param_value"] & reg["param_mask"])
