@@ -318,8 +318,12 @@ ECON-T:
        param_shift: 0
     mask_ae:
      addr_offset: 0x08
-     size_byte: 18
-     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+     size_byte: 16
+     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+    mask_ae2:
+     addr_offset: 0x18
+     size_byte: 2
+     value: 0xffff
 
   MFC_MUX_SELECT:
    addr_base: 0x03c4
@@ -753,9 +757,41 @@ ECON-T:
    block_shift: 143
    addr_base: 0x0538
    registers:
-    weights:
-     size_byte: 134
-     value: 0
+    weights_byte0:
+     size_byte: 16
+     value: 0x0
+    weights_byte16:
+     addr_offset: 0x10
+     size_byte: 16
+     value: 0x0
+    weights_byte32:
+     addr_offset: 0x20
+     size_byte: 16
+     value: 0x0
+    weights_byte48:
+     addr_offset: 0x30
+     size_byte: 16
+     value: 0x0
+    weights_byte64:
+     addr_offset: 0x40
+     size_byte: 16
+     value: 0x0
+    weights_byte80:
+     addr_offset: 0x50
+     size_byte: 16
+     value: 0x0
+    weights_byte96:
+     addr_offset: 0x60
+     size_byte: 16
+     value: 0x0
+    weights_byte112:
+     addr_offset: 0x70
+     size_byte: 16
+     value: 0x0
+    weights_byte128:
+     addr_offset: 0x80
+     size_byte: 6
+     value: 0x0
 
   MISC_ALL:
    addr_base: 0x0bec
@@ -807,7 +843,11 @@ ECON-T:
      value: 0
     snapshot:
      addr_offset: 0x02
-     size_byte: 24
+     size_byte: 16
+     value: 0
+    snapshot2:
+     addr_offset: 0x12
+     size_byte: 8
      value: 0
     hdr_mm_cntr:
      addr_offset: 0x1a
