@@ -4,9 +4,8 @@ import argparse
 import logging
 logging.basicConfig()
 
-from uhal_config import names,input_nlinks,output_nlinks
-
-from uhal_utils import check_links,read_testvector,get_captured_data,save_testvector,check_IO,configure_acquire,do_capture
+from uhal_config import *
+from uhal_utils import *
 
 """
 Event DAQ using uHAL python2.
@@ -23,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument("--capture", dest="capture", action="store",
                         help="capture data with one of the options", choices=["l1a","compare"], required=True)
     parser.add_argument('--idir',dest="idir",type=str, required=True, help='test vector directory')    
+    parser.add_argument('--stime',dest="stime",type=int, default=0.001, help='time between word counts')
     args = parser.parse_args()
 
     if args.logLevel.find("ERROR")==0:
@@ -59,40 +59,10 @@ if __name__ == "__main__":
             latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
             dev.dispatch()
             latency_values[lcapture].append(int(latency))
-    logger.info('latency values ',latency_values)
+    logger.info('latency values %s'%latency_values)
 
     # setup test-vectors
-    out_brams = []
-    testvectors_settings = {
-        "switch": {"output_select": 0x0,
-                   "n_idle_words": 255,
-                   "idle_word": 0xaccccccc,
-                   "idle_word_BX0": 0x9ccccccc,
-                   "header_mask": 0x00000000, # do not set headers
-                   "header": 0xa0000000,
-                   "header_BX0": 0x90000000,
-                   },
-        "stream": {"sync_mode": 0x1,
-                   "ram_range": 0x1,
-                   "force_sync": 0x0,
-                   }
-    }
-    for l in range(input_nlinks):
-        for st in ['switch','stream']:
-            for key,value in testvectors_settings[st].items():
-                dev.getNode(names['testvectors'][st]+".link"+str(l)+"."+key).write(value)
-        out_brams.append([None] * 4095)
-        dev.dispatch()
-
-    # set input data
-    fname = args.idir+"/../testInput.csv"
-    data = read_testvector(fname)
-    for l in range(input_nlinks):
-        for i,b in enumerate(out_brams[l]):
-            out_brams[l][i] = int(data[l][i%3564],16)
-        dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
-    dev.dispatch()
-    time.sleep(0.001)
+    set_testvectors(dev,None,args.idir)
 
     # configure bypass to take data from test-vectors
     for l in range(output_nlinks):
@@ -104,28 +74,17 @@ if __name__ == "__main__":
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
     dev.dispatch()
         
-    # check stream compare
-    dev.getNode(names['stream_compare']+".control.reset").write(0x1)
-    time.sleep(0.001)
-    dev.getNode(names['stream_compare']+".control.latch").write(0x1)
-    dev.dispatch()
-    word_count = dev.getNode(names['stream_compare']+".word_count").read()
-    err_count = dev.getNode(names['stream_compare']+".err_count").read()
-    dev.dispatch()
-    logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
-
     if args.capture == "l1a":
         logger.info('Capture with l1a')
         l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
         dev.dispatch()
         logger.debug('L1A counter %i'%(int(l1a_counter)))
 
-        # configure lc to capture on L1A:
-        acq_length = 4095
+        # configure lc to capture on L1A
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+            nwords = 511 if 'input' in args.lc else 4095
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-            configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
-            # tell link capture to acquire when it sees the trigger
+            configure_acquire(dev,lcapture,"L1A",nwords,nlinks=nlinks)
             do_capture(dev,lcapture)
 
         # send L1A
@@ -158,6 +117,17 @@ if __name__ == "__main__":
         dev.dispatch()
     else:
         logger.error("No capture mode provided")
+
+    # check stream compare counters
+    dev.getNode(names['stream_compare']+".control.reset").write(0x1)
+    time.sleep(args.stime)
+    dev.getNode(names['stream_compare']+".control.latch").write(0x1)
+    dev.dispatch()
+
+    word_count = dev.getNode(names['stream_compare']+".word_count").read()
+    err_count = dev.getNode(names['stream_compare']+".err_count").read()
+    dev.dispatch()
+    logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
 
     # get data
     all_data = {}
