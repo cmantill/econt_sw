@@ -19,7 +19,7 @@ python3 testing/i2c.py --name PUSM_state
 
 - To lock pll manually in ASIC:
 ```
-python3 testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,200
+python3 testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,100
 ```
 
 This sets: `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CBOvcoCapSelect`.
@@ -43,6 +43,7 @@ python3 testing/i2c.py --name MISC_run --value 1
 
 - First, set up the alignment registers 
 ```
+python testing/uhal-align_on_tester.py --step zero-data
 # for ASIC
 python3 testing/i2c.py --yaml configs/align.yaml --write
 # for emulator

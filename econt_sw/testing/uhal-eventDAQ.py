@@ -159,64 +159,6 @@ if __name__ == "__main__":
     else:
         logger.error("No capture mode provided")
 
-    for lcapture in ['lc-input']:
-        reg_links = ['delay.in',
-                     'delay.idelay_error_offset',
-                     'delay.set',
-                     'delay.mode',
-                     'delay.invert',
-                     'align_pattern',
-                     'capture_mode_in',
-                         'capture_L1A',
-                         'capture_orbitSync',
-                         'capture_linkreset_ROCd',
-                         'capture_linkreset_ROCt',
-                         'capture_linkreset_ECONd',
-                         'capture_linkreset_ECONt',
-                         'L1A_offset_or_BX',
-                         'fifo_latency',
-                         'aquire',
-                         'continuous_acquire',
-                         'acquire_lock',
-                         'aquire_length',
-                         'total_length',
-                         'explicit_align',
-                         'override_align_position',
-                         'align_position',
-                         'explicit_resetb',
-                         'explicit_rstb_acquire',
-                         'reset_counters',
-                         'link_align_inhibit',
-                         'status.link_aligned',
-                         'status.delay_ready',
-                         'status.waiting_for_trig',
-                         'status.writing',
-                         'delay_out',
-                         'delay_out_N',
-                         'link_aligned_count',
-                         'link_error_count',
-                         'walign_state',
-                         'bit_align_errors',
-                         'word_errors',
-                         'fifo_occupancy',
-                         ]
-        for l in range(input_nlinks):
-            reads = {}
-            for key in reg_links:
-                r = dev.getNode(names[lcapture]['lc']+".link"+str(l)+"."+key).read()
-                dev.dispatch()
-                reads[key] = int(r)
-            logger.info('input link %i %s'%(l,reads))
-        reads = {}
-        regs = [#'interrupt_vec','interrupt_enable',                                                                                                                                                                                                                                                                                                             
-            'link_enable','invert_backpressure','inhibit_dump','aquire','continous_acquire',
-            'explicit_align','align_on','explicit_resetb','num_links','bram_size','modules_included','inter_link_locked']
-        for key in regs:
-            r = dev.getNode(names[lcapture]['lc']+".global."+key).read()
-            dev.dispatch()
-            reads[key] = int(r)
-        logger.info('input global %s'%(reads))
-
     # get data
     all_data = {}
     for lcapture in ['lc-input','lc-ASIC','lc-emulator']:

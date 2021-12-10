@@ -124,7 +124,10 @@ class Translator():
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
-                    pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
+                    try:
+                        pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
+                    except:
+                        print('paramVal is a nested dict')
 
         return pairs
 

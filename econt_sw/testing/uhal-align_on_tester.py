@@ -36,6 +36,9 @@ if __name__ == "__main__":
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
     parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data with lrecont')
+    parser.add_argument('--mode', type=str, default=None, help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
+    parser.add_argument('--bx', type=int, default=0, help='bx')
+
     args = parser.parse_args()
 
     if args.logLevel.find("ERROR")==0:
@@ -133,9 +136,11 @@ if __name__ == "__main__":
             "idle_word": 0xaccccccc,
             "idle_word_BX0": 0x9ccccccc,
             "header_mask": 0xf0000000, # impose headers
+            #"header_mask": 0x00000000,
             "header": 0xa0000000,
             "header_BX0": 0x90000000,
         }
+        print(testvectors_settings)
         for l in range(input_nlinks):
             for key,value in testvectors_settings.items():
                 dev.getNode(names['testvectors']['switch']+".link"+str(l)+"."+key).write(value)
@@ -210,31 +215,6 @@ if __name__ == "__main__":
         dev.dispatch()
         logger.info('link reset roct counter %i'%lrc)
         
-    if args.step == "save-input":
-        # configure lc input
-        sync_patterns = {
-            'lc-input': 0xaccccccc,
-        }
-        for lcapture in ['lc-input']:
-            dev.getNode(names[lcapture]['lc']+".global.link_enable").write(0x1fff)
-            dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x0)
-            time.sleep(0.001)
-            dev.getNode(names[lcapture]['lc']+".global.explicit_resetb").write(0x1)
-            dev.dispatch()
-            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-            for l in range(nlinks):
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(sync_patterns[lcapture])
-                dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").write(0);
-                dev.dispatch()
-            nwords = 4095
-            configure_acquire(dev,lcapture,"linkreset_ROCt",nwords=nwords,nlinks=nlinks)
-
-        # send a link reset roct
-        do_fc_capture(dev,"link_reset_roct",'lc-input')
-        nwords = 4095
-        data = get_captured_data(dev,'lc-input',nwords=nwords,nlinks=input_nlinks)
-        save_testvector("lc-input-alignoutput_debug.csv", data)
-
     if args.step == "lr-econt":
         """
         Send link reset econ-t.
@@ -269,7 +249,7 @@ if __name__ == "__main__":
         for lcapture in ['lc-ASIC','lc-emulator']:
             # configure link captures to acquire on linkreset-ECONt (4095 words)
             nwords = 4095
-            configure_acquire(dev,lcapture,"linkreset_ECONt",nwords=nwords,nlinks=output_nlinks)
+            configure_acquire(dev,lcapture,"linkreset_ECONt",nwords,output_nlinks)
             
         # send link reset econt (once)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
@@ -315,18 +295,28 @@ if __name__ == "__main__":
         If not, capture data.
         """
         # check that links are aligned
-        is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+        is_lcASIC_aligned = check_links(dev,'lc-ASIC',output_nlinks)
 
     if args.step == 'capture':
         # capture data
-        nwords = 4095
-        configure_acquire(dev,args.lc,"linkreset_ECONt",nwords=nwords,nlinks=output_nlinks)
-        do_fc_capture(dev,"link_reset_econt",args.lc)
-        time.sleep(0.001)
-        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
-        dev.dispatch()
-        logger.info('link reset econt counter %i'%lrc)
-        data = get_captured_data(dev,args.lc,nwords=nwords,nlinks=output_nlinks)
+        nwords = 511 if 'input' in args.lc else 4095
+        nlinks = input_nlinks if 'input' in args.lc else output_nlinks
+        configure_acquire(dev,args.lc,args.mode,nwords,nlinks,args.bx)
+        if args.mode == "linkreset_ECONt":
+            do_fc_capture(dev,"link_reset_econt",args.lc)
+            time.sleep(0.001)
+            lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+            dev.dispatch()
+            logger.info('link reset econt counter %i'%lrc)
+        elif args.mode =="linkreset_ROCt":
+            do_fc_capture(dev,"link_reset_roct",args.lc)
+            time.sleep(0.001)
+            lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
+            dev.dispatch()
+            logger.info('link reset roct counter %i'%lrc)
+        else:
+            do_capture(dev,args.lc)
+        data = get_captured_data(dev,args.lc,nwords,nlinks)
         save_testvector("%s-alignoutput_debug.csv"%args.lc, data)
 
     if args.step == 'latency':
