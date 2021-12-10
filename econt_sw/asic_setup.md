@@ -2,7 +2,7 @@
 
 ## Start-up:
 
-- Start a server
+- Start a server 
 ```
 # for ASIC
 python3 zmq_server.py --addr 0x20 --server 5554
@@ -26,11 +26,11 @@ This sets: `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CB
 And should change `pll_read_bytes_2to0_lfLocked 0x1`.
 Then it should be in PUSM_state (8): `STATE_WAIT_CHNS_LOCK`
 
-- Then, configure IO and send bit transitions:
+- Then, configure IO and send bit transitions with PRBS:
 ```
 source env.sh
 python testing/uhal-align_on_tester.py --step configure-IO --invertIO
-python testing/uhal-align_on_tester.py --step prbs-data 
+python testing/uhal-align_on_tester.py --step init 
 ```
 This should change ` misc_ro_0_PUSM_state 0x9` (`STATE_FUNCTIONAL`).
 
@@ -43,11 +43,7 @@ python3 testing/i2c.py --name MISC_run --value 1
 
 - First, set up the alignment registers 
 ```
-python testing/uhal-align_on_tester.py --step zero-data
-# for ASIC
-python3 testing/i2c.py --yaml configs/align.yaml --write
-# for emulator
-python3 testing/i2c.py --yaml configs/align.yaml --i2c emulator --write
+python3 testing/i2c.py --yaml configs/align.yaml --write --i2c ASIC,emulator
 ```
 
 - Then, send link reset ROC-T.
@@ -56,19 +52,50 @@ This also sends zeroes with headers and sets up the delay for emulator.
 python testing/uhal-align_on_tester.py --step lr-roct 
 ```
 
-- Then, read the registers:
+- Then, read the registers on the ASIC:
 ```
 python3 testing/i2c.py --yaml configs/align_read.yaml
-python3 testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
 ```
 
 - If the `9cccccccaccccccc` matching pattern is not appearing in the snapshot you can try changing the registers, then sending another link-reset-ROCT and reading again, e.g.:
 ```
 # orbsyn_cnt_load_val: bunch counter value on an orbit sync fast command
 # orbsyn_cnt_snapshot: bunch counter value on which to take a snapshot
-python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
+python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_snapshot --value X
 python testing/uhal-align_on_tester.py --step lr-roct
 python3 testing/i2c.py --yaml configs/align_read.yaml
+```
+
+- For debugging, you can send a link reset econt and capture the input at the same time with:
+```
+python testing/uhal-align_on_tester.py --step capture --lc lc-input --mode linkreset_ROCt
+```
+
+- If the snapshot is 0, one can try:
+- To take the snapshot with the trigger mode and then spy on it:
+```
+python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 1,1,[0]*12,0 --i2c ASIC
+python3 testing/i2c.py --name ALIGNER_snapshot_arm --value 1 --i2c ASIC,emulator
+python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
+```
+This should show you the data that is going in.
+- Otherwise one can try manually:
+```
+python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 0,1,[0]*12,0 --i2c ASIC
+python testing/uhal-align_on_tester.py --step capture --lc lc-input --mode linkreset_ROCt
+python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
+```
+- Options in elink outputs:
+```
+# to send a different pattern
+python testing/uhal-align_on_tester.py --step test-data --dtype debug
+# to send PRBS
+python testing/uhal-align_on_tester.py --step test-data --dtype PRBS
+# to send zero data
+python testing/uhal-align_on_tester.py --step test-data
+# to send repeater dataset
+python testing/uhal-align_on_tester.py --step test-data --idir configs/test_vectors/counterPatternInTC/RPT/
+
 ```
 
 - Once you see the alignment pattern in the snapshot and status aligned:

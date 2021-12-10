@@ -21,8 +21,8 @@ if __name__ == "__main__":
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
     parser.add_argument('--step', choices=['configure-IO',
                                            'check-IO',
-                                           'prbs-data',
-                                           'zero-data',
+                                           'init',
+                                           'test-data',
                                            'lr-roct',
                                            'lr-econt',
                                            'manual-lcASIC',
@@ -32,12 +32,14 @@ if __name__ == "__main__":
                                            'compare',
                                            ],
                         help='alignment steps')
-    parser.add_argument('--invertIO', action='store_true', default=False, help='invert IO')
+    parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
     parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data with lrecont')
     parser.add_argument('--mode', type=str, default=None, help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
     parser.add_argument('--bx', type=int, default=0, help='bx')
+    parser.add_argument('--dtype', type=str, default=None, help='dytpe (PRBS,debug)')
+    parser.add_argument('--idir',dest="idir",type=str, default=None, help='test vector directory')
 
     args = parser.parse_args()
 
@@ -85,7 +87,7 @@ if __name__ == "__main__":
             delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
             dev.dispatch()
 
-    if args.step == "prbs-data":
+    if args.step == "init":
         """
         Initial configuration: The channel locks need bit transitions. 
 
@@ -130,56 +132,15 @@ if __name__ == "__main__":
         dev.dispatch()
 
         # send PRBS
-        testvectors_settings = {
-            "output_select": 0x1,
-            "n_idle_words": 256,
-            "idle_word": 0xaccccccc,
-            "idle_word_BX0": 0x9ccccccc,
-            "header_mask": 0xf0000000, # impose headers
-            #"header_mask": 0x00000000,
-            "header": 0xa0000000,
-            "header_BX0": 0x90000000,
-        }
-        print(testvectors_settings)
-        for l in range(input_nlinks):
-            for key,value in testvectors_settings.items():
-                dev.getNode(names['testvectors']['switch']+".link"+str(l)+"."+key).write(value)
-            dev.getNode(names['testvectors']['stream']+".link"+str(l)+".sync_mode").write(0x1)
-            dev.getNode(names['testvectors']['stream']+".link"+str(l)+".ram_range").write(0x1)
-            dev.getNode(names['testvectors']['stream']+".link"+str(l)+".force_sync").write(0x0)
-        dev.dispatch()
+        set_testvectors(dev,"PRBS")
 
-    if args.step == "zero-data":
-        # setup normal output
-        out_brams = []
-        testvectors_settings = {
-            "output_select": 0x0,
-            "n_idle_words": 255,
-            "idle_word": 0xaccccccc,
-            "idle_word_BX0": 0x9ccccccc,
-            #"idle_word": 0xa0000000, # useful for debug
-            #"idle_word_BX0": 0x90000000,
-            "header_mask": 0x00000000,
-            "header": 0xa0000000,
-            "header_BX0": 0x90000000,
-        }
-
-        for l in range(input_nlinks):
-            for key,value in testvectors_settings.items():
-                dev.getNode(names['testvectors']['switch']+".link"+str(l)+"."+key).write(value)
-            out_brams.append([None] * 4095)
-        dev.dispatch()
-        
-        # set zero-data with headers
-        for l in range(input_nlinks):
-            for i,b in enumerate(out_brams[l]):
-                if i==0:
-                    out_brams[l][i] = 0x90000000
-                else:
-                    out_brams[l][i] = 0xa0000000
-            dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
-            dev.dispatch()
-            time.sleep(0.001)
+    if args.step == "test-data":
+        """
+        Send test vectors data
+          - dytpe = mode [PRBS,debug] for test vectors settings
+          - 
+        """
+        set_testvectors(dev,args.dtype,args.idir)
 
     if args.step == "lr-roct":
         """

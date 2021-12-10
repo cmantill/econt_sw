@@ -3,7 +3,7 @@ import os
 import zmq_controller as zmqctrl
 import re
 """
-Writing a single i2c register.
+Writing to i2c
 - One needs to provide:
   - rw: permissions of register [rw,ro,wo]
   - block: block of register
@@ -11,14 +11,18 @@ Writing a single i2c register.
   - parameter: OPTIONAL if writing only to a parameter
   - value: value of register or parameter
 - One can use an existing server with an ADDRESS and PORT or start one with `--start-server`
+- If yaml option is provided it will read the values of those registers.
+  - to write those values add `--write`
+- One can also print the list of accessible registers with `list`
+  - if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers 
 
 e.g.
 
-python3 testing/i2c_single_register.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot
+python3 testing/i2c.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot
 
 and for writing a value:
 
-python3 testing/i2c_single_register.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot --value 3
+python3 testing/i2c.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot --value 3
 """
 
 import logging
@@ -43,8 +47,6 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    ### adds capability to simply print the list of accessible registers.
-    ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
     if args.listRegisters:
         import json
         with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
@@ -72,7 +74,15 @@ if __name__ == "__main__":
                 print(r)
         exit()
 
-    i2ckeys = [args.i2c]
+    # set default servers
+    if args.i2c=="emulator":
+        args.addr = "1"
+        args.server = "5555"
+    if args.i2c=="ASIC,emulator" and args.server=="5554":
+        args.addr = "0,1"
+        args.server = "5554,5555"
+
+    i2ckeys = [key for key in args.i2c.split(',')]
     addresses = [int(addr) for addr in args.addr.split(',')]
     servers = [int(server) for server in args.server.split(',')]
     addr = {}; server={}; 
@@ -84,8 +94,7 @@ if __name__ == "__main__":
 
     env = os.environ.copy()
     from subprocess import PIPE, Popen
-    cmds = {}
-    cwds = {}
+    cmds = {}; cwds = {};
     for key in server.keys():
         cmds[key] = ['python3', '-u', 'zmq_server.py', '--addr', '%i'%(0x20+addr[key]), '--server', server[key]]
         cwds[key] = './zmq_i2c'
@@ -210,9 +219,7 @@ if __name__ == "__main__":
 
     for key in server.keys():
         i2c_sockets[key] = zmqctrl.i2cController("localhost", str(server[key]))
-
         i2c_sockets[key].update_yamlConfig(yamlNode=new_config)
-
 
         # write only if value is given
         if not readOnly:

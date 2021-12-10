@@ -16,7 +16,7 @@ ECON-T:
       snapshot_en:
        param_value: 1
       snapshot_arm:
-       param_value: 1
+       param_value: 0
     match_pattern_val:
      value: 0x9cccccccaccccccc
     match_mask_val:
@@ -24,9 +24,9 @@ ECON-T:
     orbsyn_cnt_max_val:
      value: 3563
     orbsyn_cnt_load_val:
-     value: 0
+     value: 0x0db9
     orbsyn_cnt_snapshot:
-     value: 0
+     value: 3
 
   FMTBUF_ALL:
    registers:
