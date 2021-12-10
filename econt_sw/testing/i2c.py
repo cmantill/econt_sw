@@ -51,14 +51,19 @@ if __name__ == "__main__":
             names_to_register = json.load(f)
         if args.name:
             p2 = re.compile('^(\w*)\*(\w*)$')
+            p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
             regList = []
             if p2.match(args.name):
                 name_start, name_end = p2.match(args.name).groups()
+                name_mid=''
+            elif p3.match(args.name):
+                name_start, name_mid, name_end = p3.match(args.name).groups()
             else:
                 name_start=args.name
+                name_mid=''
                 name_end=''
             for reg in names_to_register.keys():
-                if reg.startswith(name_start) and reg.endswith(name_end):
+                if reg.startswith(name_start) and reg.endswith(name_end) and (name_mid in reg):
                     regList.append(reg)
             for r in regList:
                 print(r)
@@ -67,18 +72,9 @@ if __name__ == "__main__":
                 print(r)
         exit()
 
-    # set default server (change if needed)
-    if args.i2c=="emulator":
-        args.addr = "1"
-        args.server = "5555"
-    if args.i2c=="ASIC,emulator" and args.server=="5554":
-        args.addr = "0,1"
-        args.server = "5554,5555"
-
-    i2ckeys = [key for key in args.i2c.split(',')]
+    i2ckeys = [args.i2c]
     addresses = [int(addr) for addr in args.addr.split(',')]
     servers = [int(server) for server in args.server.split(',')]
-
     addr = {}; server={}; 
     for k,key in enumerate(i2ckeys):
         addr[key] = addresses[k]
@@ -109,8 +105,9 @@ if __name__ == "__main__":
         with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
             names_to_register = json.load(f)
         names = args.name.split(',')
-        p = re.compile('^(\w*)\[(\d*)-(\d*)\](\w*)$')
-        p2 = re.compile('^(\w*)\*(\w*)$')
+        p = re.compile('^(\w*)\[(\d*)-(\d*)\](\w*)$') #match to find a range of channels
+        p2 = re.compile('^(\w*)\*(\w*)$') #match with asterisk for autocomplete
+        p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
         regList = []
         for n in names:
             if n=='ALL':
@@ -124,6 +121,11 @@ if __name__ == "__main__":
                 name_start, name_end = p2.match(n).groups()
                 for reg in names_to_register.keys():
                     if reg.startswith(name_start) and reg.endswith(name_end):
+                        regList.append(reg)
+            elif p3.match(n):
+                name_start, name_mid, name_end = p3.match(n).groups()
+                for reg in names_to_register.keys():
+                    if reg.startswith(name_start) and reg.endswith(name_end) and (name_mid in reg):
                         regList.append(reg)
             else:
                 regList.append(n)
