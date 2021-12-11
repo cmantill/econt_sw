@@ -5,7 +5,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import *
-from uhal_utils import *
+import utils_fc,utils_lc,utils_io,utils_tv
 
 """
 Alignment sequence on tester using python2 uhal.
@@ -19,25 +19,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
-    parser.add_argument('--step', choices=['configure-IO',
-                                           'check-IO',
-                                           'init',
-                                           'test-data',
-                                           'lr-roct',
-                                           'lr-econt',
-                                           'manual-lcASIC',
-                                           'check-lcASIC',
-                                           'capture',
-                                           'latency',
-                                           'compare',
-                                           ],
+    parser.add_argument('--step', 
+                        choices=['init',
+                                 'configure-IO',
+                                 'check-IO',
+                                 'test-data',
+                                 'lr-roct',
+                                 'lr-econt',
+                                 'manual-lcASIC',
+                                 'check-lcASIC',
+                                 'capture',
+                                 'latency',
+                                 'compare',
+                             ],
                         help='alignment steps')
     parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
+
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
+    parser.add_argument('--lalign', type=str, default=None, help='links for which to override align position (default is all)')
+
     parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data with lrecont')
     parser.add_argument('--mode', type=str, default='L1A', help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
     parser.add_argument('--bx', type=int, default=0, help='bx')
+
     parser.add_argument('--dtype', type=str, default=None, help='dytpe (PRBS,debug)')
     parser.add_argument('--idir',dest="idir",type=str, default=None, help='test vector directory')
 
@@ -65,16 +70,16 @@ if __name__ == "__main__":
     if args.step == "configure-IO":
         for io in names['IO'].keys():
             if args.invertIO:
-                configure_IO(dev,io,io_name='IO',invert=True)
+                utils_io.configure_IO(dev,io,io_name='IO',invert=True)
             else:
-                configure_IO(dev,io,io_name='IO')
+                utils_io.configure_IO(dev,io,io_name='IO')
 
     if args.step == "check-IO":
         """
         Check that IO block is aligned.
         Only "from" IO block needs this.
         """
-        isIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
+        isIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
         if isIO_aligned:
             logger.info("from-IO aligned")
         else:
@@ -96,7 +101,7 @@ if __name__ == "__main__":
         Send PRBS. (This should get us to PUSM_state 9.)
         """
         # fast command
-        configure_fc(dev)
+        utils_fc.configure_fc(dev)
 
         # configure BXs to send link resets
         dev.getNode(names['fc']+".bx_link_reset_roct").write(3500)
@@ -132,7 +137,7 @@ if __name__ == "__main__":
         dev.dispatch()
 
         # send PRBS
-        set_testvectors(dev,"PRBS")
+        utils_tv.set_testvectors(dev,"PRBS")
 
     if args.step == "test-data":
         """
@@ -140,7 +145,7 @@ if __name__ == "__main__":
           - dytpe = mode [PRBS,debug] for test vectors settings
           - 
         """
-        set_testvectors(dev,args.dtype,args.idir)
+        utils_tv.set_testvectors(dev,args.dtype,args.idir)
 
     if args.step == "lr-roct":
         """
@@ -149,7 +154,7 @@ if __name__ == "__main__":
         Set delay for emulator.
         """
         # re-configure fc
-        configure_fc(dev)
+        utils_fc.configure_fc(dev)
         dev.getNode(names['fc']+".bx_link_reset_roct").write(3540)
         dev.dispatch()
 
@@ -210,7 +215,7 @@ if __name__ == "__main__":
         for lcapture in ['lc-ASIC','lc-emulator']:
             # configure link captures to acquire on linkreset-ECONt (4095 words)
             nwords = 4095
-            configure_acquire(dev,lcapture,"linkreset_ECONt",nwords,output_nlinks)
+            utils_lc.configure_acquire(dev,lcapture,"linkreset_ECONt",nwords,output_nlinks)
             
         # send link reset econt (once)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
@@ -231,11 +236,15 @@ if __name__ == "__main__":
         """ 
         Manually override link capture ASIC
         """
+        if args.lalign:
+            links = [int(l) for l in args.lalign.split(',')]
+        else:
+            links = range(output_nlinks)
         for l in range(output_nlinks):
             align_pos = dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".align_position").read();
             dev.dispatch()
             logger.info('Align pos link %i: %i'%(l,int(align_pos)))
-            if args.alignpos:
+            if args.alignpos and l in links:
                 # set override
                 dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".override_align_position").write(1);
                 # set align position (manually to +/-16 in this case)
@@ -256,36 +265,36 @@ if __name__ == "__main__":
         If not, capture data.
         """
         # check that links are aligned
-        is_lcASIC_aligned = check_links(dev,'lc-ASIC',output_nlinks)
+        is_lcASIC_aligned = utils_lc.check_links(dev,'lc-ASIC',output_nlinks)
 
     if args.step == 'capture':
         # capture data
         nwords = 511 if 'input' in args.lc else 4095
         nlinks = input_nlinks if 'input' in args.lc else output_nlinks
-        configure_acquire(dev,args.lc,args.mode,nwords,nlinks,args.bx)
+        utils_lc.configure_acquire(dev,args.lc,args.mode,nwords,nlinks,args.bx)
         if args.mode == "linkreset_ECONt":
-            do_fc_capture(dev,"link_reset_econt",args.lc)
+            utils_lc.do_fc_capture(dev,"link_reset_econt",args.lc)
             time.sleep(0.001)
             lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
             dev.dispatch()
             logger.info('link reset econt counter %i'%lrc)
         elif args.mode =="linkreset_ROCt":
-            do_fc_capture(dev,"link_reset_roct",args.lc)
+            utils_lc.do_fc_capture(dev,"link_reset_roct",args.lc)
             time.sleep(0.001)
             lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
             dev.dispatch()
             logger.info('link reset roct counter %i'%lrc)
         else:
-            do_capture(dev,args.lc)
-        data = get_captured_data(dev,args.lc,nwords,nlinks)
-        save_testvector("%s-alignoutput_debug.csv"%args.lc, data)
+            utils_lc.do_capture(dev,args.lc)
+        data = utils_lc.get_captured_data(dev,args.lc,nwords,nlinks)
+        utils_tv.save_testvector("%s-alignoutput_debug.csv"%args.lc, data)
 
     if args.step == 'latency':
         """
         Capture data from ASIC link capture and find BX0 word
         """
         # re-configure fc
-        configure_fc(dev)
+        utils_fc.configure_fc(dev)
         dev.getNode(names['fc']+".bx_link_reset_econt").write(3502)
         dev.dispatch()
         
@@ -302,24 +311,24 @@ if __name__ == "__main__":
             'emulator': dict.fromkeys(range(output_nlinks), -1),
         }
 
-        # loop over possible values of fifo latency
+        # find latency for ASIC
         for i in range(0,31):
             for l in range(output_nlinks):
                 if latency['asic'][l]==-1: 
                     latency['asic'][l] = i
 
-            latency['asic'],found_bx0['asic'],daq_data = find_latency(dev,latency['asic'],'lc-ASIC')
+            latency['asic'],found_bx0['asic'],daq_data = utils_lc.find_latency(dev,latency['asic'],'lc-ASIC')
             if -1 not in latency['asic'].values():
                 logger.info('Found BX0 for ASIC %s, %s',latency['asic'],found_bx0['asic'])
                 all_data['lc-ASIC'] = daq_data
                 break
 
-        # loop over possible values of fifo latency
+        # find latency for emulator
         for i in range(0,31):
             for l in range(output_nlinks):
                 if latency['emulator'][l]==-1:
                     latency['emulator'][l] = i
-            latency['emulator'],found_bx0['emulator'],daq_data = find_latency(dev,latency['emulator'],'lc-emulator',found_bx0['asic'])
+            latency['emulator'],found_bx0['emulator'],daq_data = utils_lc.find_latency(dev,latency['emulator'],'lc-emulator',found_bx0['asic'])
             if -1 not in latency['emulator'].values():
                 logger.info('Found BX0 for emulator %s, %s',latency['emulator'],found_bx0['emulator'])
                 all_data['lc-emulator'] = daq_data
@@ -337,7 +346,7 @@ if __name__ == "__main__":
 
         # save captured data
         for key,data in all_data.items():
-            save_testvector("%s-alignoutput.csv"%key, data)
+            utils_tv.save_testvector("%s-alignoutput.csv"%key, data)
 
     if args.step == 'compare':
         # setup fc
@@ -345,11 +354,11 @@ if __name__ == "__main__":
         dev.dispatch();
 
         # setup link captures just in case
-        acq_length = 511
         for lcapture in ['lc-ASIC','lc-emulator']:
+            nwords = 511 if 'input' in args.lc else 4095
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-            configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
-            do_capture(dev,lcapture)
+            utils_lc.configure_acquire(dev,lcapture,"L1A",nwords,nlinks=nlinks)
+            utils_lc.do_capture(dev,lcapture)
 
         # make sure that stream-compare sees no errors
         dev.getNode(names['stream_compare']+".control.reset").write(0x1) # start the counters from zero
@@ -362,16 +371,22 @@ if __name__ == "__main__":
         logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
 
         if err_count > 0:
-            dev.getNode(names['stream_compare']+".trigger").write(0x1)
-            dev.dispatch()
-                
+            # dev.getNode(names['stream_compare']+".trigger").write(0x1)
+            # dev.dispatch()
+            # dev.getNode(names['stream_compare']+".trigger").write(0x0)
+            # dev.dispatch()
+            
+            # send manual L1A
+            utils_fc.send_l1a(dev)
+
+            # get data
             all_data = {}
             for lcapture in ['lc-ASIC','lc-emulator']:
                 nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-                all_data[lcapture] = get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
+                all_data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
 
             for key,data in all_data.items():
-                save_testvector( "align-%s-sc.csv"%key, data, header=True)
+                utils_tv.save_testvector( "align-%s-sc.csv"%key, data, header=True)
         
         # reset fc
         dev.getNode(names['fc']+".command.global_l1a_enable").write(0);

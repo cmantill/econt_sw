@@ -5,7 +5,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import get_captured_data,save_testvector,configure_acquire,do_capture
+import utils_lc,utils_tv
 
 """
 Alignment sequence on 'ASIC' - (emulator) using python2 uhal.
@@ -62,10 +62,10 @@ if __name__ == "__main__":
 
     # configure lc
     nlinks = input_nlinks if args.capture=="input" else output_nlinks
-    configure_acquire(dev,lcapture,args.mode,args.nwords,nlinks)
+    utils_lc.configure_acquire(dev,lcapture,args.mode,args.nwords,nlinks)
     # do an acquisition
-    do_capture(dev,lcapture)
+    utils_lc.do_capture(dev,lcapture)
     # get data
-    data = get_captured_data(dev,lcapture,args.nwords,nlinks)
+    data = utils_lc.get_captured_data(dev,lcapture,args.nwords,nlinks)
     if args.fname is not None:
-        save_testvector(capture+"-"+args.fname+".csv", data)
+        utils_tv.save_testvector(capture+"-"+args.fname+".csv", data)

@@ -5,7 +5,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import *
-from uhal_utils import *
+import utils_fc,utils_lc,utils_io,utils_tv
 
 """
 Event DAQ using uHAL python2.
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
     parser.add_argument("--capture", dest="capture", action="store",
-                        help="capture data with one of the options", choices=["l1a","compare"], required=True)
+                        help="capture data with one of the options", choices=["l1a","compare"])
     parser.add_argument('--idir',dest="idir",type=str, required=True, help='test vector directory')    
     parser.add_argument('--stime',dest="stime",type=int, default=0.001, help='time between word counts')
     args = parser.parse_args()
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     # first, check alignment
-    #is_fromIO_aligned = check_IO(dev,io='from',nlinks=output_nlinks)
-    #is_lcASIC_aligned = check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    #is_fromIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
+    #is_lcASIC_aligned = utils_lc.check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
     #if not is_fromIO_aligned or not is_lcASIC_aligned:
     #    print('not aligned! Exiting...')
     #exit(1)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     logger.info('latency values %s'%latency_values)
 
     # setup test-vectors
-    set_testvectors(dev,None,args.idir)
+    utils_tv.set_testvectors(dev,None,args.idir)
 
     # configure bypass to take data from test-vectors
     for l in range(output_nlinks):
@@ -73,7 +73,8 @@ if __name__ == "__main__":
     dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
     dev.dispatch()
-        
+    
+    capture = True
     if args.capture == "l1a":
         logger.info('Capture with l1a')
         l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
@@ -82,43 +83,30 @@ if __name__ == "__main__":
 
         # configure lc to capture on L1A
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
-            nwords = 511 if 'input' in args.lc else 4095
+            nwords = 511 if 'input' in lcapture else 4095
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-            configure_acquire(dev,lcapture,"L1A",nwords,nlinks=nlinks)
-            do_capture(dev,lcapture)
+            utils_lc.configure_acquire(dev,lcapture,"L1A",nwords,nlinks=nlinks)
+            utils_lc.do_capture(dev,lcapture)
 
         # send L1A
-        logger.debug('Sending l1a')
-        dev.getNode(names['fc']+".command.global_l1a_enable").write(0x1);
-        dev.getNode(names['fc']+".periodic0.enable").write(0x0); # to get a L1A once
-        #dev.getNode(names['fc']+".periodic0.enable").write(0x1); # to get a L1A every orbit
-        dev.getNode(names['fc']+".periodic0.flavor").write(0); # 0 to get a L1A
-        dev.getNode(names['fc']+".periodic0.enable_follow").write(0); # does not depend on other generator
-        dev.getNode(names['fc']+".periodic0.bx").write(3500);
-        dev.getNode(names['fc']+".periodic0.request").write(0x1);
-        dev.dispatch()
-
-        import time
-        time.sleep(0.001)
-        l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
-        dev.dispatch()
-        logger.debug('L1A counter %i'%(int(l1a_counter)))
+        utils_fc.send_l1a(dev)
 
     elif args.capture == "compare":
         logger.debug('Capture with stream compare ')
         acq_length = 511
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
             nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-            configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
+            utils_lc.configure_acquire(dev,lcapture,"L1A",nwords=acq_length,nlinks=nlinks)
             # tell link capture to acquire when it sees the trigger 
-            do_capture(dev,lcapture)
+            utils_lc.do_capture(dev,lcapture)
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
         dev.getNode(names['stream_compare']+".trigger").write(0x0)
         dev.dispatch()
     else:
-        logger.error("No capture mode provided")
+        capture = False
+        logger.warning("Not going to capture")
 
     # check stream compare counters
     dev.getNode(names['stream_compare']+".control.reset").write(0x1)
@@ -131,18 +119,21 @@ if __name__ == "__main__":
     dev.dispatch()
     logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
 
-    # get data
-    all_data = {}
-    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
-        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-        all_data[lcapture] = get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
+    if capture:
+        # get data
+        all_data = {}
+        for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
+            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+            nwords = 511 if 'input' in lcapture else 4095
+            if args.capture == "compare": nwords = 511
+            all_data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks)
 
-    # convert all data to format
-    for key,data in all_data.items():
-        fname = args.idir+"/%s-Output_header.csv"%key
-        if args.capture == "compare":
-            fname = fname.replace(".csv","_SC.csv")
-        save_testvector( fname, data, header=True)
+        # convert all data to format
+        for key,data in all_data.items():
+            fname = args.idir+"/%s-Output_header.csv"%key
+            if args.capture == "compare":
+                fname = fname.replace(".csv","_SC.csv")
+            utils_tv.save_testvector( fname, data, header=True)
 
     # reset fc
     dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
