@@ -233,6 +233,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     mode: 2 (writes data after receiving a fast command)
     mode: 3 (auto-daq mode)
     """
+
     captures = {
         'mode_in': 0,
         'L1A': 0,
@@ -242,19 +243,25 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
         'linkreset_ROCt': 0,
         'linkreset_ROCd': 0,
     }
-    if "BX" in mode:
-        captures['mode_in'] = 1
-    elif "linkreset" in mode or "L1A" in mode or "orbitSync" in mode:
-        captures["mode_in"] = 2
-    elif "inmediate" in mode:
-        captures["mode_in"] = 0
-    else:
+    try:
+        if "BX" in mode:
+            captures['mode_in'] = 1
+        elif "linkreset" in mode or "L1A" in mode or "orbitSync" in mode:
+            captures["mode_in"] = 2
+        elif "inmediate" in mode:
+            captures["mode_in"] = 0
+        else:
+            logger.warning("Not a valid capture mode!")
+            return
+    except:
         logger.warning("Not a valid capture mode!")
         return
     if captures["mode_in"] == 2:
         captures[mode] = 1
-    logger.debug("configure acquire with captures ",captures)
-
+        bx = 0
+    logger.info("Configure acquire with bx %i"%bx)
+    logger.info("Configure acquire with captures %s"%captures)
+    
     for l in range(nlinks):
         # offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".L1A_offset_or_BX").write(bx) 

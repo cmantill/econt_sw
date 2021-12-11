@@ -115,6 +115,8 @@ if __name__ == "__main__":
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
+        dev.getNode(names['stream_compare']+".trigger").write(0x0)
+        dev.dispatch()
     else:
         logger.error("No capture mode provided")
 

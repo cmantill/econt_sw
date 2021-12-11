@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
     parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data with lrecont')
-    parser.add_argument('--mode', type=str, default=None, help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
+    parser.add_argument('--mode', type=str, default='L1A', help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
     parser.add_argument('--bx', type=int, default=0, help='bx')
     parser.add_argument('--dtype', type=str, default=None, help='dytpe (PRBS,debug)')
     parser.add_argument('--idir',dest="idir",type=str, default=None, help='test vector directory')
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         """
         # re-configure fc
         configure_fc(dev)
-        dev.getNode(names['fc']+".bx_link_reset_roct").write(3500)
+        dev.getNode(names['fc']+".bx_link_reset_roct").write(3540)
         dev.dispatch()
 
         # configure bypass (for emulator)

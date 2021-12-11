@@ -61,7 +61,7 @@ python3 testing/i2c.py --yaml configs/align_read.yaml
 ```
 # orbsyn_cnt_load_val: bunch counter value on an orbit sync fast command
 # orbsyn_cnt_snapshot: bunch counter value on which to take a snapshot
-python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_snapshot --value X
+python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
 python testing/uhal-align_on_tester.py --step lr-roct
 python3 testing/i2c.py --yaml configs/align_read.yaml
 ```
@@ -95,7 +95,6 @@ python testing/uhal-align_on_tester.py --step test-data --dtype PRBS
 python testing/uhal-align_on_tester.py --step test-data
 # to send repeater dataset
 python testing/uhal-align_on_tester.py --step test-data --idir configs/test_vectors/counterPatternInTC/RPT/
-
 ```
 
 - Once you see the alignment pattern in the snapshot and status aligned:
@@ -173,7 +172,7 @@ The emulator ALWAYS needs to end in `9cccccccaccccccc`.
 #python3 testing/i2c.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --value 0 --i2c ASIC,emulator 
 #python3 testing/i2c.py --name ALGO_threshold_val_[0-47] --value 4194303 --i2c ASIC,emulator 
 python testing/uhal-align_on_tester.py --step configure-IO --invertIO
-python testing/uhal-align_on_tester.py --step zero-data 
+python testing/uhal-align_on_tester.py --step test-data
 python testing/uhal-align_on_tester.py --step check-IO
 ```
 
@@ -183,7 +182,7 @@ python testing/uhal-align_on_tester.py --step lr-econt
 # check if it is aligned
 python testing/uhal-align_on_tester.py --step check-lcASIC
 # capture data
-python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC
+python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
 ```
 - To manually align:
   - Check the output saved in the `check-lcASIC` step: lc-ASIC-alignoutput_debug.csv:
@@ -217,14 +216,9 @@ python testing/uhal-align_on_tester.py --step compare
 
 ```
 python3 testing/eventDAQ.py --idir  configs/test_vectors/XXX/XXX --capture l1a
-# or
+```
+
+With compare (do not use yet):
+```
 python3 testing/eventDAQ.py --idir  configs/test_vectors/XXX/XXX --capture compare
-```
-
-## Taking snapshot:
-
-```
-python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 1,1,[0]*12,0 --i2c ASIC,emulator
-python3 testing/i2c.py --name ALIGNER_snapshot_arm --value 1 --i2c ASIC,emulator
-python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
 ```
