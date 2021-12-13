@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Event DAQ')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
     parser.add_argument("--capture", dest="capture", action="store",
-                        help="capture data with one of the options", choices=["l1a","compare"], required=True)
+                        help="capture data with one of the options", choices=["l1a","compare"])
     parser.add_argument('--idir',dest="idir", type=str, required=True, default=None, help='test vector directory')
     args = parser.parse_args()
 
@@ -46,9 +46,11 @@ if __name__ == "__main__":
         read_socket = i2c_sockets[key].read_config(inityaml)
         #print(read_socket)
 
-
     # daq
-    os.system('python testing/uhal-eventDAQ.py --idir %s --capture %s'%(args.idir,args.capture))
+    if args.capture:
+        os.system('python testing/uhal-eventDAQ.py --idir %s --capture %s'%(args.idir,args.capture))
+    else:
+        os.system('python testing/uhal-eventDAQ.py --idir %s'%(args.idir))
 
     # terminate i2c servers
     for key,proc in procs.items():

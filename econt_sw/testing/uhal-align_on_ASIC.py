@@ -5,7 +5,7 @@ import logging
 logging.basicConfig()
 
 from uhal_config import names,input_nlinks,output_nlinks
-from uhal_utils import get_captured_data,save_testvector,configure_IO,check_IO,configure_acquire,do_capture,check_links
+import utils_lc,utils_io,utils_tv
 """
 Alignment sequence on 'ASIC' - (emulator) using python2 uhal.
 
@@ -41,11 +41,11 @@ if __name__ == "__main__":
 
     # configure IO blocks
     for io in names['ASIC-IO'].keys():
-        configure_IO(dev,io,'ASIC-IO')
+        utils_io.configure_IO(dev,io,'ASIC-IO')
     raw_input("IO blocks configured. Waiting for bit transitions. Press key to continue...")
 
     # check that to-IO is aligned
-    check_IO(dev,'to',nlinks=input_nlinks,io_name='ASIC-IO')
+    utils_io.check_IO(dev,'to',nlinks=input_nlinks,io_name='ASIC-IO')
     
     # configure link captures
     sync_patterns = {"ASIC-lc-input": 0xaccccccc,
@@ -65,12 +65,12 @@ if __name__ == "__main__":
     # check PRBS input?
     checkPRBS = True
     if checkPRBS:
-        configure_acquire(dev,"ASIC-lc-input","BX",4095,input_nlinks)
-        do_capture(dev,"ASIC-lc-input")
-        input_data = get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
+        utils_lc.configure_acquire(dev,"ASIC-lc-input","BX",4095,input_nlinks)
+        utils_lc.do_capture(dev,"ASIC-lc-input")
+        input_data = utils_lc.get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
         saveData = True
         if saveData:
-            save_testvector("ASIC-lc-input-prbs.csv", input_data)
+            utils_tv.save_testvector("ASIC-lc-input-prbs.csv", input_data)
 
     # read counters
     reset_roc = dev.getNode(names['ASIC-fc-recv']+".counters.link_reset_roct").read()
@@ -82,10 +82,10 @@ if __name__ == "__main__":
     # save input data?
     saveInputData = True
     if saveInputData:
-        configure_acquire(dev,"ASIC-lc-input","linkreset_ROCt",4095,input_nlinks)
-        do_capture(dev,"ASIC-lc-input")
-        input_data = get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
-        save_testvector("ASIC-lc-input.csv", input_data)
+        utils_lc.configure_acquire(dev,"ASIC-lc-input","linkreset_ROCt",4095,input_nlinks)
+        utils_lc.do_capture(dev,"ASIC-lc-input")
+        input_data = utils_lc.get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
+        utils_tv.save_testvector("ASIC-lc-input.csv", input_data)
     else:
         raw_input("Link capture and counters checked. Waiting for link reset ROCt to align input link capture")
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     logger.info("After counters: reset roct %d, econt %d"%(reset_roc,reset_econt))
 
     # check that input lc is aligned
-    isaligned_input = check_links(dev,"ASIC-lc-input",input_nlinks,use_np=False)
+    isaligned_input = utils_lc.check_links(dev,"ASIC-lc-input",input_nlinks,use_np=False)
     if isaligned_input:
         logger.info("ASIC-lc-input is aligned")
     else:

@@ -30,6 +30,13 @@ ECON-SW
     sudo yum -y install epel-release
     sudo yum install pugixml-devel pugixml
 
+    # numpy
+    sudo yum install python-pip
+    sudo yum install python-devel
+    sudo yum groupinstall 'development tools'
+    sudo pip install future
+    sudo pip install numpy==1.9
+
     # clone ipbus-software
     git clone ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/ipbus-software.git
     cd ipbus-software/
@@ -39,6 +46,7 @@ ECON-SW
     make -j2 Set=uhal
     make install -j2 Set=uhal
     ```
+
 ## Install:
 
 - **Basic installation of econt-sw on Zynq Trenz module**:
@@ -79,6 +87,7 @@ ECON-SW
     ${MYLITTLEDT} =  /home/HGCAL_dev/mylittledt/
     ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-emu-solo-Nov12/
     ${FIRMWARE_FOLDER} TESTER: `~/firmware/econ-t-tester-Nov12/
+    ${FIRMWARE_FOLDER} ASIC: `~/firmware/econ-t-tester2-Dec3/
     ```
 
     To check the version of the firmware:
@@ -135,6 +144,11 @@ ssh HGCAL_dev@192.168.1.46
 ### ZYNQ HGCAL_dev:
 ```
 ssh -p 23 HGCAL_dev@wilsonjc.us
+```
+
+### ZYNQ ASIC tester:
+```
+ssh HGCAL_dev@192.168.1.48
 ```
 
 ### Testing locally:

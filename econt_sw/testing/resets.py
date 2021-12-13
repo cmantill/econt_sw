@@ -1,4 +1,3 @@
-import uhal
 import argparse
 import os
 
@@ -60,7 +59,7 @@ if __name__ == "__main__":
         config = {'ECON-T':{'RW':{'FMTBUF_ALL':{'registers':{'tx_sync_word':{'value': tx_sync_word
                                                                          }}}}}}
         i2c_socket.configure(yamlNode=config) # no filename, and just config
-        logger.debug(f'Wrote tx_sync_word: {tx_sync_word:02x}')
+        #logger.debug(f'Wrote tx_sync_word: {tx_sync_word:02x}')
 
         # send reset signal
         os.system('python testing/uhal-reset_signals.py --i2c %s --reset %s'%(key,args.reset))
@@ -83,7 +82,7 @@ if __name__ == "__main__":
                 logger.warning('Not able to read i2c after soft reset')
             else:
                 read_word = read_config['RW']['FMTBUF_ALL']['tx_sync_word']
-                logger.debug(f'Read tx_sync_word: {read_word:02x}')
+                #logger.debug(f'Read tx_sync_word: {read_word:02x}')
                 if read_word != tx_sync_word:
                     logger.warning('TX Sync word changed after soft reset')
 

@@ -1,6 +1,7 @@
 import uhal
 import argparse
 import logging
+from time import sleep
 
 logger = logging.getLogger('reset:test')
 logger.setLevel(logging.INFO)
@@ -14,9 +15,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Align links')
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
-    parser.add_argument('--i2c',  type=str, choices=['ASIC', 'emulator'], help="key of i2c address to set")
+    parser.add_argument('--i2c',  type=str, default='ASIC', choices=['ASIC', 'emulator'], help="key of i2c address to set")
     parser.add_argument('--reset',  type=str, choices=['hard', 'soft'], help="type of reset signal")
-    parser.add_argument('--release', type=bool, default=False, help='release reset')
+    parser.add_argument('--hold', default=False, action='store_true', help='hold reset')
+    parser.add_argument('--time', type=float, default=0.5, help='length of time to hold reset (default 0.5 seconds)')
+    parser.add_argument('--release', default=False, action='store_true', help='release reset')
+    parser.add_argument('--read', type=bool, default=False, help='read reset')
 
     args = parser.parse_args()
 
@@ -49,6 +53,16 @@ if __name__ == "__main__":
     if args.release:
         dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
         dev.dispatch()
+    elif args.hold:
+        dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+        dev.dispatch()
+    elif args.read:
+        reset = dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).read()
+        dev.dispatch()
+        print(reset_string, int(reset))
     else:
         dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+        dev.dispatch()
+        sleep(args.time)
+        dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
         dev.dispatch()

@@ -47,23 +47,25 @@ class Translator():
             for block,blockDict in accessDict.items():
                 for param, paramDict in blockDict.items():
                     addr = paramDict['addr']
-                    if addr in pairs.keys():
-                        if isinstance(pairs[addr][0],list):
-                            reg_value = int.from_bytes(pairs[addr][0], 'little')
-                        else:
-                            reg_value = pairs[addr][0]
-                        cfg[access][block][param] = reg_value
-                        # print('access block param ',access,block,param,reg_value)
-
-                        if config:
-                            for read_par in read_cfg[access][block][param]['params']:
-                                if read_par in paramDict['params'].keys():
-                                    tmpVal = self.__paramVal_from_regVal(paramDict['params'][read_par], reg_value) 
-                                    cfg[access][block][param + '_' + read_par] = tmpVal
+                    try:
+                        if addr in pairs.keys():
+                            if isinstance(pairs[addr][0],list):
+                                reg_value = int.from_bytes(pairs[addr][0], 'little')
+                            else:
+                                reg_value = pairs[addr][0]
+                            cfg[access][block][param] = reg_value
+                                
+                            if config:
+                                for read_par in read_cfg[access][block][param]['params']:
+                                    if read_par in paramDict['params'].keys():
+                                        tmpVal = self.__paramVal_from_regVal(paramDict['params'][read_par], reg_value) 
+                                        cfg[access][block][param + '_' + read_par] = tmpVal
+                    except:
+                        continue
 
         return cfg.to_dict()
 
-    def pairs_from_cfg(self, cfg=None, prevCache={}, allowed=['RW','RO']):
+    def pairs_from_cfg(self, cfg=None, prevCache={}, allowed=['RW','RO','WO']):
         """
         Convert an input config dict to pairs of
         {address: [value, size_byte]}
@@ -90,7 +92,7 @@ class Translator():
                         cfgDict = par_regs_cfg[access][block][param]
                         is_incfg = True
                     except KeyError:
-                        print('no cfgDict')
+                        print('No cfgDict')
                         pass
 
                     if is_incfg and cfgDict is not None:
@@ -99,26 +101,33 @@ class Translator():
                         elif 'params' in cfgDict:
                             tmpparamDict = defaultDict['params']
                             # previous register value should be read from i2c
-                            prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
-                            #if addr in prevCacche:
-                            #    print('param ',param,' addr ',addr,' value ',prev_regVal)
-
-                            for par, reg in defaultDict['params'].items():
-                                # get parameter values from previous register value 
-                                # TODO: does this do something?
-                                tmpVal = self.__paramVal_from_regVal(reg, prev_regVal)
+                            # print('prev reg value ',addr,prevCache)
+                            try:
+                                prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
+                            except:
+                                print('address is a nested dict')
+                                continue
+                            
+                            for par, parDict in defaultDict['params'].items():
                                 # get parameter values from new dict
                                 if par in cfgDict['params']:
                                     tmpVal =  cfgDict['params'][par]['param_value']
+                                # get parameter values from previous register value
+                                else:
+                                    tmpVal = self.__paramVal_from_regVal(parDict, prev_regVal)
+                                    # print('prev param value from cache ',par, tmpVal)
                                 tmpparamDict[par]['param_value'] = tmpVal
                             paramVal = self.__regVal_from_paramValues(tmpparamDict)
+
                         else:
-                            print('WARNING: No value given for register ',param)
+                            print('No value given for register ',param)
                             paramVal = 0
                                 
                     # convert parameter value (from config) into register value
-                    # print('addr ',hex(addr), ' val ',paramVal, ' size_byte  ', size_byte)
-                    pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
+                    try:
+                        pairs[addr] = [paramVal.to_bytes(size_byte, 'little'),size_byte]
+                    except:
+                        print('paramVal is a nested dict')
 
         return pairs
 

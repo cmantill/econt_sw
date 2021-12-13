@@ -1,55 +1,60 @@
-import uhal
 import argparse
 import os
+from zmq_controller import i2cController
+import re
+"""
+Writing to i2c
+- One needs to provide:
+  - rw: permissions of register [rw,ro,wo]
+  - block: block of register
+  - register: name of register
+  - parameter: OPTIONAL if writing only to a parameter
+  - value: value of register or parameter
+- One can use an existing server with an ADDRESS and PORT or start one with `--start-server`
+- If yaml option is provided it will read the values of those registers.
+  - to write those values add `--write`
+- One can also print the list of accessible registers with `list`
+  - if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers 
+
+e.g.
+
+python3 testing/i2c.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot
+
+and for writing a value:
+
+python3 testing/i2c.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGNER_ALL --register orbsyn_cnt_snapshot --value 3
+"""
 
 import logging
-logging.basicConfig()
-
-logger = logging.getLogger("test-i2c")
+logger = logging.getLogger("i2c")
 logger.setLevel(logging.INFO)
 
-import zmq_controller as zmqctrl
+def call_i2c(args_name=None,
+                  args_rw=None,
+                  args_block=None,
+                  args_register=None,
+                  args_parameter=None,
+                  args_value=None,
+                  args_yaml=None,
+                  args_write=False,
+                  args_compare=False,
+                  args_i2c='ASIC',
+                  args_start_server=False,
+                  args_addr='0',
+                  args_server='5554'
+):
+    # set default server (change if needed)
+    if args_i2c=="emulator":
+        args_addr = "1"
+        args_server = "5555"
+    if args_i2c=="ASIC,emulator" and args_server=="5554":
+        args_addr = "0,1"
+        args_server = "5554,5555"
 
-"""
-Testing slow control.
-- Sets address using uHal.
-- Starts server.
-- Writes registers.
-- Reads and compares registers.
-
-Usage: python3 testing/i2c.py --i2c ASIC emulator --addr 0,1 --server 5554,5555 --set-address
-
-For i2c, the 3 highest bits are 010, and the 4 lowest bits are set for each chip by 4 pins on the chip.
-If the voltages on those four pins are, for example, high, low, high, low, then the 4 lowest bits of the I2C address would be 1010, and the whole address would be 0x2A.
-
-To test all possible addresses:
-for i in {0..16}; do python3 testing/i2c.py --i2c ASIC emulator --addr $i,1 --server 5554,5555 --set-address; done
-"""
-
-if __name__ == "__main__":    
-    parser = argparse.ArgumentParser(description='Align links')
-    parser.add_argument('--addr', type=str, default='0', help='list of i2c list of addresses - e.g. 0 for ASIC, 1 for emulator')
-    parser.add_argument('--server', type=str, default='5554', help='list of i2c server ports - e.g. 5554 for ASIC, 5555 for emulator')
-    parser.add_argument('--i2c',  type=str, nargs="+", choices=['ASIC', 'emulator'], help="keys of i2c addresses")
-    parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
-    parser.add_argument('--set-address', type=bool, default=True, help='set i2c address')
-    args = parser.parse_args()
-    
-    # declare boards,addresses and servers
-    i2ckeys = args.i2c
-    addresses = [int(addr) for addr in args.addr.split(',')]
-    servers = [int(server) for server in args.server.split(',')]
-    if len(addresses) != len(i2ckeys) or len(servers) != len(i2ckeys):
-        raise ValueError("Number of addresses/servers must be the same as i2c keys")
-    duplicates = set([x for x in addresses if addresses.count(x) > 1]) or set([x for x in servers if servers.count(x) >1])
-    if len(duplicates)>0:
-        if 'ASIC' in i2ckeys:
-            # manually set address and server if testing ASIC
-            addresses = [addr if i==0 else addr+1 for i,addr in enumerate(addresses)]
-            servers = [server if i==0 else server+1 for i,server in enumerate(servers)]
-            logger.warning('Manually setting addresses to avoid duplicates')
-        else:
-            raise ValueError("Dupicated addresses or servers")
+    i2ckeys = [key for key in args_i2c.split(',')]
+#    i2ckeys = [args_i2c]
+    addresses = [int(addr) for addr in args_addr.split(',')]
+    servers = [int(server) for server in args_server.split(',')]
 
     addr = {}; server={}; 
     for k,key in enumerate(i2ckeys):
@@ -58,54 +63,236 @@ if __name__ == "__main__":
     logger.info('Addresses %s',addr)
     logger.info('Servers %s',server)
 
-    # test address
-    if args.set_address:
-        for key in i2ckeys:
-            os.system('python testing/uhal-i2c_set_address.py --i2c %s --addr %i'%(key,addr[key]))
-
-    # start servers
     env = os.environ.copy()
     from subprocess import PIPE, Popen
-    cmds = {}
-    cwds = {}
-    for key in i2ckeys:
+    cmds = {}; cwds = {};
+    for key in server.keys():
         cmds[key] = ['python3', '-u', 'zmq_server.py', '--addr', '%i'%(0x20+addr[key]), '--server', server[key]]
         cwds[key] = './zmq_i2c'
 
     procs = {}
-    if args.start_server:
-        for key in i2ckeys:
+    if args_start_server:
+        for key in server.keys():
             procs[key] = Popen(cmds[key], cwd=cwds[key],stdout=PIPE, universal_newlines=True, env=env)
 
-    for key in i2ckeys:
-        logger.info('Starting i2c %s test'%key)
-        i2c_socket = zmqctrl.i2cController("localhost", str(server[key]))
+    readOnly=True
+    if args_value:
+        readOnly=False
+    
+    # build the config
+    if args_name:
+        import json
+        with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
+            names_to_register = json.load(f)
+        names = args_name.split(',')
+        p = re.compile('^(\w*)\[(\d*)-(\d*)\](\w*)$') #match to find a range of channels
+        p2 = re.compile('^(\w*)\*(\w*)$') #match with asterisk for autocomplete
+        p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
+        regList = []
+        for n in names:
+            if n=='ALL':
+                regList = list(names_to_register.keys())
+                break
+            if p.match(n):
+                a,b,c,d = p.match(n).groups()
+                for i in range(int(b),int(c)+1):
+                    regList.append(f"{a}{i}{d}")
+            elif p2.match(n):
+                name_start, name_end = p2.match(n).groups()
+                for reg in names_to_register.keys():
+                    if reg.startswith(name_start) and reg.endswith(name_end):
+                        regList.append(reg)
+            elif p3.match(n):
+                name_start, name_mid, name_end = p3.match(n).groups()
+                for reg in names_to_register.keys():
+                    if reg.startswith(name_start) and reg.endswith(name_end) and (name_mid in reg):
+                        regList.append(reg)
+            elif n in ['RO','RW','WO']:
+                for r,info in names_to_register.items():
+                    if info[0]==n:
+                        regList.append(r)
+            else:
+                regList.append(n)
 
-        # write one i2c register (tx_sync_word) and read back
-        import collections
-        tx_sync_word = 0b00100100010
-        config = {'ECON-T':{'RW':{'FMTBUF_ALL':{'registers':{'tx_sync_word':{'value': tx_sync_word
-                                                                         }}}}}}
-        i2c_socket.configure(yamlNode=config) # no filename, and just config
-        logger.debug(f'Wrote tx_sync_word: {tx_sync_word:02x}')
+        if args_value:
+            values_split = args_value.split(',')
+            values = []
+            p1 = re.compile('^\[(\w*)\]\*(\w*)$')
+            p2 = re.compile('^(\w*)\*\[(\w*)\]$')
+            for v in values_split:
+                if p1.match(v):
+                    x,n = p1.match(v).groups()
+                    x = int(x,16) if x.startswith('0x') else int(x)
+                    values += [x]*int(n)
+                elif p2.match(v):
+                    n,x = p2.match(v).groups()
+                    x = int(x,16) if x.startswith('0x') else int(x)
+                    values += [x]*int(n)
+                else:
+                    x = int(v,16) if v.startswith('0x') else int(v)
+                    values += [x]
+            if len(values)==1 and len(regList)>1:
+                values = values*len(regList)
 
-        # now read back
-        config['ECON-T']['RW']['FMTBUF_ALL']['registers']['tx_sync_word']['value'] = 0
-        read_config = i2c_socket.read_config(yamlNode=config)
-        read_word = read_config['RW']['FMTBUF_ALL']['tx_sync_word']
-        logger.debug(f'Read tx_sync_word: {read_word:02x}')
-        if read_word == tx_sync_word:
-            logger.info(f'Same tx_sync word for write/read: {read_word:02x}')
+            if len(values) != len(regList):
+                print(f'ERROR: Mismatch between number of registers ({len(regList)}) and number of values ({len(values)}) supplied')
+                exit()
+
+        from nested_dict import nested_dict
+        config = nested_dict()
+        for i,name in enumerate(regList):
+            if name in names_to_register:
+                rw = names_to_register[name][0]
+                block = names_to_register[name][1]
+                register = names_to_register[name][2]
+
+                if args_value:
+                    value = int(values[i])
+                else:
+                    value = 0
+
+                if len(names_to_register[name])>3:
+                    param =names_to_register[name][3]
+                    config["ECON-T"][rw][block]["registers"][register]["params"][param] = {"param_value": value}
+                else:
+                    config["ECON-T"][rw][block]["registers"][register] = {"value": value}
+            else:
+                print(f'---register {name} not found')
+        new_config = config.to_dict()
+    elif args_yaml:
+        from yaml import safe_load
+        with open(args_yaml) as _file:
+            new_config=safe_load(_file)
+        readOnly= not args_write
+    else:
+        if args_parameter:
+            parameters = args_parameter.split(',')
+            if args_value:
+                try:
+                    values = args_value.split(',')
+                except:
+                    values = [args_value]
+            else:
+                values = [0 for p in parameters]
+            new_config = {"ECON-T": {args_rw: {args_block: {"registers":{args_register: {"params": dict.fromkeys(parameters)} } } } } }
+            for p,parameter in enumerate(parameters):
+                new_config["ECON-T"][args_rw][args_block]["registers"][args_register]["params"][parameter] = {"param_value": int(values[p])}
+        else:
+            if args_value:
+                value = args_value
+            else: 
+                value = 0
+            if ((args_rw is None) or (args_block is None) or (args_register is None)) and not args_compare:
+                print('Insufficient register information provided')
+                exit()
+            new_config = {"ECON-T": {args_rw: {args_block: {"registers":{args_register: {"value": value} } } } } }
+
+    i2c_sockets = {}
+    if new_config=={}:
+        print('No registers specified to read or write')
+        exit()
+
+    outputs = {}
+    for key in server.keys():
+
+        i2c_sockets[key] = i2cController("localhost", str(server[key]))
+
+        i2c_sockets[key].update_yamlConfig(yamlNode=new_config)
+
+        # write only if value is given
+        if args_compare:
+            i2c_read = i2c_sockets[key].read_and_compare()
+            outputs[key] = i2c_read
+            # i2c_read = i2c_sockets[key].read_and_compare('RO')
+            # print(f'Unmatched RO {i2c_read}')
+        elif not readOnly:
+            i2c_sockets[key].configure()
             
-        # initialize with default config
-        i2c_socket.initialize()
+        if not args_compare:
+            # read back i2c 
+            read_socket = i2c_sockets[key].read_config(yamlNode=new_config)
 
-        # read back
-        i2c_read = i2c_socket.read_and_compare()
-        logger.info(f'Unmatched {i2c_read}')        
-        i2c_read = i2c_socket.read_and_compare('RO')
-        logger.info(f'Unmatched RO {i2c_read}')
+            outputs[key] = read_socket
 
-    # terminate processes
+    # terminate i2c servers
     for key,proc in procs.items():
         proc.terminate()
+    return outputs
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Align links')
+    parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
+    parser.add_argument('--addr', type=str, default='0', help='list of i2c list of addresses - e.g. 0 for ASIC, 1 for emulator')
+    parser.add_argument('--server', type=str, default='5554', help='list of i2c server ports - e.g. 5554 for ASIC, 5555 for emulator')
+    parser.add_argument('--i2c',  type=str, default='ASIC', help="keys of i2c addresses(ASIC,emulator)")
+    parser.add_argument('--name', type=str, default=None, help='Write name from dictionary')
+    parser.add_argument('--rw', type=str, default=None, help='Read/Write permissions of register')
+    parser.add_argument('--block', type=str, default=None, help="Register's block")
+    parser.add_argument('--register', type=str, default=None, help="Register's name")
+    parser.add_argument('--parameter', type=str, default=None, help="Parameter's name")
+    parser.add_argument('--value', type=str, default=None, help="Value to write")
+    parser.add_argument('--yaml', type=str, default=None, help="YAML file of registers to read from")
+    parser.add_argument('--write', default=False, action='store_true', help='write registers when using yaml file, rather than just read')
+    parser.add_argument('--compare', default=False, action='store_true', help='do comparison of read to values in yaml file')
+    parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
+    parser.add_argument('--quiet', default=False, action='store_true', help="quiet mode, don't print output")
+    
+    args = parser.parse_args()
+
+    ### adds capability to simply print the list of accessible registers.
+    ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
+    if args.listRegisters:
+        import json
+        with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
+            names_to_register = json.load(f)
+        if args.name:
+            p2 = re.compile('^(\w*)\*(\w*)$')
+            p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
+            regList = []
+            if p2.match(args.name):
+                name_start, name_end = p2.match(args.name).groups()
+                name_mid=''
+            elif p3.match(args.name):
+                name_start, name_mid, name_end = p3.match(args.name).groups()
+            elif args.name in ['RO','RW','WO']:
+                for r,info in names_to_register.items():
+                    if info[0]==args.name:
+                        print(info[0], r)
+                exit()
+            else:
+                name_start=args.name
+                name_mid=''
+                name_end=''
+            for reg in names_to_register.keys():
+                if reg.startswith(name_start) and reg.endswith(name_end) and (name_mid in reg):
+                    regList.append(reg)
+            for r in regList:
+                print(names_to_register[r][0], r)
+        else:
+            for r in names_to_register.keys():
+                print(names_to_register[r][0], r)
+#                print(r)
+        exit()
+
+    outputs = call_i2c(args_name=args.name,
+                       args_rw=args.rw,
+                       args_block=args.block,
+                       args_register=args.register,
+                       args_parameter=args.parameter,
+                       args_value=args.value,
+                       args_yaml=args.yaml,
+                       args_write=args.write,
+                       args_compare=args.compare,
+                       args_i2c=args.i2c,
+                       args_start_server=args.start_server,
+                       args_addr=args.addr,
+                       args_server=args.server)
+
+
+    if not args.quiet:
+        for key,read_socket in outputs.items():
+            print(key)
+            for access,accessDict in read_socket.items():
+                for block,blockDict in accessDict.items():
+                    for param, paramDict in blockDict.items():
+                        print(access,block, param, hex(read_socket[access][block][param]))

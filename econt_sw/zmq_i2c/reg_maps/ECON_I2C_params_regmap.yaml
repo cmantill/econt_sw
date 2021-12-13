@@ -318,8 +318,12 @@ ECON-T:
        param_shift: 0
     mask_ae:
      addr_offset: 0x08
-     size_byte: 18
-     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+     size_byte: 16
+     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+    mask_ae2:
+     addr_offset: 0x18
+     size_byte: 2
+     value: 0xffff
 
   MFC_MUX_SELECT:
    addr_base: 0x03c4
@@ -408,7 +412,7 @@ ECON-T:
        param_shift: 1
       enable:
        param_mask: 0x01
-       param_shift: 1
+       param_shift: 0
     config_mux_*:
      addr_shift: 1
      addr_offset: 0x0c
@@ -540,15 +544,36 @@ ECON-T:
      params:
       fromMemToLJCDR_COenableFD:
        param_mask: 0x01
-       param_shift: 5
+       param_shift: 31
       fromMemToLJCDR_COenableCDR:
        param_mask: 0x01
-       param_shift: 4
+       param_shift: 30
       fromMemToLJCDR_COdisDataCounterRef:
        param_mask: 0x01
-       param_shift: 3
-      fromMemToLJCDR_COdisDESvbiasge:
+       param_shift: 29
+      fromMemToLJCDR_COdisDESvbiasgen:
        param_mask: 0x01
+       param_shift: 26
+      fromMemToLJCDR_ENABLE_CDR_R:
+       param_mask: 0x01
+       param_shift: 25
+      fromMemToLJCDR_dataMuxCfg:
+       param_mask: 0x03
+       param_shift: 19
+      fromMemToLJCDR_CONFIG_P_FF_CDR:
+       param_mask: 0x0f
+       param_shift: 15
+      fromMemToLJCDR_CONFIG_P_CDR:
+       param_mask: 0x0f
+       param_shift: 11
+      fromMemToLJCDR_CONFIG_I_FLL:
+       param_mask: 0x0f
+       param_shift: 7
+      fromMemToLJCDR_CONFIG_I_CDR:
+       param_mask: 0x0f
+       param_shift: 3
+      fromMemToLJCDR_CONFIG_FF_CAP:
+       param_mask: 0x07
        param_shift: 0
     pll_bytes_12to9:
      addr_offset: 0x09
@@ -557,14 +582,26 @@ ECON-T:
      params:
       fromMemToLJCDR_CONFIG_FF_CAP_WL:
        param_mask: 0x07
-       param_shift: 12
+       param_shift: 28
       fromMemToLJCDR_PLL_R_CONFIG_WL:
        param_mask: 0x0f
-       param_shift: 8
+       param_shift: 24
       fromMemToLJCDR_CONFIG_P_PLL_WL:
        param_mask: 0x0f
-       param_shift: 4
+       param_shift: 20
       fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_CONFIG_I_FLL_WL:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_CONFIG_P_FF_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_CONFIG_P_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_CONFIG_I_CDR_WL:
        param_mask: 0x0f
        param_shift: 0
     pll_bytes_17to13:
@@ -720,9 +757,41 @@ ECON-T:
    block_shift: 143
    addr_base: 0x0538
    registers:
-    weights:
-     size_byte: 134
-     value: 0
+    weights_byte0:
+     size_byte: 16
+     value: 0x0
+    weights_byte16:
+     addr_offset: 0x10
+     size_byte: 16
+     value: 0x0
+    weights_byte32:
+     addr_offset: 0x20
+     size_byte: 16
+     value: 0x0
+    weights_byte48:
+     addr_offset: 0x30
+     size_byte: 16
+     value: 0x0
+    weights_byte64:
+     addr_offset: 0x40
+     size_byte: 16
+     value: 0x0
+    weights_byte80:
+     addr_offset: 0x50
+     size_byte: 16
+     value: 0x0
+    weights_byte96:
+     addr_offset: 0x60
+     size_byte: 16
+     value: 0x0
+    weights_byte112:
+     addr_offset: 0x70
+     size_byte: 16
+     value: 0x0
+    weights_byte128:
+     addr_offset: 0x80
+     size_byte: 6
+     value: 0x0
 
   MISC_ALL:
    addr_base: 0x0bec
@@ -774,7 +843,11 @@ ECON-T:
      value: 0
     snapshot:
      addr_offset: 0x02
-     size_byte: 24
+     size_byte: 16
+     value: 0
+    snapshot2:
+     addr_offset: 0x12
+     size_byte: 8
      value: 0
     hdr_mm_cntr:
      addr_offset: 0x1a
@@ -854,7 +927,7 @@ ECON-T:
        param_shift: 6
       phaseSelect:
        param_mask: 0x0f
-       param_shift: 1
+       param_shift: 2
       dllState:
        param_mask: 0x03
        param_shift: 0

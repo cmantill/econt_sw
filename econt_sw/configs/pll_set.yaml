@@ -1,0 +1,22 @@
+ECON-T:
+ RW:
+  PLL_ALL:
+   registers:
+    pll_bytes_1to0:
+     params:
+      enableDes:
+       param_value: 0
+      enableSer:
+       param_value: 1
+    pll_bytes_17to13:
+     params:
+      fromMemToLJCDR_CBOvcoCapSelect: 
+       param_value: 496
+    pll_bytes_24to22:
+     params:
+      toclkgen_disDES:
+       param_value: 1
+    pll_bytes_26to25:
+     params:
+      ref_clk_sel:
+       param_value: 1
