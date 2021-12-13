@@ -126,3 +126,9 @@
     ```
     [HGCAL_dev@localhost mylittledt]$ sudo ./load.sh ~/firmware/econ-t-tester-Nov12/ && sudo chmod a+rw /dev/i2c-* /dev/uio*
     ```
+Note:
+- To set fixed IP address, edit (added at end):
+```
+/etc/sysconfig/network-scripts/ifcfg-eth0
+```
+- New address for ITA: `192.168.206.46`.
