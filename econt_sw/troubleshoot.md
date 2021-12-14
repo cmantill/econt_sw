@@ -70,6 +70,17 @@
     python3 testing/i2c.py --yaml configs/align_read_status.yaml 
     ```
  
+  - If you are not able to see the alignment pattern and status is not aligned, look at `phaseSelect` status and set those values to `config_phaseSelect`. Then, set to trackMode to 0, e.g.
+    ```
+    # read
+    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_status_phaseSelect 
+    # set
+    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value 5,5,6,5,6,6,5,5,5,6,6,6
+    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
+    # run alignment script again (send link reset ROC-T) - where 4 and 4 were the values of snapshot and delay before
+    source scripts/inputWordAlignment.sh 4 4 
+    ```
+ 
   - If you need to capture the input when sending a link-reset-ROCT:
     ```
     python testing/uhal-align_on_tester.py --step capture --lc lc-input --mode linkreset_ROCt
