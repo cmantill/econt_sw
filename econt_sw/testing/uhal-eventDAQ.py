@@ -44,12 +44,22 @@ if __name__ == "__main__":
     logger = logging.getLogger('eventDAQ')
     logger.setLevel(logging.INFO)
 
-    # first, check alignment
-    #is_fromIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
-    #is_lcASIC_aligned = utils_lc.check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
-    #if not is_fromIO_aligned or not is_lcASIC_aligned:
-    #    print('not aligned! Exiting...')
-    #exit(1)
+    # first, check ASIC alignment
+    isIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
+    if isIO_aligned:
+        logger.info("from-IO aligned")
+    else:
+        logger.info("from-IO is not aligned")
+    # check eye width                                                                                                                                                                                   
+    for link in range(output_nlinks):
+        delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
+        delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
+        dev.dispatch()
+        logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+
+    # then, check ASIC alignment
+    is_lcASIC_aligned = utils_lc.check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+    utils_lc.check_lc(dev,lcapture,nlinks)
 
     # read latency values from aligned link captures
     latency_values = {}
@@ -59,7 +69,7 @@ if __name__ == "__main__":
             latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
             dev.dispatch()
             latency_values[lcapture].append(int(latency))
-    logger.info('latency values %s'%latency_values)
+    logger.info('link-capture latency values %s'%latency_values)
 
     # setup test-vectors
     utils_tv.set_testvectors(dev,None,args.idir)
@@ -74,9 +84,10 @@ if __name__ == "__main__":
     dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
     dev.dispatch()
     
-    capture = True
+    capture = False
     if args.capture == "l1a":
         logger.info('Capture with l1a')
+        capture = True
         l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
         dev.dispatch()
         logger.debug('L1A counter %i'%(int(l1a_counter)))
@@ -102,10 +113,7 @@ if __name__ == "__main__":
         # send a L1A with two capture blocks 
         dev.getNode(names['stream_compare']+".trigger").write(0x1)
         dev.dispatch()
-        dev.getNode(names['stream_compare']+".trigger").write(0x0)
-        dev.dispatch()
     else:
-        capture = False
         logger.warning("Not going to capture")
 
     # check stream compare counters
@@ -119,7 +127,10 @@ if __name__ == "__main__":
     dev.dispatch()
     logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
 
-    if capture:
+    dev.getNode(names['stream_compare']+".trigger").write(0x0)
+    dev.dispatch()
+
+    if capture or err_count>0:
         # get data
         all_data = {}
         for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
@@ -134,6 +145,16 @@ if __name__ == "__main__":
             if args.capture == "compare":
                 fname = fname.replace(".csv","_SC.csv")
             utils_tv.save_testvector( fname, data, header=True)
+
+        # check eye width again
+        for link in range(output_nlinks):
+            delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
+            delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
+            dev.dispatch()
+            logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+        # check link capture again
+        is_lcASIC_aligned = utils_lc.check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks)
+        utils_lc.check_lc(dev,lcapture,nlinks)
 
     # reset fc
     dev.getNode(names['fc']+".command.global_l1a_enable").write(0);

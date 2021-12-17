@@ -29,8 +29,12 @@ class Translator():
             paramMap = fname
         else:
             # print('Translator::loading yaml register map from file')
-            with open(fname) as fin:
-                paramMap = safe_load(fin)
+            try:
+                with open(fname) as fin:
+                    paramMap = safe_load(fin)
+            except:
+                print('no filename ',fname)
+                paramMap = dict()
         return paramMap
 
     def cfg_from_pairs(self, pairs, config=None):

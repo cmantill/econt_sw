@@ -234,11 +234,15 @@ def find_latency(dev,latency,lcapture,bx0=None,savecap=False):
             new_latency[l] = -1
         return new_latency,found_BX0,data    
 
+    row_link_0 = (BX0_cols==0).nonzero()[0][0]
     # check that BX0 is found in the same position for all output links
     for l in range(output_nlinks):
         try:
             row_index = (BX0_cols==l).nonzero()[0][0]
-            row_link_0 = (BX0_cols==0).nonzero()[0][0]
+        except:
+            logger.warning('BX0 sync word not found for link %i'%l)
+            continue
+        try:
             assert BX0_rows[row_index] == BX0_rows[row_link_0]
             if bx0:
                 assert BX0_rows[row_index] == bx0[row_index]

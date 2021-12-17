@@ -28,20 +28,24 @@ python3 testing/i2c.py --i2c ASIC --addr 0  --server 5554  --rw RW --block ALIGN
 import logging
 logger = logging.getLogger("i2c")
 logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
 
 def call_i2c(args_name=None,
-                  args_rw=None,
-                  args_block=None,
-                  args_register=None,
-                  args_parameter=None,
-                  args_value=None,
-                  args_yaml=None,
-                  args_write=False,
-                  args_compare=False,
-                  args_i2c='ASIC',
-                  args_start_server=False,
-                  args_addr='0',
-                  args_server='5554'
+             args_rw=None,
+             args_block=None,
+             args_register=None,
+             args_parameter=None,
+             args_value=None,
+             args_yaml=None,
+             args_write=False,
+             args_compare=False,
+             args_i2c='ASIC',
+             args_start_server=False,
+             args_addr='0',
+             args_server='5554',
+             args_init=False,
 ):
     # set default server (change if needed)
     if args_i2c=="emulator":
@@ -60,8 +64,8 @@ def call_i2c(args_name=None,
     for k,key in enumerate(i2ckeys):
         addr[key] = addresses[k]
         server[key] = str(servers[k])
-    logger.info('Addresses %s',addr)
-    logger.info('Servers %s',server)
+    # logger.info('Addresses %s',addr)
+    # logger.info('Servers %s',server)
 
     env = os.environ.copy()
     from subprocess import PIPE, Popen
@@ -80,6 +84,7 @@ def call_i2c(args_name=None,
         readOnly=False
     
     # build the config
+    new_config=None
     if args_name:
         import json
         with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
@@ -135,7 +140,7 @@ def call_i2c(args_name=None,
                 values = values*len(regList)
 
             if len(values) != len(regList):
-                print(f'ERROR: Mismatch between number of registers ({len(regList)}) and number of values ({len(values)}) supplied')
+                logger.error(f'ERROR: Mismatch between number of registers ({len(regList)}) and number of values ({len(values)}) supplied')
                 exit()
 
         from nested_dict import nested_dict
@@ -157,13 +162,15 @@ def call_i2c(args_name=None,
                 else:
                     config["ECON-T"][rw][block]["registers"][register] = {"value": value}
             else:
-                print(f'---register {name} not found')
+                logger.error(f'---register {name} not found')
         new_config = config.to_dict()
     elif args_yaml:
         from yaml import safe_load
         with open(args_yaml) as _file:
             new_config=safe_load(_file)
         readOnly= not args_write
+    elif args_init:
+        pass
     else:
         if args_parameter:
             parameters = args_parameter.split(',')
@@ -183,21 +190,23 @@ def call_i2c(args_name=None,
             else: 
                 value = 0
             if ((args_rw is None) or (args_block is None) or (args_register is None)) and not args_compare:
-                print('Insufficient register information provided')
+                logger.error('Insufficient register information provided')
                 exit()
             new_config = {"ECON-T": {args_rw: {args_block: {"registers":{args_register: {"value": value} } } } } }
 
     i2c_sockets = {}
-    if new_config=={}:
-        print('No registers specified to read or write')
+    if new_config is None and not args_init:
+        logger.error('No registers specified to read or write')
         exit()
 
     outputs = {}
     for key in server.keys():
-
         i2c_sockets[key] = i2cController("localhost", str(server[key]))
 
-        i2c_sockets[key].update_yamlConfig(yamlNode=new_config)
+        if args_init:
+            i2c_sockets[key].initialize()
+        else:
+            i2c_sockets[key].update_yamlConfig(yamlNode=new_config)
 
         # write only if value is given
         if args_compare:
@@ -235,6 +244,7 @@ if __name__ == "__main__":
     parser.add_argument('--write', default=False, action='store_true', help='write registers when using yaml file, rather than just read')
     parser.add_argument('--compare', default=False, action='store_true', help='do comparison of read to values in yaml file')
     parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
+    parser.add_argument('--init', default=False, action='store_true', help='write default register map')
     parser.add_argument('--quiet', default=False, action='store_true', help="quiet mode, don't print output")
     
     args = parser.parse_args()
@@ -286,13 +296,16 @@ if __name__ == "__main__":
                        args_i2c=args.i2c,
                        args_start_server=args.start_server,
                        args_addr=args.addr,
-                       args_server=args.server)
+                       args_server=args.server,
+                       args_init=args.init,
+    )
 
 
     if not args.quiet:
         for key,read_socket in outputs.items():
-            print(key)
+            logger.info(key)
             for access,accessDict in read_socket.items():
                 for block,blockDict in accessDict.items():
                     for param, paramDict in blockDict.items():
-                        print(access,block, param, hex(read_socket[access][block][param]))
+                        x = hex(read_socket[access][block][param])
+                        logger.info(f'{access} {block} {param} {x}')

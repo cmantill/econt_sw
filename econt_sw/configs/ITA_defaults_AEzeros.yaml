@@ -1,0 +1,1248 @@
+###########################################################################
+# ECON-T i2C register map with default values
+###########################################################################
+# The structure is the following:
+# access:
+#  block:
+#   addr_base:       # base address of the block
+#   registers:
+#    register_name:
+#     addr_offset:    # address offset, by default it is 0.
+#     size_byte:      # register size (in bytes), by default it is 1.
+#     value:          # register value, by default it is 0.
+#    
+# For registers with similar definitions across blocks/channels an `*` is used.
+# The number of channels is indicated in nchannels.
+# For a set of registers in a block repeated across channels:
+#  block_shift:      # indicates the shift to the next block's base address
+# For a register in a given block repeated across channels:
+#  addr_shift:       # indicates the shift to the next register's offset address
+#
+# For registers that comprise different parameters:
+# params:
+###########################################################################
+ECON-T:
+ ninput: 12
+ noutput: 13
+ WO:
+  CH_ERR_*INPUT_ALL:
+   block_shift: 4
+   addr_base: 0x0300
+   registers:
+    config:
+     value: 0
+     params:
+      wren_mask:
+       param_mask: 0x01
+       param_shift: 2
+      wren_err:
+       param_mask: 0x01
+       param_shift: 1
+      clr_on_read:
+       param_mask: 0x01
+       param_shift: 0
+       
+  CH_ERR_13_ALL:
+   addr_base: 0x0330
+   registers:
+    config:
+     value: 0
+     params:
+      misc_interrupts:
+       param_mask: 0x03
+       param_shift: 6
+      pll_not_locked:
+       param_mask: 0x01
+       param_shift: 5
+      dll_not_locked:
+       param_mask: 0x01
+       param_shift: 4
+      chns_not_locked:
+       param_mask: 0x01
+       param_shift: 3
+      buffer_wr_ptr_overflow_err:
+       param_mask: 0x01
+       param_shift: 2
+      fc_error_count_ne_zero:
+       param_mask: 0x01
+       param_shift: 1
+      command_rx_inverted:
+       param_mask: 0x01
+       param_shift: 0
+   
+ RW:
+  CH_ALIGNER_*INPUT_ALL:
+   block_shift: 0x40
+   addr_base: 0x0001
+   registers:
+    config:
+     value: 0
+     params:
+      force_ch_outputs:
+       param_mask: 0x01
+       param_shift: 6
+      prbs_chk_en:
+       param_mask: 0x01
+       param_shift: 5
+      patt_sel:
+       param_mask: 0x01
+       param_shift: 4
+      prbs28_en:
+       param_mask: 0x01
+       param_shift: 3
+      patt_en:
+       param_mask: 0x01
+       param_shift: 2
+      sel_override_en:
+       param_mask: 0x01
+       param_shift: 1
+      per_ch_align_en:
+       param_mask: 0x01
+       param_shift: 0
+    sel_override_val:
+     addr_offset: 0x01
+     value: 0x00
+    seed_in:
+     addr_offset: 0x02
+     size_byte: 2
+     value: 0x0000
+    user_word_0:
+     addr_offset: 0x04
+     size_byte: 4
+     value: 0x00000000
+    user_word_1:
+     addr_offset: 0x08
+     size_byte: 4
+     value: 0x00000000
+    user_word_2:
+     addr_offset: 0x0c
+     size_byte: 4
+     value: 0x00000000
+    user_word_3:
+     addr_offset: 0x10
+     size_byte: 4
+     value: 0x00000000
+
+  CH_EPRXGRP_*INPUT_ALL:
+   block_shift: 4
+   addr_base: 0x0340
+   registers:
+    config:
+     value: 0
+     params:
+      phaseSelect:
+       param_mask: 0x0f
+       param_shift: 3
+      trainChannel:
+       param_mask: 0x01
+       param_shift: 2
+      resetChannels:
+       param_mask: 0x01
+       param_shift: 1
+      dllResetReq:
+       param_mask: 0x01
+       param_shift: 0
+
+  ALIGNER_ALL:
+   addr_base: 0x0380
+   registers:
+    config:
+     value: 0x03
+     params:
+      dbg_fc_cnt_clr:
+       param_mask: 0x01
+       param_shift: 3
+      i2c_snapshot_en:
+       param_mask: 0x01
+       param_shift: 2
+      snapshot_en:
+       param_mask: 0x01
+       param_shift: 1
+      snapshot_arm:
+       param_mask: 0x01
+       param_shift: 0
+    match_pattern_val:
+     addr_offset: 0x01
+     size_byte: 8
+     value: 0x9cccccccaccccccc
+    match_mask_val:
+     addr_offset: 0x09
+     size_byte: 8
+     value: 0x0000000000000000
+    orbsyn_hdr:
+     addr_offset: 0x11
+     value: 0x09
+     params:
+      mask:
+       param_mask: 0x0f
+       param_shift: 4
+      val:
+       param_mask: 0x0f
+       param_shift: 0
+    orbsyn_cnt_max_val:
+     addr_offset: 0x12
+     size_byte: 2
+     value: 0x0deb
+    orbsyn_cnt_load_val:
+     addr_offset: 0x14
+     size_byte: 2
+     value: 0x0
+    orbsyn_cnt_snapshot:
+     addr_offset: 0x16
+     size_byte: 2
+     value: 0x0004
+    idle_hdr:
+     addr_offset: 0x18
+     value: 0x0a
+     params:
+      mask:
+       param_mask: 0x0f
+       param_shift: 4
+      val:
+       param_mask: 0x0f
+       param_shift: 0
+    
+  ERRTOP_ALL:
+   addr_base: 0x039a
+   registers:
+    config:
+     value: 0
+     params:
+      wren_msk_top:
+       param_mask: 0x01
+       param_shift: 2
+      wren_err_top:
+       param_mask: 0x01
+       param_shift: 1
+      clr_on_read_top:
+       param_mask: 0x01
+       param_shift: 0
+    wr_data_top:
+     addr_offset: 0x01
+     size_byte: 2
+     value: 0
+    err_wr_data:
+     addr_offset: 0x03
+     value: 1
+
+  EPRXGRP_TOP_ALL:
+   addr_base: 0x03a2
+   registers:
+    config:
+     size_byte: 3
+     value: 0x00a488
+     params:
+      enableReInit:
+       param_mask: 0x01
+       param_shift: 18
+      dllInitSMForceClockEnable:
+       param_mask: 0x01
+       param_shift: 17
+      dllConfirmCountSelect:
+       param_mask: 0x03
+       param_shift: 15
+      dllUnLockThreshold:
+       param_mask: 0x07
+       param_shift: 12
+      dllReLockThreshold:
+       param_mask: 0x07
+       param_shift: 9
+      dllLockThreshold:
+       param_mask: 0x07
+       param_shift: 6
+      trackMode:
+       param_mask: 0x03
+       param_shift: 4
+      dataGatingEnable:
+       param_mask: 0x01
+       param_shift: 3
+      dllCoarseLockDetection:
+       param_mask: 0x01
+       param_shift: 2
+      dllCurrentSet:
+       param_mask: 0x03
+       param_shift: 0
+
+  FCTRL_ALL:
+   addr_base: 0x03a5
+   registers:
+    config:
+     value: 0x20
+     params:
+      reset_b_fc_counters:
+       param_mask: 0x01
+       param_shift: 5
+      force_fc_error:
+       param_mask: 0x01
+       param_shift: 4
+      invert_command_rx:
+       param_mask: 0x01
+       param_shift: 3
+      PreL1AOffset:
+       param_mask: 0x03
+       param_shift: 1
+      EdgeSel_T1:
+       param_mask: 0x01
+       param_shift: 0
+
+  FMTBUF_ALL:
+   addr_base: 0x03a9
+   registers:
+    tx_sync_word:
+     size_byte: 2
+     value: 0x0122
+    buff_t1:
+     addr_offset: 0x02
+     size_byte: 2
+     value: 0x0152
+    buff_t2:
+     addr_offset: 0x04
+     size_byte: 2
+     value: 0x01ff
+    buff_t3:
+     addr_offset: 0x06
+     value: 0x19
+    config:
+     addr_offset: 0x07
+     value: 0xD0
+     params:
+      eporttx_numen:
+       param_mask: 0x0f
+       param_shift: 4
+      use_sum:
+       # If True, send only sum of all TC in module sum for TS and BC algorithms instead of sum of only TC not transmitted
+       param_mask: 0x01
+       param_shift: 2
+      stc_type:
+       param_mask: 0x03
+       param_shift: 0
+    mask_ae:
+     addr_offset: 0x08
+     size_byte: 16
+     value: 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
+    mask_ae2:
+     addr_offset: 0x18
+     size_byte: 2
+     value: 0xffff
+
+  MFC_MUX_SELECT:
+   addr_base: 0x03c4
+   registers:
+    mux_select_*:
+     addr_shift: 1
+     n_iterations: 48
+     param_mask: 0x3f
+     param_shift: 0
+     value: [ 0,  1,   2,  3,  4,  5,  6,  7,
+              8,  9,  10, 11, 12, 13, 14, 15,
+              16, 17, 18, 19, 20, 21, 22, 23,
+              24, 25, 26, 27, 28, 29, 30, 31,
+              32, 33, 34, 35, 36, 37, 38, 39,
+              40, 41, 42, 43, 44, 45, 46, 47]
+
+  MFC_CAL_VAL:
+   addr_base: 0x03f4
+   registers:
+    cal_*:
+     addr_shift: 2
+     size_byte: 2
+     n_iterations: 48
+     param_mask: 0xfff
+     param_shift: 0
+     value: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
+
+  MFC_ALGORITHM_SEL_DENSITY:
+   addr_base: 0x0454
+   registers:
+    algo:
+     value: 0x8
+     params:
+      select:
+       param_mask: 0x07
+       param_shift: 0
+      density:
+       param_mask: 0x01
+       param_shift: 3
+
+  ALGO_THRESHOLD_VAL:
+   addr_base: 0x0455
+   registers:
+    threshold_val_*:
+     addr_shift: 3
+     size_byte: 3
+     n_iterations: 48
+     value: [4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303,
+             4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303,
+             4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303,
+             4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303,
+             4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303,
+             4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303, 4194303]
+
+  ALGO_DROPLSB:
+   addr_base: 0x04e5
+   registers:
+    drop_lsb:
+     value: 0x3
+     
+  ERX_ALL:
+   addr_base: 0x04e6
+   registers:
+    config_ch_*:
+     addr_shift: 1
+     n_iterations: 12
+     value: [0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+             0x05, 0x05, 0x05, 0x05, 0x05, 0x05]
+     params:
+      set_common_mode:
+       param_mask: 0x01
+       param_shift: 5
+      ch_equalizer:
+       param_mask: 0x03
+       param_shift: 3
+      enable_termination:
+       param_mask: 0x01
+       param_shift: 2
+      invert_data:
+       param_mask: 0x01
+       param_shift: 1
+      enable:
+       param_mask: 0x01
+       param_shift: 0
+    config_mux_*:
+     addr_shift: 1
+     addr_offset: 0x0c
+     n_iterations: 3
+     value: [0x05, 0x05, 0x05]
+     params:
+      set_common_mode:
+       param_mask: 0x01
+       param_shift: 5
+      ch_equalizer:
+       param_mask: 0x03
+       param_shift: 3
+      enable_termination:
+       param_mask: 0x01
+       param_shift: 2
+      invert_data:
+       param_mask: 0x01
+       param_shift: 1
+      enable:
+       param_mask: 0x01
+       param_shift: 0
+       
+  ETX_ALL:
+   addr_base: 0x04f5
+   registers:
+    config_ch_*:
+     size_byte: 2
+     addr_shift: 2
+     n_iterations: 12
+     value: [0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606,
+             0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606]
+     params:
+      pre_emphasis_strength:
+       param_mask: 0x07
+       param_shift: 8
+      pre_emphasis_width:
+       param_mask: 0x07
+       param_shift: 6
+      pre_emphasis_mode:
+       param_mask: 0x03
+       param_shift: 4
+      drive_strength:
+       param_mask: 0x07
+       param_shift: 1
+      invert_data:
+       param_mask: 0x01
+       param_shift: 0
+    config_mux_*:
+     size_byte: 2
+     addr_shift: 2
+     addr_offset: 0x1a
+     n_iterations: 4
+     value: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
+     params:
+      pre_emphasis_strength:
+       param_mask: 0x07
+       param_shift: 9
+      pre_emphasis_width:
+       param_mask: 0x07
+       param_shift: 7
+      pre_emphasis_mode:
+       param_mask: 0x03
+       param_shift: 5
+      drive_strength:
+       param_mask: 0x07
+       param_shift: 2
+      invert_data:
+       param_mask: 0x01
+       param_shift: 1
+      enable:
+       param_mask: 0x01
+       param_shift: 0
+
+  PLL_ALL:
+   addr_base: 0x0517
+   registers:
+    pll_bytes_1to0:
+     size_byte: 2
+     value: 0x0e00
+     params:
+      enableDes:
+       param_mask: 0x1
+       param_shift: 9
+      enableSer:
+       param_mask: 0x1
+       param_shift: 7
+      clktreeCdisable:
+       param_mask: 0x01
+       param_shift: 5
+      clktreeBdisable:
+       param_mask: 0x01
+       param_shift: 3
+      clktreeAdisable:
+       param_mask: 0x01
+       param_shift: 0
+    pll_bytes_4to2:
+     addr_offset: 0x02
+     size_byte: 3
+     value: 0xffffff
+     params:
+      clk2G56enable:
+       param_mask: 0x01
+       param_shift: 15
+      clk1G28enable:
+       param_mask: 0x01
+       param_shift: 13
+      clk640Menable:
+       param_mask: 0x01
+       param_shift: 11
+      clk320Menable:
+       param_mask: 0x01
+       param_shift: 9
+      clk160Menable:
+       param_mask: 0x01
+       param_shift: 7
+      clk80Menable:
+       param_mask: 0x01
+       param_shift: 5
+      clk40Menable:
+       param_mask: 0x01
+       param_shift: 3
+      enablePhaseShifter:
+       param_mask: 0x01
+       param_shift: 0
+    pll_bytes_8to5:
+     addr_offset: 0x05
+     size_byte: 4
+     value: 0x3dfaaaae
+     params:
+      fromMemToLJCDR_COenableFD:
+       param_mask: 0x01
+       param_shift: 31
+      fromMemToLJCDR_COenableCDR:
+       param_mask: 0x01
+       param_shift: 30
+      fromMemToLJCDR_COdisDataCounterRef:
+       param_mask: 0x01
+       param_shift: 29
+      fromMemToLJCDR_COdisDESvbiasgen:
+       param_mask: 0x01
+       param_shift: 26
+      fromMemToLJCDR_ENABLE_CDR_R:
+       param_mask: 0x01
+       param_shift: 25
+      fromMemToLJCDR_dataMuxCfg:
+       param_mask: 0x03
+       param_shift: 19
+      fromMemToLJCDR_CONFIG_P_FF_CDR:
+       param_mask: 0x0f
+       param_shift: 15
+      fromMemToLJCDR_CONFIG_P_CDR:
+       param_mask: 0x0f
+       param_shift: 11
+      fromMemToLJCDR_CONFIG_I_FLL:
+       param_mask: 0x0f
+       param_shift: 7
+      fromMemToLJCDR_CONFIG_I_CDR:
+       param_mask: 0x0f
+       param_shift: 3
+      fromMemToLJCDR_CONFIG_FF_CAP:
+       param_mask: 0x07
+       param_shift: 0
+    pll_bytes_12to9:
+     addr_offset: 0x09
+     size_byte: 4
+     value: 0x34550555
+     params:
+      fromMemToLJCDR_CONFIG_FF_CAP_WL:
+       param_mask: 0x07
+       param_shift: 28
+      fromMemToLJCDR_PLL_R_CONFIG_WL:
+       param_mask: 0x0f
+       param_shift: 24
+      fromMemToLJCDR_CONFIG_P_PLL_WL:
+       param_mask: 0x0f
+       param_shift: 20
+      fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_CONFIG_I_FLL_WL:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_CONFIG_P_FF_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_CONFIG_P_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_CONFIG_I_CDR_WL:
+       param_mask: 0x0f
+       param_shift: 0
+    pll_bytes_17to13:
+     addr_offset: 0x0d
+     size_byte: 5
+     value: 0x3270D84558
+     params:
+      fromMemToLJCDR_CBOvcoCapSelect:
+       param_mask: 0x1ff
+       param_shift: 31
+      fromMemToLJCDR_COrefClkSel:
+       param_mask: 0x01
+       param_shift: 28
+      fromMemToLJCDR_COoverrideVc:
+       param_mask: 0x01
+       param_shift: 25
+      VCObypass:
+       param_mask: 0x01
+       param_shift: 24
+      fromMemToLJCDR_COenablePLL:
+       param_mask: 0x01
+       param_shift: 23
+      fromMemToLJCDR_COconnectPLL:
+       param_mask: 0x01
+       param_shift: 22
+      fromMemToLJCDR_COconnectCDR:
+       param_mask: 0x01
+       param_shift: 21
+      fromMemToLJCDR_vcoRailMode:
+       param_mask: 0x01
+       param_shift: 20
+      fromMemToLJCDR_vcoDAC:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_PLL_R_CONFIG:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_CONFIG_P_PLL:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_CONFIG_I_PLL:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_BIASGEN_CONFIG:
+       param_mask: 0x0f
+       param_shift: 0
+    pll_bytes_21to18:
+     addr_offset: 0x12
+     size_byte: 4
+     value: 0x0988c888
+     params:
+      fromFrameAligner_FrameAlignerIsLocked:
+       param_mask: 0x01
+       param_shift: 30
+      fromMemToLJCDR_disableFrameAlignerLockControl:
+       param_mask: 0x01
+       param_shift: 29
+      fromMemToLJCDR_enableControlOverride:
+       param_mask: 0x01
+       param_shift: 28
+      fromMemToLJCDR_enableCapBankOverride:
+       param_mask: 0x01
+       param_shift: 27
+      rxLockMode:
+       param_mask: 0x01
+       param_shift: 26
+      mode:
+       param_mask: 0x01
+       param_shift: 25
+      fromMemToLJCDR_lfEnable:
+       param_mask: 0x01
+       param_shift: 24
+      fromMemToLJCDR_waitPLLTime:
+       param_mask: 0x0f
+       param_shift: 20
+      fromMemToLJCDR_waitCDRTime:
+       param_mask: 0x0f
+       param_shift: 16
+      fromMemToLJCDR_selEndOfCount:
+       param_mask: 0x0f
+       param_shift: 12
+      fromMemToLJCDR_lfUnLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 8
+      fromMemToLJCDR_lfReLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 4
+      fromMemToLJCDR_lfLockThrCounter:
+       param_mask: 0x0f
+       param_shift: 0     
+    pll_bytes_24to22:
+     addr_offset: 0x16
+     size_byte: 3
+     value: 0x000e00
+     params:
+      phase_of_enable_1G28:
+       param_mask: 0x1f
+       param_shift: 18
+      toclkgen_disVCO:
+       param_mask: 0x01
+       param_shift: 15
+      toclkgen_disSER:
+       param_mask: 0x01
+       param_shift: 12
+      toclkgen_disEXT:
+       param_mask: 0x01
+       param_shift: 9
+      toclkgen_disEOM:
+       param_mask: 0x01
+       param_shift: 6
+      toclkgen_disDES:
+       param_mask: 0x01
+       param_shift: 3
+      toclkgen_disCLK:
+       param_mask: 0x01
+       param_shift: 0
+    pll_bytes_26to25:
+     addr_offset: 0x19
+     size_byte: 2
+     value: 0x8008
+     params:
+      ref_clk_sel:
+       param_mask: 0x01
+       param_shift: 15
+      output_clk_sel:
+       param_mask: 0x07
+       param_shift: 12
+      refClk_setCommonMode:
+       param_mask: 0x01
+       param_shift: 9
+      refClk_enableTermination:
+       param_mask: 0x01
+       param_shift: 6
+      refClk_enableRx:
+       param_mask: 0x01
+       param_shift: 3
+      tofbDiv_skip:
+       param_mask: 0x01
+       param_shift: 0
+    pll_bytes_27:
+     addr_offset: 0x1b
+     size_byte: 1
+     value: 0x00
+     params:
+      reset_eTx_par_enable_intr:
+       param_mask: 0x01
+       param_shift: 3
+      reset_pll_not_locked_intr:
+       param_mask: 0x01
+       param_shift: 2
+
+  AUTOENCODER_*INPUT:
+   block_shift: 143
+   addr_base: 0x0538
+   registers:
+    weights_byte0:
+     size_byte: 16
+     value: 0x0
+    weights_byte16:
+     addr_offset: 0x10
+     size_byte: 16
+     value: 0x0
+    weights_byte32:
+     addr_offset: 0x20
+     size_byte: 16
+     value: 0x0
+    weights_byte48:
+     addr_offset: 0x30
+     size_byte: 16
+     value: 0x0
+    weights_byte64:
+     addr_offset: 0x40
+     size_byte: 16
+     value: 0x0
+    weights_byte80:
+     addr_offset: 0x50
+     size_byte: 16
+     value: 0x0
+    weights_byte96:
+     addr_offset: 0x60
+     size_byte: 16
+     value: 0x0
+    weights_byte112:
+     addr_offset: 0x70
+     size_byte: 16
+     value: 0x0
+    weights_byte128:
+     addr_offset: 0x80
+     size_byte: 6
+     value: 0x0
+
+  MISC_ALL:
+   addr_base: 0x0bec
+   registers:
+    misc_rw_0:
+     value: 2
+     params:
+      run:
+       param_mask: 0x01
+       param_shift: 1
+      rw_ecc_err_clr:
+       param_mask: 0x01
+       param_shift: 0
+
+ RO:
+  CH_ALIGNER_*INPUT_ALL:
+   block_shift: 64
+   addr_base: 0x0014
+   registers:
+    status:
+     value: 0
+     params:
+      prbs_chk_err:
+       param_mask: 0x01
+       param_shift: 7
+      orbsyn_fc_err:
+       param_mask: 0x01
+       param_shift: 6
+      orbsyn_arr_err:
+       param_mask: 0x01
+       param_shift: 5
+      orbsyn_hdr_err:
+       param_mask: 0x01
+       param_shift: 4
+      align_seu_err:
+       param_mask: 0x01
+       param_shift: 3
+      hdr_mm_err:
+       param_mask: 0x01
+       param_shift: 2
+      snapshot_dv:
+       param_mask: 0x01
+       param_shift: 1
+      pattern_match:
+       param_mask: 0x01
+       param_shift: 0
+    select:
+     addr_offset: 0x01
+     value: 0
+    snapshot:
+     addr_offset: 0x02
+     size_byte: 16
+     value: 0
+    snapshot2:
+     addr_offset: 0x12
+     size_byte: 8
+     value: 0
+    hdr_mm_cntr:
+     addr_offset: 0x1a
+     size_byte: 2
+     value: 0
+    orbsyn_hdr_err_cnt:
+     addr_offset: 0x1b
+     value: 0
+    orbsyn_arr_err_cnt:
+     addr_offset: 0x1c
+     value: 0
+    orbsyn_fc_err_cnt:
+     addr_offset: 0x1d
+     value: 0
+    prbs_chk_err_cnt:
+     addr_offset: 0x1e
+     value: 0
+    
+  CH_ERR_*INPUT_ALL:
+   block_shift: 4
+   addr_base: 0x0301
+   registers:
+    raw_error:
+     value: 0
+     params:
+      err_raw_dat:
+       param_mask: 0x3F
+       param_shift: 6
+      hdr_mm_err:
+       param_mask: 0x01
+       param_shift: 5
+      align_seu_err:
+       param_mask: 0x01
+       param_shift: 4
+      orbsyn_hdr_err:
+       param_mask: 0x01
+       param_shift: 3
+      orbsyn_arr_err:
+       param_mask: 0x01
+       param_shift: 2
+      orbsyn_fc_err:
+       param_mask: 0x01
+       param_shift: 1
+      prbs_chk_err:
+       param_mask: 0x01
+       param_shift: 0
+    error_mask:
+     addr_offset: 0x01
+     value: 0
+     params:
+      msk_dat:
+       param_mask: 0x3f
+       param_shift: 0
+    error_data:
+     addr_offset: 0x02
+     value: 0
+     params:
+      err_out:
+       param_mask: 0x01
+       param_shift: 6
+      err_dat:
+       param_mask: 0x3f
+       param_shift: 0
+
+  CH_EPRXGRP_*INPUT_ALL:
+   block_shift: 4
+   addr_base: 0x0341
+   registers:
+    status:
+     value: 0
+     params:
+      channelLocked:
+       param_mask: 0x01
+       param_shift: 7
+      dllInstantLock:
+       param_mask: 0x01
+       param_shift: 6
+      phaseSelect:
+       param_mask: 0x0f
+       param_shift: 2
+      dllState:
+       param_mask: 0x03
+       param_shift: 0
+    dllstatus:
+     addr_offset: 0x01
+     value: 0x01
+     params:
+      dllLossOfLockCount:
+       param_mask: 0x1f
+       param_shift: 3
+      dllLockFilterState:
+       param_mask: 0x03
+       param_shift: 1
+      dllLocked:
+       param_mask: 0x01
+       param_shift: 0
+
+  ALIGNER_ALL:
+   addr_base: 0x0399
+   registers:
+    status:
+     value: 0
+     params:
+      dbg_fc_cnt:
+       param_mask: 0x1f
+       param_shift: 3
+      dbg_orbsyn_rcvd:
+       param_mask: 0x01
+       param_shift: 2
+      dbg_lreset_rcvd:
+       param_mask: 0x01
+       param_shift: 1
+      done:
+       param_mask: 0x01
+       param_shift: 0
+     
+  ERRTOP_ALL:
+   addr_base: 0x039e
+   registers:
+    msk_dat_top:
+     size_byte: 2
+     value: 0
+     param_mask: 0x1fff
+     param_shift: 0
+    err_dat_top:
+     addr_offset: 0x02
+     size_byte: 2
+     value: 0
+     params:
+      err_out_top:
+       param_mask: 0x01
+       param_shift: 14
+      err_dat_top:
+       param_mask: 0x1fff
+       param_shift: 0
+     
+  FCTRL_ALL:
+   addr_base: 0x03a6
+   registers:
+    status:
+     value: 0
+     params:
+      locked:
+       param_mask: 0x01
+       param_shift: 2
+      fc_error:
+       param_mask: 0x01
+       param_shift: 1
+      command_rx_inverted:
+       param_mask: 0x01
+       param_shift: 0
+    fc_error_count:
+     addr_offset: 0x01
+     value: 0
+    lock_count:
+     addr_offset: 0x02
+     value: 0
+
+  FMTBUF_ALL:
+   addr_base: 0x03c3
+   registers:
+    buffer_out_err:
+     param_mask: 0x01
+     param_shift: 0
+     value: 0
+     
+  PLL_ALL:
+   addr_base: 0x0533
+   registers:
+    pll_read_bytes_2to0:
+     size_byte: 3
+     value: 0x000000
+     params:
+      ljCDRCapBankSearchActive:
+       param_mask: 0x01
+       param_shift: 19
+      smLocked:
+       param_mask: 0x01
+       param_shift: 18
+      smState:
+       param_mask: 0x0f
+       param_shift: 14
+      endCounterRefClk:
+       param_mask: 0x01
+       param_shift: 13
+      endCounterVCO:
+       param_mask: 0x01
+       param_shift: 12
+      lfLossOfLockCount:
+       param_mask: 0xff
+       param_shift: 4
+      lfLocked:
+       param_mask: 0x01
+       param_shift: 3
+      lfInstLock:
+       param_mask: 0x01
+       param_shift: 2
+      lfState:
+       param_mask: 0x03
+       param_shift: 0
+    pll_read_bytes_4to3:
+     addr_offset: 0x03
+     size_byte: 2
+     value: 0x0000
+     params:
+      pll_not_locked_timeout:
+       param_mask: 0x01
+       param_shift: 3
+      parallel_enable_intrA:
+       param_mask: 0x01
+       param_shift: 2
+      parallel_enable_intrB:
+       param_mask: 0x01
+       param_shift: 1
+      parallel_enable_intrC:
+       param_mask: 0x01
+       param_shift: 0
+
+  MISC_ALL:
+   addr_base: 0x0bed
+   registers:
+    misc_ro_0:
+     value: 0
+     params:
+      PUSM_state:
+       param_mask: 0x0f
+       param_shift: 0
+     
+  MISC_ERR_CNT_SINGLE:
+   addr_base: 0x0bee
+   registers:
+    rw_ecc_err_in_re_cnt_single_chan_aligner_*:
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_single_chan_err_*:
+     addr_offset: 0x01
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_single_chan_eprxgrp_*:
+     addr_offset: 0x02
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_single_chan_err_12:
+     addr_offset: 0x24
+     value: 0
+    rw_ecc_err_in_re_cnt_single_aligner:
+     addr_offset: 0x25
+     value: 0
+    rw_ecc_err_in_re_cnt_single_err_top:
+     addr_offset: 0x26
+     value: 0
+    rw_ecc_err_in_re_cnt_single_eprxgrp_top:
+     addr_offset: 0x27
+     value: 0
+    rw_ecc_err_in_re_cnt_single_fast_ctrl_decoder:
+     addr_offset: 0x28
+     value: 0
+    rw_ecc_err_in_re_cnt_single_formatter_buffer:
+     addr_offset: 0x29
+     value: 0
+    rw_ecc_err_in_re_cnt_single_mux_fix_calib:
+     addr_offset: 0x2a
+     value: 0
+    rw_ecc_err_in_re_cnt_single_algorithm:
+     addr_offset: 0x2b
+     value: 0
+    rw_ecc_err_in_re_cnt_single_erx:
+     addr_offset: 0x2c
+     value: 0
+    rw_ecc_err_in_re_cnt_single_etx:
+     addr_offset: 0x2d
+     value: 0
+    rw_ecc_err_in_re_cnt_single_pll:
+     addr_offset: 0x2e
+     value: 0
+    rw_ecc_err_in_re_cnt_single_misc:
+     addr_offset: 0x2f
+     value: 0
+
+  MISC_ERR_CNT_DOUBLE:
+   addr_base: 0x0c1e
+   registers:
+    rw_ecc_err_in_re_cnt_double_chan_aligner_*:
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_double_chan_err_*:
+     addr_offset: 0x01
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_double_chan_eprxgrp_*:
+     addr_offset: 0x02
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_double_chan_err_12:
+     addr_offset: 0x24
+     value: 0
+    rw_ecc_err_in_re_cnt_double_aligner:
+     addr_offset: 0x25
+     value: 0
+    rw_ecc_err_in_re_cnt_double_err_top:
+     addr_offset: 0x26
+     value: 0
+    rw_ecc_err_in_re_cnt_double_eprxgrp_top:
+     addr_offset: 0x27
+     value: 0
+    rw_ecc_err_in_re_cnt_double_fast_ctrl_decoder:
+     addr_offset: 0x28
+     value: 0
+    rw_ecc_err_in_re_cnt_double_formatter_buffer:
+     addr_offset: 0x29
+     value: 0
+    rw_ecc_err_in_re_cnt_double_mux_fix_calib:
+     addr_offset: 0x2a
+     value: 0
+    rw_ecc_err_in_re_cnt_double_algorithm:
+     addr_offset: 0x2b
+     value: 0
+    rw_ecc_err_in_re_cnt_double_erx:
+     addr_offset: 0x2c
+     value: 0
+    rw_ecc_err_in_re_cnt_double_etx:
+     addr_offset: 0x2d
+     value: 0
+    rw_ecc_err_in_re_cnt_double_pll:
+     addr_offset: 0x2e
+     value: 0
+    rw_ecc_err_in_re_cnt_double_misc:
+     addr_offset: 0x2f
+     value: 0
+
+  MISC_ERR_CNT_PARITY:
+   addr_base: 0x0c4e
+   registers:
+    rw_ecc_err_in_re_cnt_parity_chan_aligner_*:
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_parity_chan_err_*:
+     addr_offset: 0x01
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_parity_chan_eprxgrp_*:
+     addr_offset: 0x02
+     addr_shift: 3
+     n_iterations: 12
+     value: [0, 0, 0, 0, 0, 0,
+             0, 0, 0, 0, 0, 0]
+    rw_ecc_err_in_re_cnt_parity_chan_err_12:
+     addr_offset: 0x24
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_aligner:
+     addr_offset: 0x25
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_err_top:
+     addr_offset: 0x26
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_eprxgrp_top:
+     addr_offset: 0x27
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_fast_ctrl_decoder:
+     addr_offset: 0x28
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_formatter_buffer:
+     addr_offset: 0x29
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_mux_fix_calib:
+     addr_offset: 0x2a
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_algorithm:
+     addr_offset: 0x2b
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_erx:
+     addr_offset: 0x2c
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_etx:
+     addr_offset: 0x2d
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_pll:
+     addr_offset: 0x2e
+     value: 0
+    rw_ecc_err_in_re_cnt_parity_misc:
+     addr_offset: 0x2f
+     value: 0

@@ -34,7 +34,9 @@ if __name__ == "__main__":
                              ],
                         help='alignment steps')
     parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
+
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
+    parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
 
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
     parser.add_argument('--lalign', type=str, default=None, help='links for which to override align position (default is all)')
@@ -91,6 +93,7 @@ if __name__ == "__main__":
             delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
             delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
             dev.dispatch()
+            logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
 
     if args.step == "init":
         """
@@ -137,7 +140,7 @@ if __name__ == "__main__":
         dev.dispatch()
 
         # send PRBS
-        utils_tv.set_testvectors(dev,"PRBS")
+        utils_tv.set_testvectors(dev,"PRBS28")
 
     if args.step == "test-data":
         """
@@ -155,7 +158,7 @@ if __name__ == "__main__":
         """
         # re-configure fc
         utils_fc.configure_fc(dev)
-        dev.getNode(names['fc']+".bx_link_reset_roct").write(3540)
+        dev.getNode(names['fc']+".bx_link_reset_roct").write(args.bxlr)
         dev.dispatch()
 
         # configure bypass (for emulator)
@@ -383,7 +386,8 @@ if __name__ == "__main__":
             all_data = {}
             for lcapture in ['lc-ASIC','lc-emulator']:
                 nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-                all_data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords=acq_length,nlinks=nlinks)
+                nwords = 511 if 'input' in args.lc else 4095
+                all_data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords=nwords,nlinks=nlinks)
 
             for key,data in all_data.items():
                 utils_tv.save_testvector( "align-%s-sc.csv"%key, data, header=True)

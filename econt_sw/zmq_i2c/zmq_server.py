@@ -43,7 +43,12 @@ if __name__ == "__main__":
                 ans = board.configure()
                 socket.send_string("ready")
             elif string == "configure":
-                redirect(board.configure)
+                socket.send_string("ready")
+                cfg_str  = socket.recv_string()
+                cfg_yaml = yaml.safe_load(cfg_str)
+                ans_yaml = board.configure(cfg_yaml)
+                ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
+                socket.send_string(ans_str)
             elif string == "compare-rw":
                 ans = board.compare("RW")
                 socket.send_string("keys: %s"%ans)
@@ -51,7 +56,12 @@ if __name__ == "__main__":
                 ans = board.compare("RO")
                 socket.send_string("keys: %s"%ans)
             elif string == "read": 
-                redirect(board.read)
+                socket.send_string("ready")
+                cfg_str  = socket.recv_string()
+                cfg_yaml = yaml.safe_load(cfg_str)
+                ans_yaml = board.read(cfg_yaml)
+                ans_str  = yaml.dump(ans_yaml, default_flow_style=False)
+                socket.send_string(ans_str)
 
     except KeyboardInterrupt:
         print('\nClosing server.')

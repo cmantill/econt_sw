@@ -50,7 +50,13 @@ class econ_interface():
 
         if cfg:
             # load and expand config
-            paramMap = self.translator.load_param_map(cfg)['ECON-T']
+            paramMap = self.translator.load_param_map(cfg)
+            try:
+                paramMap = paramMap['ECON-T']
+            except:
+                self._logger.warning('No filename for config')
+                return "i2c: ECON Not Configured"
+
             pairs = self.translator.pairs_from_cfg(paramMap,allowed=['RW'])
 
             # read previous values of addresses 
@@ -129,7 +135,12 @@ class econ_interface():
 
     def __read_fr_cfg(self, cfg):
         """ Read addresses (=keys) in cfgs from rocs. """
-        paramMap = self.translator.load_param_map(cfg)['ECON-T']
+        paramMap = self.translator.load_param_map(cfg)
+        try:
+            paramMap = paramMap['ECON-T']
+        except:
+            self._logger.warning('No filename for reading config')
+            return {}
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
         cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)

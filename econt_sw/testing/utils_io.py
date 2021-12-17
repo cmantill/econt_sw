@@ -76,5 +76,16 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
         logging.info("Links %s-IO are aligned"%io)
     else:
         logging.info("Links %s-IO are not aligned"%io)
+    regs = ["reg0.reset_link","reg0.reset_counters","reg0.delay_mode","reg0.delay_set","reg0.bypass_IOBUF","reg0.tristate_IOBUF","reg0.latch_counters","reg0.delay_in","reg0.delay_offset","reg0.invert",
+            "bit_counter","error_counter",
+            "reg3.delay_ready","reg3.delay_out","reg3.delay_out_N","reg3.waiting_for_transitions",
+        ]
+    for l in range(nlinks):
+        vals = {}
+        for reg in regs:
+            tmp = dev.getNode(names[io_name][io]+".link"+str(l)+"."+reg).read()
+            dev.dispatch()
+            vals[reg] = int(tmp)
+        logger.info("%s-IO link%i: %s"%(io,l,vals))
     return is_aligned
     

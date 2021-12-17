@@ -52,7 +52,16 @@ def set_testvectors(dev,dtype=None,idir=None):
         "header_BX0": 0x90000000,
     }
     if dtype == "PRBS":
+        logger.info('Sending 32 bit PRBS w header mask')
+        # 32-bit PRBS, the headers should not be there
+        # ECON-T expects no headers when it is checking 32-bit PRBS. 
         testvectors_settings["output_select"] = 0x1
+        testvectors_settings["header_mask"] = 0x00000000
+    if dtype == "PRBS28":
+        # 28-bit PRBS, the headers should be there
+        # ECON-T expects headers when it is checking 28-bit PRBS. 
+        logger.info('Sending 28 bit PRBS w headers')
+        testvectors_settings["output_select"] = 0x2
         testvectors_settings["header_mask"] = 0xf0000000
     if dtype == "debug":
         testvectors_settings["idle_word"] = 0xa0000000
