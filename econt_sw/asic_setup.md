@@ -12,7 +12,7 @@ python3 zmq_server.py --addr 0x21 --server 5555
 
 - Initialize ASIC:
   ```
-  ./start_up.sh
+  ./scripts/startUp.sh
   ```
   -  This bash script does the following:
    * Checks all registers in ASIC.
