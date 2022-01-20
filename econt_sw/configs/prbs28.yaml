@@ -6,8 +6,14 @@ ECON-T:
      params:
       prbs_chk_en:
        param_value: 1
-      prbs28_en:
+      per_ch_align_en:
+       param_value: 1
+      sel_override_en:
        param_value: 0
+      prbs28_en:
+       param_value: 1
+    sel_override_val:
+     value: 0
      
   FMTBUF_ALL:
    registers:
@@ -25,4 +31,10 @@ ECON-T:
      params:
       select:
        param_value: 0
- 
+  
+  MISC_ALL:
+   registers:
+    misc_rw_0:
+     params:
+      rw_ecc_err_clr:
+       param_value: 1

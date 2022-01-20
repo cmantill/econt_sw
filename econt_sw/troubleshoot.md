@@ -168,6 +168,30 @@
       A leftward shift of less than 32 bits is OK.
       A rightward shift is not, because then the ASIC will not be able to align (it has to see the complete `0x9cccccccaccccccc` pattern).
     - The `select` register in the ASIC should be in the interval [select_emulator, select_emulator+31bits], e.g. [0x20,0x3f].
+
+  - Sending PRBS and enabling check in ASIC:
+
+    In 32-bit PRBS checking mode, `prbs_chk_err_cnt` should not increment, while `hdr_mm_cntr` and `orbsyn_hdr_err_cnt` will increment.  
+    `hdr_mm_cntr` will increment 3563 times faster than `orbsyn_hdr_err_cnt` increments.
+
+    The counters can be set back to zero by writing a `1` to `rw_ecc_err_clr`.
+    `hdr_mm_cntr` is NOT reset by `rw_ecc_err_clr`.  Instead, `hdr_mm_cntr` is reset by link_reset_ROCT. It can also be reset by either the RESET_B or SOFT_RESET_B pins or by the ChipSync fast command.
+    ChipSync fast command has the same effect as the SOFT_RESET_B pin.
+
+    ```
+    # configure to check PRBS (also resets counters)
+    python3 testing/i2c.py --yaml configs/prbs.yaml --write
+    # to send PRBS (32 bit)
+    python testing/uhal-align_on_tester.py --step test-data --dtype PRBS
+    # read prbs_chk_err_cnt
+    python3 testing/i2c.py --name *prbs_chk_err_cnt,*raw_error_prbs_chk_err
+    # (before writing the prbs configs, I would see prbs_chk_err_cnt 0xff - maxed out - then went back to 0)
+    ```
+    
+    One can do a phase scan by reading `prbs_chk_err_cnt` while changing `phaseSelect` in `trackMode 0`.
+    ```
+    python3 scripts/scanPhasePRBS.py
+    ```
   
 - IO alignment:
   - Make sure that the algorithm is threshold and that the values of threshold are maximum, for BOTH ASIC and emulator:
