@@ -4,8 +4,12 @@ ECON-T:
    registers:
     config:
      params:
+      prbs_chk_en:
+       param_value: 0
       per_ch_align_en:
        param_value: 1
+      prbs28_en:
+       param_value: 0
      
   ALIGNER_ALL:
    registers:
@@ -24,9 +28,9 @@ ECON-T:
     orbsyn_cnt_max_val:
      value: 3563
     orbsyn_cnt_load_val:
-     value: 3513
+     value: 0
     orbsyn_cnt_snapshot:
-     value: 3516
+     value: 4
 
   FMTBUF_ALL:
    registers:
