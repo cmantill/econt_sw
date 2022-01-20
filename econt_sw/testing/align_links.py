@@ -51,10 +51,10 @@ if __name__ == "__main__":
 
     if "tester-phase" in args.steps:
         # phase alignment for IO
-        os.system('python testing/uhal-align_on_tester.py --step tester-phase')
+        os.system('python testing/uhal/align_on_tester.py --step tester-phase')
     if "asic-word" in args.steps:
         # send link reset ECON-T
-        os.system('python testing/uhal-align_on_tester.py --step asic-word')
+        os.system('python testing/uhal/align_on_tester.py --step asic-word')
 
         # read i2c registers (select and status)
         read_emulator = i2c_sockets['emulator'].read_config("configs/align.yaml","read")
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 raise
     if "asic-tester" in args.steps:
         # relative alignment for IO
-        os.system('python testing/uhal-align_on_tester.py --step asic-tester')
+        os.system('python testing/uhal/align_on_tester.py --step asic-tester')
         
     # terminate i2c servers
     for key,proc in procs.items():

@@ -11,9 +11,11 @@ python3 testing/eventDAQ.py --idir  configs/test_vectors/counterPatternInTC/ --s
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Event DAQ')
     parser.add_argument('--start-server', dest="start_server", action='store_true', default=False, help='start servers directly in script (for debugging is better to do it separately)')
-    parser.add_argument("--capture", dest="capture", action="store",
-                        help="capture data with one of the options", choices=["l1a","compare"])
     parser.add_argument('--idir',dest="idir", type=str, required=True, default=None, help='test vector directory')
+    parser.add_argument("--capture", dest="capture", type=str, help="capture data with one of the options", default=None)
+    parser.add_argument('--compare',dest="compare",action='store_true', default=False, help='use stream compare')
+    parser.add_argument('--stime',dest="stime",type=float, default=0.001, help='time between word counts')
+    parser.add_argument('--nlinks',dest="nlinks",type=int, default=13, help='active links')
     args = parser.parse_args()
 
     server={'ASIC': '5554', 'emulator': '5555'}
@@ -47,10 +49,12 @@ if __name__ == "__main__":
         #print(read_socket)
 
     # daq
+    cmd = 'python testing/uhal/eventDAQ.py --idir %s'%(args.idir)
     if args.capture:
-        os.system('python testing/uhal-eventDAQ.py --idir %s --capture %s'%(args.idir,args.capture))
-    else:
-        os.system('python testing/uhal-eventDAQ.py --idir %s'%(args.idir))
+        cmd += ' --capture %s'%args.capture
+    if args.compare:
+        cmd += ' --compare --stime %.3f --nlinks %i'%(args.stime,args.nlinks)
+    os.system(cmd)
 
     # terminate i2c servers
     for key,proc in procs.items():
