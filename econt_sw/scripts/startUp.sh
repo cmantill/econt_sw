@@ -1,7 +1,4 @@
-SNAPSHOT="${1:-4}"
-EMULATOR_DELAY="${2:-3}"
-PHASESELECT="${3:-9}"
-
+#!/bin/bash
 echo "PUSM state"
 python3 testing/i2c.py --yaml configs/init.yaml >> logs/startupState.log
 
@@ -18,15 +15,11 @@ echo "PUSM state"
 python3 testing/i2c.py --name PUSM_state
 
 echo ""
-echo "starting to send data"
+echo "Starting to send 28 bit PRBS data"
 source env.sh
-python testing/uhal-align_on_tester.py --step configure-IO --invertIO
-python testing/uhal-align_on_tester.py --step init
+python testing/uhal/align_on_tester.py --step configure-IO --invertIO
+python testing/uhal/align_on_tester.py --step init
 
 echo "PUSM state"
 python3 testing/i2c.py --name PUSM_state
-
-
 python3 testing/i2c.py --name MISC_run --value 1
-
-source scripts/inputWordAlignment.sh $SNAPSHOT $EMULATOR_DELAY $PHASESELECT
