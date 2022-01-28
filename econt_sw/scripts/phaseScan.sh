@@ -9,5 +9,5 @@ do
     echo $i
     source scripts/inputWordAlignment.sh 4 4 $i
     
-    python3 testing/checkSnapshots.py --logging -N 1 --sleep 15
+    python3 testing/linkMonitoring.py --logging -N 1 --sleep 15
 done
