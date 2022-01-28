@@ -21,6 +21,11 @@ def enable_l1a(dev):
     dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
     dev.dispatch()
 
+
+def chipsync(dev):
+    dev.getNode(names['fc']+".request.chipsync").write(1);
+    dev.dispatch()
+
 def send_l1a(dev):
     """
     Send L1A once

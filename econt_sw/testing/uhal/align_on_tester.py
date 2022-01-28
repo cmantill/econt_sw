@@ -28,6 +28,7 @@ if __name__ == "__main__":
                                  'test-data',
                                  'lr-roct',
                                  'lr-econt',
+                                 'chipsync',
                                  'manual-lcASIC',
                                  'capture',
                                  'latency',
@@ -165,6 +166,9 @@ if __name__ == "__main__":
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
         dev.dispatch()
         logger.info('link reset roct counter %i'%lrc)
+        
+    if args.step == "chipsync":
+        utils_fc.chipsync(dev)
         
     if args.step == "lr-econt":
         """
