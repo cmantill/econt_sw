@@ -767,7 +767,7 @@
     "CH_ALIGNER_1_orbsyn_arr_err_cnt": ["RO", "CH_ALIGNER_1INPUT_ALL", "orbsyn_arr_err_cnt"],
     "CH_ALIGNER_1_orbsyn_fc_err_cnt": ["RO", "CH_ALIGNER_1INPUT_ALL", "orbsyn_fc_err_cnt"],
     "CH_ALIGNER_1_prbs_chk_err_cnt": ["RO", "CH_ALIGNER_1INPUT_ALL", "prbs_chk_err_cnt"],
-    "CH_ALIGNER_2_status_prbs_chk_err": ["RO", "CH_ALIGNER_2INPUT_ALL", "status", "prbs_chk_err"],
+    "CH_ALIGNER_2_prbs_chk_err": ["RO", "CH_ALIGNER_2INPUT_ALL", "status", "prbs_chk_err"],
     "CH_ALIGNER_2_orbsyn_fc_err": ["RO", "CH_ALIGNER_2INPUT_ALL", "status", "orbsyn_fc_err"],
     "CH_ALIGNER_2_orbsyn_arr_err": ["RO", "CH_ALIGNER_2INPUT_ALL", "status", "orbsyn_arr_err"],
     "CH_ALIGNER_2_orbsyn_hdr_err": ["RO", "CH_ALIGNER_2INPUT_ALL", "status", "orbsyn_hdr_err"],
