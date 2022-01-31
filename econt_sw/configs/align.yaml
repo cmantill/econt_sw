@@ -4,6 +4,14 @@ ECON-T:
    registers:
     config:
      params:
+      patt_sel:
+       param_value: 0
+      patt_en:
+       param_value: 0
+      sel_override_en:
+       param_value: 0
+      force_ch_outputs:
+       param_value: 0
       prbs_chk_en:
        param_value: 0
       per_ch_align_en:
