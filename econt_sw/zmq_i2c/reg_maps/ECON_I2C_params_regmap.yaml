@@ -854,16 +854,16 @@ ECON-T:
      size_byte: 2
      value: 0
     orbsyn_hdr_err_cnt:
-     addr_offset: 0x1b
-     value: 0
-    orbsyn_arr_err_cnt:
      addr_offset: 0x1c
      value: 0
-    orbsyn_fc_err_cnt:
+    orbsyn_arr_err_cnt:
      addr_offset: 0x1d
      value: 0
-    prbs_chk_err_cnt:
+    orbsyn_fc_err_cnt:
      addr_offset: 0x1e
+     value: 0
+    prbs_chk_err_cnt:
+     addr_offset: 0x1f
      value: 0
     
   CH_ERR_*INPUT_ALL:
