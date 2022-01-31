@@ -4,6 +4,10 @@ ECON-T:
    registers:
     config:
      params:
+      patt_en:
+       param_value: 0
+      patt_sel:
+       param_value: 0
       prbs_chk_en:
        param_value: 1
       prbs28_en:
