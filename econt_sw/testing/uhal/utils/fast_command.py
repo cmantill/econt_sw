@@ -7,20 +7,31 @@ logging.basicConfig()
 logger = logging.getLogger('utils')
 logger.setLevel(logging.INFO)
 
-def configure_fc(dev):
+def configure_fc(dev,read=False):
     """
     Configure FC
     Do not enable L1A (since this disables link resets)
     """
-    dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
-    dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
-    dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
-    dev.dispatch()
-
-def enable_l1a(dev):
-    dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
-    dev.dispatch()
-
+    if read:
+        fc_stream = dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").read()
+        orb_sync = dev.getNode(names['fc']+".command.enable_orbit_sync").read()
+        glob_l1a = dev.getNode(names['fc']+".command.global_l1a_enable").read()
+        dev.dispatch()
+        logger.info('fc stream %i orb_sync %i glob_l1a %i '%(fc_stream,orb_sync,glob_l1a))
+    else:
+        dev.getNode(names['fc']+".command.enable_fast_ctrl_stream").write(0x1);
+        dev.getNode(names['fc']+".command.enable_orbit_sync").write(0x1);
+        dev.getNode(names['fc']+".command.global_l1a_enable").write(0);
+        dev.dispatch()
+    
+def enable_l1a(dev,read=False):
+    if read:
+        r =  dev.getNode(names['fc']+".command.global_l1a_enable").read()
+        dev.dispatch()
+        logger.info('glob_l1a %i '%r)
+    else:
+        dev.getNode(names['fc']+".command.global_l1a_enable").write(1);
+        dev.dispatch()
 
 def chipsync(dev):
     dev.getNode(names['fc']+".request.chipsync").write(1);
