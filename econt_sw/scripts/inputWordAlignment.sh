@@ -22,6 +22,6 @@ python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_sna
 python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --i2c emulator
 python testing/uhal/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
 
-python3 testing/linkMonitoring.py --alignment --verbose
-python3 testing/linkMonitoring.py --logging -N 1 --sleep 2
+python3 testing/eRxMonitoring.py --alignment --verbose
+python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
 
