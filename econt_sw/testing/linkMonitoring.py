@@ -8,10 +8,8 @@ def readSnapshot(i2c='ASIC',return_status=False):
     snapshots=np.array([x[i2c]['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['snapshot'] + (x[i2c]['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['snapshot2']<<(16*8)) for i in range(12)])
     status=np.array([x[i2c]['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['status'] for i in range(12)])
     select=np.array([x[i2c]['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['select'] for i in range(12)])
-    if return_status:
-        return snapshots, status, select
-    else:
-        return snapshots
+
+    return snapshots, status, select
 
 def checkWordAlignment(verbose=True):
     snapshots_ASIC, status_ASIC, select_ASIC=readSnapshot('ASIC', True)
@@ -19,9 +17,13 @@ def checkWordAlignment(verbose=True):
 
     goodStatus=(status_ASIC==3).all()
     goodSelect=(select_ASIC<=64).all() & (select_ASIC>=32).all()
+    #shift the snapshot by select bits, and look for accccccc9ccccccc at the end
+    goodSnapshot = (((snapshots_ASIC >> select_ASIC) & 18446744073709551615) == 12451552248948640972).all()
+
+    goodASIC = goodStatus & goodSelect & goodSnapshot
     goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==4237043671203321810880259700014693398528890914913710296268).all()
 
-    if not (goodStatus & goodSelect):
+    if not (goodASIC):
         print('ERROR: bad ASIC alignment')
         for i in range(12):
             print('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
@@ -46,7 +48,7 @@ def checkSnapshots(compare=True, verbose=False, bx=4):
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='1,1,[0]*12,0')
     call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{bx}')
     call_i2c(args_name='ALIGNER_snapshot_arm', args_value='1')
-    snapshots=readSnapshot()
+    snapshots,status,select=readSnapshot()
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
 
 
@@ -60,13 +62,19 @@ def checkSnapshots(compare=True, verbose=False, bx=4):
             print(f'All snapshots match : {hex(snapshots[0])}')
             return True
         else:
+            shift = select-select.min()
+            shiftedSnapshots=(snapshots>>shift)
             #do vertical vote to get 'correct' value
             vote=0
             for i in range(192):
-                vote += (((snapshots>>i)&1).sum()>6)<<i
-            badSnapshots=np.argwhere(snapshots!=vote)
-            errors={i: hex(snapshots[i]) for i in badSnapshots.flatten()}
-            print(f'ERROR, vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
+                vote += (((shiftedSnapshots>>i)&1).sum()>6)<<i
+            badSnapshots=np.argwhere(shiftedSnapshots!=vote)
+
+            if len(badSnapshots)==0:
+                print(f'After shifting to accomodate select values, all snapshots match : {hex(vote)}')
+            else:
+                errors={i: hex(snapshots[i]) for i in badSnapshots.flatten()}
+                print(f'ERROR, vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
 
             return False
 
@@ -99,14 +107,15 @@ def get_HDR_MM_CNTR(previous=None):
 from time import sleep
 import datetime
 
-def statusLogging(sleepTime=120, N=30):
+def statusLogging(sleepTime=120, N=30, snapshot=False):
     x=get_HDR_MM_CNTR()
 
     for i in range(N):
         sleep(sleepTime)
         print('-'*40)
         print(datetime.datetime.now())
-        checkSnapshots()
+        if snapshot:
+            checkSnapshots()
         x=get_HDR_MM_CNTR(x)
 
 
@@ -170,18 +179,18 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     if args.runLogging:
-        statusLogging(sleepTime=args.sleepTime, N=args.N)
+        statusLogging(sleepTime=args.sleepTime, N=args.N, snapshot=args.getSnapshot)
 
-    if args.getSnapshot:
+    elif args.getSnapshot:
         checkSnapshots(verbose=True)
 
-    if args.checkWordAlignment:
+    elif args.checkWordAlignment:
         checkWordAlignment(verbose=args.verbose)
 
-    if args.getHdrMM:
+    elif args.getHdrMM:
         x=get_HDR_MM_CNTR()
         print(x)
 
-    if args.prbsPhaseScan:
+    elif args.prbsPhaseScan:
         x=prbsScan(sleepTime=args.sleepTime, threshold=args.threshold, verbose=args.verbose)
         
