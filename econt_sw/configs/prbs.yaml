@@ -9,7 +9,7 @@ ECON-T:
       patt_sel:
        param_value: 0
       prbs_chk_en:
-       param_value: 1
+       param_value: 0
       prbs28_en:
        param_value: 0
      

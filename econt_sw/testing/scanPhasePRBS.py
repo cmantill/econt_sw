@@ -4,7 +4,10 @@ import sys
 sys.path.append( 'testing' )
 from i2c import call_i2c
 
+import numpy as np
 import csv
+import time
+
 import logging
 logger = logging.getLogger("prbs")
 logger.setLevel(logging.INFO)
@@ -93,6 +96,7 @@ if __name__ == "__main__":
 
         exit(1)
     else:
+        # reset things for PRBS
         call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=args.i2c)
         
         if args.internal:
@@ -102,7 +106,6 @@ if __name__ == "__main__":
                 # call_i2c(args_name=f'CH_ALIGNER_{channel}_seed_in',args_value=f'{seed}',args_i2c=args.i2c)
         else:
             if args.prbs==28:
-                # need to set up headers?
                 os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS28')
             else:
                 # switch off the headers in elinkOutputs 
@@ -110,39 +113,63 @@ if __name__ == "__main__":
                 # while hdr_mm_cntr and orbsyn_hdr_err_cnt will increment
                 # hdr_mm_cntr will increment 3563 times faster than orbsyn_hdr_err_cnt increments
                 # but orbsyn_fc_err_cnt and orbsyn_arr_err_cnt should not increment.
-                os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS')
+                os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS32')
+
+        selectvals = range(0,16)
+        counts_per_sel = {}
+        for sel in selectvals:
+            # clear counters and hold
+            call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
                 
-        logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
-        logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
-        counts = {}
-        for sel in range(0,16):
             print(f'Choosing phaseSelect to {sel}')
-            clear_counters(args)
             for channel in channels:
                 call_i2c(args_name=f'CH_EPRXGRP_{channel}_phaseSelect',args_value=f'{sel}',args_i2c=args.i2c)
         
+            # now count again (swapped)
+            #call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
+
+            # enable prbs check
             enable_prbschk(args,channels)
         
+            # now count again
+            call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
+            
+            # wait for a time
+            time.sleep(10)
+
+            # disable prbs check
+            for channel in channels:
+                call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=args.i2c)
+
+            # record counters
             prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
+            counts_per_sel[sel] = prbs_chk_err_cnt
 
-            counts[sel] = prbs_chk_err_cnt
+        counts_per_ch = {}
+        mins_per_ch = {}
+        for sel,cdict in counts_per_sel.items():
+            for ch,err in cdict.items():
+                if sel==0:
+                    counts_per_ch[ch] = [err]
+                else:
+                    counts_per_ch[ch].append(err)
+        for ch in counts_per_ch.keys():
+            mins_per_ch[ch] = np.argsort(np.asarray(list(counts_per_ch[ch])))[0]
+        # print(mins_per_ch)
 
-        with open("prbs_counters_scan.csv", 'w') as f:
+        with open("prbs_counters_scan_10s.csv", 'w') as f:
             writer = csv.writer(f, delimiter=',')
-            writer.writerow([f'CH_ALIGNER_{ch}' for ch in channels])
-            for j in range(0,16):
-                writer.writerow([int(counts[j][ch]) for ch in channels])
-
-            # now check snapshot?
-            # call_i2c(args_name=f'ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_{channel}_per_ch_align_en,ALIGNER_snapshot_arm',args_value='1,1,0,0',args_i2c=args.i2c)
-            # call_i2c(args_name='ALIGNER_snapshot_arm',args_value='1',args_i2c=args.i2c)
-            # snapshot=call_i2c(args_name=f'CH_ALIGNER_{channel}_snapshot',args_i2c=args.i2c)[args.i2c]['RO']
-            # x = hex(snapshot[f"CH_ALIGNER_{channel}INPUT_ALL"]['snapshot'])
-            # logger.info(f'PhaseSelect {sel}     CH_ALIGNER_{channel}_snapshot {x}')
-            # call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm',args_value='0,1,[1]*12,0',args_i2c=args.i2c)
+            writer.writerow([f'CH_{ch}' for ch in channels])
+            for j in selectvals:
+                writer.writerow([int(counts_per_sel[j][ch]) for ch in channels])
+            writer.writerow(m for m in mins_per_ch.values())
             
-            #counts[channel] = [prbs_chk_err_cnt,raw_error_prbs_chk_err]
-            
-            # print(call_i2c(args_rw='RO',args_block='CH_ALIGNER_0INPUT_ALL',args_register='status',args_parameter='prbs_chk_err,orbsyn_fc_err,orbsyn_arr_err,orbsyn_hdr_err,align_seu_err,hdr_mm_err,snapshot_dv,pattern_match',args_i2c=args.i2c))
-            #logger.info(f'phaseSelect channel : [prbs_chk_err_cnt,raw_error_prbs_chk_err]')
-            #logger.info('%s'%counts)
+        """
+        # now check snapshot?
+        call_i2c(args_name=f'ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_{channel}_per_ch_align_en,ALIGNER_snapshot_arm',args_value='1,1,0,0',args_i2c=args.i2c)
+        call_i2c(args_name='ALIGNER_snapshot_arm',args_value='1',args_i2c=args.i2c)
+        snapshot=call_i2c(args_name=f'CH_ALIGNER_{channel}_snapshot',args_i2c=args.i2c)[args.i2c]['RO']
+        x = hex(snapshot[f"CH_ALIGNER_{channel}INPUT_ALL"]['snapshot'])
+        logger.info(f'PhaseSelect {sel}     CH_ALIGNER_{channel}_snapshot {x}')
+        call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm',args_value='0,1,[1]*12,0',args_i2c=args.i2c)
+        """
