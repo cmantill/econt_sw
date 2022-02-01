@@ -45,35 +45,41 @@ if __name__ == "__main__":
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
+    levels={"INFO": 20,
+            "ERROR": 40,
+            "WARNING": 30,
+            "DEBUG": 10,
+        }
+    logger = logging.getLogger('check-align')
     try:
-        logging.basicConfig(level=args.logLevel)
+        logger.setLevel(levels[args.logLevel])
     except ValueError:
         logging.error("Invalid log level")
         sys.exit(1)
-    logger = logging.getLogger('check-align')
+
 
     if args.check:
-        if args.block=='IO':
-            """
-            Check that IO block is aligned.
-            Only "from" IO block needs this.
-            """
+        if args.block=='from-IO':
             isIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
-            if isIO_aligned:
-                logger.info("from-IO aligned")
-            else:
-                logger.info("from-IO is not aligned")
-
+        elif args.block=='to-IO':
+            isIO_aligned = utils_io.check_IO(dev,io='to',nlinks=output_nlinks)
         elif args.block=='lc-ASIC':
             is_lcASIC_aligned = utils_lc.check_links(dev,args.block,output_nlinks)
 
     else:
-        if args.block=='IO':
+        if args.block=='from-IO':
             utils_io.print_IO(dev,io='from',nlinks=output_nlinks,io_name='IO')
             # check eye width
             for link in range(output_nlinks):
                 delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
                 delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
+                dev.dispatch()
+                logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+        elif args.block=='to-IO':
+            utils_io.print_IO(dev,io='to',nlinks=output_nlinks,io_name='IO')
+            for link in range(output_nlinks):
+                delay_out = dev.getNode(names['IO']['to']+".link%i"%link+".reg3.delay_out").read()
+                delay_out_N = dev.getNode(names['IO']['to']+".link%i"%link+".reg3.delay_out_N").read()
                 dev.dispatch()
                 logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
 

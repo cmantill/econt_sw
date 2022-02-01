@@ -110,6 +110,11 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     dev.getNode(names[lcapture]["lc"]+".global.interrupt_enable").write(0)
     dev.dispatch()
 
+def disable_alignment(dev,lcapture,nlinks=output_nlinks):
+    for l in range(nlinks):
+        dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".link_align_inhibit").write(1);
+        dev.dispatch()
+
 def do_fc_capture(dev,fc,lcapture):
     """
     Acquire data and send a fast command.

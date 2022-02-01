@@ -29,6 +29,7 @@ if __name__ == "__main__":
                                  'lr-roct',
                                  'lr-econt',
                                  'chipsync',
+                                 'debug-lcASIC',
                                  'manual-lcASIC',
                                  'capture',
                                  'latency',
@@ -39,6 +40,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
+    
+    parser.add_argument('--sync', type=str, default=0x122, help='sync word for lc-ASIC')
 
     parser.add_argument('--alignpos', type=int, default=None, help='override align position by shifting it by this number')
     parser.add_argument('--lalign', type=str, default=None, help='links for which to override align position (default is all)')
@@ -220,6 +223,12 @@ if __name__ == "__main__":
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
+
+    if args.step == "debug-lcASIC":
+        utils_lc.disable_alignment(dev,"lc-ASIC",nlinks=output_nlinks)
+        for l in range(output_nlinks):
+            dev.getNode(names["lc-ASIC"]['lc']+".link"+str(l)+".align_pattern").write(int(args.sync,16))
+        dev.dispatch()
 
     if args.step == 'manual-lcASIC':
         """ 
