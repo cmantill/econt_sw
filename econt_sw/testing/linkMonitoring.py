@@ -116,6 +116,7 @@ def prbsScan(sleepTime=5, threshold=0, verbose=False):
     os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS')
 
     call_i2c(args_name=f'EPRXGRP_TOP_trackMode',args_value='0')
+    call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs28_en',args_value='0')
 
     errCounts=[]
     for i in range(16):
@@ -164,7 +165,7 @@ if __name__=='__main__':
     parser.add_argument('-N',dest='N',default=1,type=int,help='Number of iterations to run')
     parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
-    parser.add_argument('--threshold', dest='threshold',default=0,type=int, action='Threshold of number of allowed errors')
+    parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
 
     args = parser.parse_args()
 
