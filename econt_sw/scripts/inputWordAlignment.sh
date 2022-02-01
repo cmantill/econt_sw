@@ -1,6 +1,6 @@
 SNAPSHOT="${1:-4}"
 EMULATOR_DELAY="${2:-4}"
-PHASESELECT="${3:-0}"
+PHASESELECT="${3:-99}"
 
 echo "starting alignment procedures"
 python testing/uhal/align_on_tester.py --step test-data --dtype PRBS28
@@ -34,3 +34,5 @@ python3 testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
 # reset hdrmm cntrs with lr-roct
 # python testing/uhal/align_on_tester.py --step lr-roct 
 # python3 testing/i2c.py --name CH_ALIGNER*hdr_mm_cntr
+python3 testing/eRxMonitoring.py --alignment --verbose
+python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
