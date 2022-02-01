@@ -1,14 +1,25 @@
 # ECON-T P1 Testing
 
+## Resets
+- Can send and release a reset with:
+  ```
+  python testing/uhal/reset_signals.py --reset [soft,hard] --i2c [ASIC,emulator]
+  ```
+
 ## Start-up
 
-- Start i2c server in hexacontroller:
-```
-# for ASIC
-python3 zmq_server.py --addr 0x20 --server 5554
-# for emulator
-python3 zmq_server.py --addr 0x21 --server 5555
-```
+- Start i2c servers in hexacontroller:
+  ```
+  cd zmq_i2c/
+  source startServers.sh
+  ```
+  - This bash script does the following:
+  ```
+  # start server for ASIC
+  python3 zmq_server.py --addr 0x20 --server 5554
+  # start server for emulator
+  python3 zmq_server.py --addr 0x21 --server 5555
+  ```
 
 - Initialize ASIC:
   ```
@@ -31,11 +42,11 @@ python3 zmq_server.py --addr 0x21 --server 5555
    * Configures IO (with `invert` option selected):
      ```
      source env.sh
-     python testing/uhal-align_on_tester.py --step configure-IO --invertIO
+     python testing/uhal/align_on_tester.py --step configure-IO --invertIO
      ```
-   * Resets fast commands, sets input clock to 40MHz, sends bit transitions with PRBS (in the test vectors block).
+   * Resets fast commands, sets input clock to 40MHz, sends bit transitions with 28 bit PRBS (in the test vectors block).
      ```
-     python testing/uhal-align_on_tester.py --step init 
+     python testing/uhal/align_on_tester.py --step init 
      ```
      This should change ` misc_ro_0_PUSM_state 0x9` (`STATE_FUNCTIONAL`).
    * Finally, sets run bit in ASIC:
@@ -43,27 +54,31 @@ python3 zmq_server.py --addr 0x21 --server 5555
      python3 testing/i2c.py --name MISC_run --value 1
      ```
 
-## Resets
-- Can send and release a reset with:
-  ```
-  python testing/uhal-reset_signals.py --reset [soft,hard] --i2c [ASIC,emulator]
-  ```
-
 ## Alignment
 
-- i2c registers
+- Word and phase alignment
+  ```
+  # Board 2 (48)
+  source scripts/inputWordAlignment.sh 4 4 7,6,7,7,7,8,7,8,8,8,8,8
+  # Board 1 (45) 
+  source scripts/inputWordAlignment.sh 4 4 7,7,8,8,8,9,8,9,8,9,8,9
+  ```
+
   - Set up the alignment registers.
     Make sure they are set for both ASIC and emulator
     ```
     python3 testing/i2c.py --yaml configs/align.yaml --write --i2c ASIC,emulator
     ```
-
-- Word alignment:
+  - Manually configure phase using `phaseSelect` and `trackMode=0`. You can use the values of `phaseSelect` found in the hdr_mm_cntr or prbs_chk_err_cnt scan per channel.
+    ```
+    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
+    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value $PHASESELECT
+    ```  
+  Once you are confident on phase-alignment:
   - Send link reset ROC-T.
     ```
-    python testing/uhal-align_on_tester.py --step lr-roct 
+    python testing/uhal/align_on_tester.py --step lr-roct 
     ```
-
   - Read the snapshot,select registers on the ASIC:
     ```
     python3 testing/i2c.py --yaml configs/align_read.yaml
@@ -77,7 +92,7 @@ python3 zmq_server.py --addr 0x21 --server 5555
   - If the `9cccccccaccccccc` matching pattern is not appearing in the snapshot, try changing:
     ```
     python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
-    python testing/uhal-align_on_tester.py --step lr-roct
+    python testing/uhal/align_on_tester.py --step lr-roct
     python3 testing/i2c.py --yaml configs/align_read.yaml
     ```
 
@@ -85,7 +100,7 @@ python3 zmq_server.py --addr 0x21 --server 5555
     You can use `delay` to find the delay of getting data to the ASIC
     ```
     python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X --i2c emulator
-    python testing/uhal-align_on_tester.py --step lr-roct --delay X
+    python testing/uhal/align_on_tester.py --step lr-roct --delay X
     python3 testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
     ```
   
@@ -95,6 +110,10 @@ python3 zmq_server.py --addr 0x21 --server 5555
     - `status` will be `0x2`.
 
 - IO alignment
+  ```
+  source scripts/ioAlignment.sh 
+  ```
+
   - Set to threshold sum with maximum threshold value and send zero-data.
     The threshold sum is already configured by default in `configs/align.yaml`.
     ```
@@ -103,26 +122,34 @@ python3 zmq_server.py --addr 0x21 --server 5555
     ```
     Then, configure IO and send zero-data:
     ```
-    python testing/uhal-align_on_tester.py --step configure-IO --invertIO
+    python testing/uhal/align_on_tester.py --step configure-IO --invertIO
     # send zero-data
-    python testing/uhal-align_on_tester.py --step test-data
-    python testing/uhal-align_on_tester.py --step check-IO
+    python testing/uhal/align_on_tester.py --step test-data
+    python testing/uhal/align_on_tester.py --step check-IO
     ```
+    To check alignment:
+    ```
+    python testing/uhal/check_align.py -B IO --check
+    ```
+    To print eye width and registers:
+    ```
+    python testing/uhal/check_align.py -B IO
+    ```   
 
 - Link capture alignment
 
   - Send a link reset econ-t
     ```
-    python testing/uhal-align_on_tester.py --step lr-econt
+    python testing/uhal/align_on_tester.py --step lr-econt
     ```
   - You can check if lc-ASIC is aligned using:
     ```
-    python testing/uhal-align_on_tester.py --step check-lcASIC
+    python testing/uhal/align_on_tester.py --step check-lcASIC
     ```
     Note: With `Dec3` and `Dec9` versions of firmware we do not expect lc-ASIC to have status aligned,
     * To capture data with a link reset ROCT
     ```
-    python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
+    python testing/uhal/align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
     ```
 
   - Align, ASIC link capture and emulator link capture
@@ -130,12 +157,12 @@ python3 zmq_server.py --addr 0x21 --server 5555
     # this finds the latency for each elink in the link capture such that the BX0 appears in the same spot 
     # it does it first for the ASIC, then for the emulator
     # both should find the BX0 word at the same row
-    python testing/uhal-align_on_tester.py --step latency
+    python testing/uhal/align_on_tester.py --step latency
 
   - To check the number of words that agree.
     If errors > 0, we will issue a L1A and link capture will save data.
     ```
-    python testing/uhal-align_on_tester.py --step compare
+    python testing/uhal/align_on_tester.py --step compare
     ```
 
 ## To take data:
