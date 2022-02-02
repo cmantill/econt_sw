@@ -136,23 +136,32 @@
     python testing/uhal/check_align.py -B IO
     ```   
 
-- Link capture alignment
+- ASIC Link capture alignment
+  ```
+  source scripts/lcAlignment.sh
+  ```
 
-  - Send a link reset econ-t
+  - Set the sync word and send a link reset econ-t
     ```
+    python3 testing/i2c.py --name FMTBUF_tx_sync_word --value 0x122
     python testing/uhal/align_on_tester.py --step lr-econt
     ```
   - You can check if lc-ASIC is aligned using:
     ```
-    python testing/uhal/align_on_tester.py --step check-lcASIC
+    python testing/uhal/check_align.py --check --block lc-ASIC
     ```
-    Note: With `Dec3` and `Dec9` versions of firmware we do not expect lc-ASIC to have status aligned,
+    Note: With `Dec3` and `Dec9` versions of firmware we do not expect lc-ASIC to have status aligned
+
     * To capture data with a link reset ROCT
     ```
     python testing/uhal/align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
     ```
 
-  - Align, ASIC link capture and emulator link capture
+- ASIC link capture and emulator link capture alignment
+  ```
+  source scripts/lcEmulatorAlignment.sh 
+  ```
+  - To modify the latency      
     ```
     # this finds the latency for each elink in the link capture such that the BX0 appears in the same spot 
     # it does it first for the ASIC, then for the emulator
