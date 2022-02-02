@@ -83,6 +83,7 @@ def set_testvectors(dev,dtype=None,idir=None):
         out_brams = []
         for l in range(input_nlinks):
             out_brams.append([None] * 4095)
+
         if idir:
             fname = idir+"/../testInput.csv"
             data = read_testvector(fname)
@@ -101,4 +102,7 @@ def set_testvectors(dev,dtype=None,idir=None):
                     else:
                         out_brams[l][i] = 0xa0000000
                 dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
-                dev.dispatch()
+
+            # import numpy as np
+            # data = np.array(out_brams).T
+            # save_testvector("zeros.csv",data,header=True)
