@@ -5,5 +5,5 @@ python3 testing/i2c.py --name ALGO_threshold_val_[0-47] --value $THRESHOLD --i2c
 python3 testing/i2c.py --name FMTBUF_eporttx_numen --value 13
 
 python testing/uhal/align_on_tester.py --step configure-IO --invertIO
-python testing/uhal/align_on_tester.py --step test-data
-python testing/uhal/check_align.py --check --block IO
+python testing/uhal/test_vectors.py
+python testing/uhal/check_align.py --check --block from-IO

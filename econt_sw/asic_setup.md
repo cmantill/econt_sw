@@ -56,7 +56,7 @@
 
 ## Alignment
 
-- Word and phase alignment
+### Word and phase alignment
   ```
   # Board 2 (48)
   source scripts/inputWordAlignment.sh 4 4 7,6,7,7,7,8,7,8,8,8,8,8
@@ -100,7 +100,7 @@
     You can use `delay` to find the delay of getting data to the ASIC
     ```
     python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X --i2c emulator
-    python testing/uhal/align_on_tester.py --step lr-roct --delay X
+    python testing/uhal/align_on_tester.py --step lr-roct --delay X --bxlr 3500 
     python3 testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
     ```
   
@@ -109,7 +109,17 @@
     - `select` must be `0x20`.
     - `status` will be `0x2`.
 
-- IO alignment
+  - You can check the alignment by using:
+    ```
+    python3 testing/eRxMonitoring.py --alignment --verbose
+    ```
+
+  - You can log in hdr mis-match counters (should be estable with good phase alignment), with:
+    ```
+    python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
+    ```
+
+### IO alignment
   ```
   source scripts/ioAlignment.sh 
   ```
@@ -124,19 +134,18 @@
     ```
     python testing/uhal/align_on_tester.py --step configure-IO --invertIO
     # send zero-data
-    python testing/uhal/align_on_tester.py --step test-data
-    python testing/uhal/align_on_tester.py --step check-IO
+    python testing/uhal/test_vectors.py --dtype zeros
     ```
     To check alignment:
     ```
-    python testing/uhal/check_align.py -B IO --check
+    python testing/uhal/check_align.py --check --block from-IO
     ```
     To print eye width and registers:
     ```
-    python testing/uhal/check_align.py -B IO
-    ```   
+    python testing/uhal/check_align.py --block from-IO
+    ```
 
-- ASIC Link capture alignment
+### ASIC Link capture alignment
   ```
   source scripts/lcAlignment.sh
   ```
@@ -154,34 +163,29 @@
 
     * To capture data with a link reset ROCT
     ```
-    python testing/uhal/align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
+    python testing/uhal/capture.py --lc lc-ASIC --mode linkreset_ECONt --capture
     ```
 
 - ASIC link capture and emulator link capture alignment
   ```
   source scripts/lcEmulatorAlignment.sh 
   ```
-  - To modify the latency      
+  - To modify the latency. This finds the latency for each elink in the link capture such that the BX0 appears in the same spot.
+    It does it first for the ASIC, then for the emulator, both should find the BX0 word at the same row.
     ```
-    # this finds the latency for each elink in the link capture such that the BX0 appears in the same spot 
-    # it does it first for the ASIC, then for the emulator
-    # both should find the BX0 word at the same row
     python testing/uhal/align_on_tester.py --step latency
+    ```
 
   - To check the number of words that agree.
-    If errors > 0, we will issue a L1A and link capture will save data.
     ```
     python testing/uhal/align_on_tester.py --step compare
     ```
 
-## To take data:
+## To capture data:
 
-- To test a test vector dataset you can use `eventDAQ.py`. This script will load i2c registers and then capture data with a L1A.
-  ```
-  python3 testing/eventDAQ.py --idir  configs/test_vectors/XXX/XXX --capture l1a
-  ```
-
-- Alternatively to just load a dataset and capture on L1A (without changing i2c registers):
-  ```
-  python testing/uhal-eventDAQ.py --idir configs/test_vectors/XXX/XXX --capture l1a
-  ```
+   Main script is `testing/uhal/capture.py`, for example:
+   ```
+   # for input link capture:
+   python testing/uhal/capture.py --lc lc-input --mode BX --bx 0 --capture --nwords 511
+   
+   ```
