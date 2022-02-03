@@ -200,16 +200,8 @@ if __name__ == "__main__":
                              ],
                         help='alignment steps')
     parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
-
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
-    
-    parser.add_argument('--sync', type=str, default=0x122, help='sync word for lc')
-
-    parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data with lrecont')
-    parser.add_argument('--mode', type=str, default='L1A', help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
-    parser.add_argument('--bx', type=int, default=0, help='bx')
-
     args = parser.parse_args()
 
     set_logLevel(args)
