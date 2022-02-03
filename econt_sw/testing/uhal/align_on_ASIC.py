@@ -4,7 +4,7 @@ import argparse
 import logging
 logging.basicConfig()
 
-from utils.uhal_config import names,input_nlinks,output_nlinks
+from utils.uhal_config import *
 import utils.link_capture as utils_lc
 import utils.io as utils_io
 import utils.test_vectors as utils_tv
@@ -22,25 +22,18 @@ if __name__ == "__main__":
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
     args = parser.parse_args()
-
-    if args.logLevel.find("ERROR")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-    elif args.logLevel.find("WARNING")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-    elif args.logLevel.find("NOTICE")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-    elif args.logLevel.find("DEBUG")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-    elif args.logLevel.find("INFO")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.INFO)
-    else:
-        uhal.disableLogging()
-
+    
+    set_logLevel(args)
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
-    logger = logging.getLogger('align:ASIC')
-    logger.setLevel(logging.INFO)
+    logger = logging.getLogger('alignASIC')
+    try:
+        logger.setLevel(args.logLevel)
+    except ValueError:
+        logging.error("Invalid log level")
+        exit(1)
+
 
     # configure IO blocks
     for io in names['ASIC-IO'].keys():

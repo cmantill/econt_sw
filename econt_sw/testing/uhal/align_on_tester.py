@@ -55,24 +55,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.logLevel.find("ERROR")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-    elif args.logLevel.find("WARNING")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-    elif args.logLevel.find("NOTICE")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-    elif args.logLevel.find("DEBUG")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-    elif args.logLevel.find("INFO")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.INFO)
-    else:
-        uhal.disableLogging()
-
+    set_logLevel(args)
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
     logger = logging.getLogger('align:step:%s'%args.step)
-    logger.setLevel(logging.DEBUG)
+    try:
+        logger.setLevel(args.logLevel)
+    except ValueError:
+        logging.error("Invalid log level")
+        exit(1)
 
     if args.step == "configure-IO":
         for io in names['IO'].keys():

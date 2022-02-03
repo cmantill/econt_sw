@@ -1,9 +1,10 @@
 import uhal
 import argparse
 import logging
+from utils.uhal_config  import set_logLevel
 
-logger = logging.getLogger('i2c:test')
-logger.setLevel(logging.INFO)
+logging.basicConfig()
+logger = logging.getLogger('i2cSet')
 
 """
 Setting i2c address with uHal
@@ -18,24 +19,20 @@ if __name__ == "__main__":
     parser.add_argument('--i2c',  type=str, choices=['ASIC', 'emulator'], help="key of i2c address to set")
     args = parser.parse_args()
 
-    # define uHal
-    if args.logLevel.find("ERROR")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-    elif args.logLevel.find("WARNING")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-    elif args.logLevel.find("NOTICE")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-    elif args.logLevel.find("DEBUG")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-    elif args.logLevel.find("INFO")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.INFO)
-    else:
-        uhal.disableLogging()
+    set_logLevel(args)
+    man = uhal.ConnectionManager("file://connection.xml")
+    dev = man.getDevice("mylittlememory")
+
+    try:
+        logger.setLevel(args.logLevel)
+    except ValueError:
+        logging.error("Invalid log level")
+        exit(1)
 
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
     
     # set i2c address 
-    print('Writing to '"ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address"%args.i2c,args.addr)
-    dev.getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address"%args.i2c).write(args.addr);
+    logger.info("Writing to ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address "%args.i2c,args.addr)
+    dev.getNode("ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address"%args.i2c).write(args.addr)
     dev.dispatch()

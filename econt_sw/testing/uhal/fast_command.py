@@ -1,10 +1,11 @@
 import uhal
 import argparse
 import logging
+logging.basicConfig()
+
 from time import sleep
 
-logger = logging.getLogger('reset:test')
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('fc')
 
 import utils.fast_command as utils_fc
 
@@ -20,22 +21,15 @@ if __name__ == "__main__":
     parser.add_argument('--read', action='store_true', default=False, help='read')
     args = parser.parse_args()
 
-    # define uHal
-    if args.logLevel.find("ERROR")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-    elif args.logLevel.find("WARNING")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-    elif args.logLevel.find("NOTICE")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-    elif args.logLevel.find("DEBUG")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-    elif args.logLevel.find("INFO")==0:
-        uhal.setLogLevelTo(uhal.LogLevel.INFO)
-    else:
-        uhal.disableLogging()
-
+    set_logLevel(args)
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
+
+    try:
+        logger.setLevel(args.logLevel)
+    except ValueError:
+        logging.error("Invalid log level")
+        exit(1)
 
     utils_fc.configure_fc(dev,args.read)
     # utils_fc.chipsync(dev)

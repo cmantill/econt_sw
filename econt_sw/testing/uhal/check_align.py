@@ -2,8 +2,9 @@ import uhal
 import time
 import argparse
 import logging
+logging.basicConfig()
 
-from utils.uhal_config import names,input_nlinks,output_nlinks
+from utils.uhal_config import *
 import utils.link_capture as utils_lc
 import utils.test_vectors as utils_tv
 import utils.io as utils_io
@@ -21,42 +22,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
-    parser.add_argument("-U", default=False, help='modify uhal log level')
     parser.add_argument('--check', action='store_true', default=False, help='check that block is aligned')
     parser.add_argument('-B', '--block', dest='block', required=True)
     args = parser.parse_args()
 
-    if args.U:
-        if args.logLevel.find("ERROR")==0:
-            uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-        elif args.logLevel.find("WARNING")==0:
-            uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-        elif args.logLevel.find("NOTICE")==0:
-            uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-        elif args.logLevel.find("DEBUG")==0:
-            uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-        elif args.logLevel.find("INFO")==0:
-            uhal.setLogLevelTo(uhal.LogLevel.INFO)
-        else:
-            uhal.disableLogging()
-    else:
-        uhal.disableLogging()
-            
+    set_logLevel(args)
     man = uhal.ConnectionManager("file://connection.xml")
     dev = man.getDevice("mylittlememory")
 
-    levels={"INFO": 20,
-            "ERROR": 40,
-            "WARNING": 30,
-            "DEBUG": 10,
-        }
     logger = logging.getLogger('check-align')
     try:
-        logger.setLevel(levels[args.logLevel])
+        logger.setLevel(args.logLevel)
     except ValueError:
         logging.error("Invalid log level")
-        sys.exit(1)
-
+        exit(1)
 
     if args.check:
         if args.block=='from-IO':
