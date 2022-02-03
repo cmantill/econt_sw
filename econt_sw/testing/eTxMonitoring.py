@@ -55,15 +55,16 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
         dataHex = fixedHex(data,8)
         if verbose:
             logger.info('.'*50)
-            # logger.info(f'Raw Hex output ({phase} bit shift expected)')
-            # for n in dataHex: 
-            #     logger.info(','.join(n))
-            logger.info('BX number (first 5 bits)')
-            print((data>>27&31))
-            logger.info('.'*50)
-            logger.info('BX number (first 5 bits), accounting for bit shift')
-            print((data>>(27-phase))&31)
-            logger.info('.'*50)
+            logger.info(f'Raw Hex output ({phase} bit shift expected)')
+            for n in dataHex: 
+                logger.info(','.join(n))
+
+        logger.info('BX number (first 5 bits)')
+        print((data>>27&31))
+        logger.info('.'*50)
+        logger.info('BX number (first 5 bits), accounting for bit shift')
+        print((data>>(27-phase))&31)
+        logger.info('.'*50)
 
     expectedHeader = np.array(scanData[goodPhase]>>27 & 31).T[0]
     # this is missing BX0s...
