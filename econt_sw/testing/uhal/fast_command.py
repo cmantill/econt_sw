@@ -16,7 +16,7 @@ Send/Read fast commands
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description='Align links')
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
-                        help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE, NONE",default='NONE')
+                        help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
     # parser.add_argument('--fc', type=str, required=True, help='fast command')
     parser.add_argument('--read', action='store_true', default=False, help='read')
     args = parser.parse_args()

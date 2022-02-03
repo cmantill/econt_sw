@@ -1,6 +1,7 @@
 import os
 import uhal
 from uhal_config import names,input_nlinks,output_nlinks
+import numpy as np
 
 import logging
 logging.basicConfig()
@@ -22,6 +23,9 @@ def read_testvector(fname):
                 data[l].append(row[l])
     return data
 
+def fixed_hex(data,N):
+    return np.vectorize(lambda d : '{num:0{width}x}'.format(num=d, width=N))(data)
+
 def save_testvector(fname,data,header=False):
     """
     Save test vector in csv
@@ -36,11 +40,10 @@ def save_testvector(fname,data,header=False):
             for j in range(len(data)):
                 writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-
-def set_testvectors(dev,dtype=None,idir=None):
+def set_testvectors(dev,dtype="zeros",idir=None):
     """
     Set test vectors
-    dtype [PRBS,debug]
+    dtype [PRBS,PRBS32,PRBS28,debug]
     """
     testvectors_settings = {
         "output_select": 0x0,
