@@ -55,9 +55,9 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
         dataHex = fixedHex(data,8)
         if verbose:
             logger.info('.'*50)
-            logger.info(f'Raw Hex output ({phase} bit shift expected)')
-            for n in dataHex: 
-                logger.info(','.join(n))
+            # logger.info(f'Raw Hex output ({phase} bit shift expected)')
+            # for n in dataHex: 
+            #     logger.info(','.join(n))
             logger.info('BX number (first 5 bits)')
             print((data>>27&31))
             logger.info('.'*50)
@@ -65,13 +65,18 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
             print((data>>(27-phase))&31)
             logger.info('.'*50)
 
-    expectedHeader = np.array(scanData[goodPhase]>>27 & 31).T
+    expectedHeader = np.array(scanData[goodPhase]>>27 & 31).T[0]
+    # this is missing BX0s...
+    expectedHeader = np.append(expectedHeader,expectedHeader[-1]%15+1,axis=None)
+
     for phase in range(8):
-        header=np.array(scanData[phase]>>(27-phase) & 31)
-        match=(header.T==expectedHeader).all(axis=1)
+        header=scanData[phase]>>(27-phase) & 31
+        match=(header.T==expectedHeader[:-1]).all(axis=1)
+        match_shift1=(header.T==expectedHeader[1:]).all(axis=1)
         state=np.zeros(13,dtype=int)
-        state[match]=4
-        print(phase, (match4 | match5).all(), state)
+        state[match]=expectedHeader[0]
+        state[match_shift1]=expectedHeader[1]
+        print(phase, (match | match_shift1).all(), state)
 
     # go back to good phase
     set_PLL_phase_of_enable(goodPhase)
