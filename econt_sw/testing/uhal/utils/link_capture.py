@@ -58,7 +58,7 @@ def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
         return False
     return True
 
-def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
+def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0,verbose=True):
     """
     Set link capture to acquire.
     mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
@@ -93,8 +93,9 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0):
     if captures["mode_in"] == 2:
         captures[mode] = 1
         bx = 0
-    logger.info("Configure acquire with bx %i"%bx)
-    logger.info("Configure acquire with captures %s"%captures)
+    if verbose:
+        logger.info("Configure acquire with bx %i"%bx)
+        logger.info("Configure acquire with captures %s"%captures)
     
     for l in range(nlinks):
         # offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode
@@ -126,7 +127,7 @@ def do_fc_capture(dev,fc,lcapture):
     dev.getNode(names['fc']+".request.%s"%fc).write(0x1);
     dev.dispatch()
 
-def do_capture(dev,lcapture,wait=False):
+def do_capture(dev,lcapture,wait=False,verbose=True):
     """
     Acquire
     """
@@ -139,7 +140,7 @@ def do_capture(dev,lcapture,wait=False):
         time.sleep(0.001)
         raw_input("ready to capture, press link to continue")
 
-def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
+def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks,verbose=True):
     """
     Get captured data
     """
@@ -180,7 +181,8 @@ def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks):
         else:
             logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
     if len(daq_data)>0:
-        logger.info('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
+        if verbose:
+            logger.info('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
     try:
         import numpy as np
         transpose = np.array(daq_data).T

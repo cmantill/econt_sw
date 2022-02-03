@@ -20,17 +20,17 @@ def capture_lc(dev,lcapture,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks=
         nlinks = input_nlinks if 'input' in lcapture else output_nlinks
 
     # configure acquisition
-    utils_lc.configure_acquire(dev,lcapture,mode,nwords,nlinks,bx)
+    utils_lc.configure_acquire(dev,lcapture,mode,nwords,nlinks,bx,verbose=False)
     
     # do link capture
     if mode == "linkreset_ECONt":
-        utils_lc.do_fc_capture(dev,"link_reset_econt",lcapture)
+        utils_lc.do_fc_capture(dev,"link_reset_econt",lcapture,verbose=False)
         time.sleep(0.001)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
         dev.dispatch()
         logger.info('link reset econt counter %i'%lrc)
     elif mode =="linkreset_ROCt":
-        utils_lc.do_fc_capture(dev,"link_reset_roct",lcapture)
+        utils_lc.do_fc_capture(dev,"link_reset_roct",lcapture,verbose=False)
         time.sleep(0.001)
         lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
         dev.dispatch()
@@ -41,10 +41,10 @@ def capture_lc(dev,lcapture,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks=
         logger.debug('L1A counter %i'%(int(l1a_counter)))
         utils_fc.send_l1a(dev)
     else:
-        utils_lc.do_capture(dev,lcapture)
+        utils_lc.do_capture(dev,lcapture,verbose=False)
 
     # get captured data
-    data = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks)
+    data = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
     
     # save or print
     if csv:
