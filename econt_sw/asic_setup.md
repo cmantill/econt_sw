@@ -181,11 +181,27 @@
     python testing/uhal/align_on_tester.py --step compare
     ```
 
-## To capture data:
+## ERX and Input data
+   To modify the input test vectors:
+   - With an output produced by elink outputs:
+   ```
+   python testing/uhal/test_vectors.py --dtype (PRBS,PRBS32,PRBS28,zeros) 
+   ```
+   - With input test vectors in `idir`:
+   ```
+   python testing/uhal/test_vectors.py --idir $IDIR
+   ```
+
+## ETX and Output data
 
    Main script is `testing/uhal/capture.py`, for example:
    ```
    # for input link capture:
    python testing/uhal/capture.py --lc lc-input --mode BX --bx 0 --capture --nwords 511
-   
    ```
+
+### PLL_phase_of_enable_1G28 Scan
+    ```
+    python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100
+    ```
+
