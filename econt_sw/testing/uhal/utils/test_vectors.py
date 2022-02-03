@@ -1,5 +1,4 @@
 import os
-import uhal
 from uhal_config import names,input_nlinks,output_nlinks
 import numpy as np
 
@@ -8,18 +7,17 @@ logging.basicConfig()
 logger = logging.getLogger('utils')
 logger.setLevel(logging.INFO)
 
-def read_testvector(fname):
+def read_testvector(fname,nlinks=12):
     """
     Read input test vector
-    TODO: assumes input_nlinks active..
     """
     import csv
-    data = [[] for l in range(input_nlinks)]
+    data = [[] for l in range(nlinks)]
     with open(fname) as f:
         csv_reader = csv.reader(f, delimiter=',')
         for i,row in enumerate(csv_reader):
             if i==0: continue # skip header                                                                                                        
-            for l in range(input_nlinks):
+            for l in range(nlinks):
                 data[l].append(row[l])
     return data
 
