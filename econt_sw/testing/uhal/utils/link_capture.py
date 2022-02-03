@@ -116,7 +116,7 @@ def disable_alignment(dev,lcapture,nlinks=output_nlinks):
         dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".link_align_inhibit").write(1);
         dev.dispatch()
 
-def do_fc_capture(dev,fc,lcapture):
+def do_fc_capture(dev,fc,lcapture,verbose=True):
     """
     Acquire data and send a fast command.
     """
