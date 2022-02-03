@@ -26,13 +26,7 @@ python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_sna
 python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --i2c emulator
 python testing/uhal/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
 
-# read hdrmm cntrs right after lr-roct
-# python3 testing/phaseSelectHist.py -n 100
-
 python3 testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
 
-# reset hdrmm cntrs with lr-roct
-# python testing/uhal/align_on_tester.py --step lr-roct 
-# python3 testing/i2c.py --name CH_ALIGNER*hdr_mm_cntr
 python3 testing/eRxMonitoring.py --alignment --verbose
 python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
