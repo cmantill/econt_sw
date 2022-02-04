@@ -60,12 +60,12 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
                 logger.info(','.join(n))
 
     for i,data in enumerate(scanData):
-        logger.info(f'PLL_phase_of_enable_1G28 {i}, BX number (first 5 bits)')
-        print((data>>27&31))
-        logger.info('.'*50)
-        #logger.info('BX number (first 5 bits), accounting for bit shift')
-        #print((data>>(27-phase))&31)
+        #logger.info(f'PLL_phase_of_enable_1G28 {i}, BX number (first 5 bits)')
+        #print((data>>27&31))
         #logger.info('.'*50)
+        logger.info('BX number (first 5 bits), accounting for bit shift')
+        print((data>>(27-i))&31)
+        logger.info('.'*50)
 
     expectedHeader = np.array(scanData[goodPhase]>>27 & 31).T[0]
     # this is missing BX0s...
@@ -78,7 +78,7 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
         state=np.zeros(13,dtype=int)
         state[match]=expectedHeader[0]
         state[match_shift1]=expectedHeader[1]
-        print(phase, (match | match_shift1).all(), state)
+        print(phase, (match.all() | match_shift1.all()), state)
 
     # go back to good phase
     set_PLL_phase_of_enable(goodPhase)

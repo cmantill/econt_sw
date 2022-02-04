@@ -205,3 +205,7 @@
     python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100
     ```
 
+## Fast commands
+   ```
+   python testing/uhal/fast_command.py --fc command-delay
+   ```

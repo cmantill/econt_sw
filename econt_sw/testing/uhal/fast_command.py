@@ -14,9 +14,14 @@ from utils.uhal_config import *
 Send/Read fast commands
 """
 
-def command_delay(dev):
-    dev.getNode(names['fc']+".command_delay").write(1);
-    dev.dispatch()
+def command_delay(dev,args):
+    if args.read:
+        d = dev.getNode(names['fc']+".command_delay").read();
+        dev.dispatch()
+        logger.info('command_delay %i'%int(d))
+    else:
+        dev.getNode(names['fc']+".command_delay").write(1);
+        dev.dispatch()
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description='Align links')
@@ -42,4 +47,4 @@ if __name__ == "__main__":
     if args.fc=='chipsync':
         utils_fc.chipsync(dev)
     elif args.fc=='command-delay':
-        command_delay(dev)
+        command_delay(dev,args)
