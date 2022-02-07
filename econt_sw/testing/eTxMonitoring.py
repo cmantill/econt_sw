@@ -10,24 +10,22 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
-def read_testvector(fname,nlinks):
-    import csv
-    data = [[] for l in range(nlinks)]
-    with open(fname) as f:
-        csv_reader = csv.reader(f, delimiter=',')
-        for i,row in enumerate(csv_reader):
-            for l in range(nlinks):
-                data[l].append(int(row[l],16))
-    return np.array(data).T
+def read_testvector(fname,nlinks,asHex=False):
+    data = np.loadtxt(fname,delimiter=',',dtype=np.object)
+    if not asHex:
+        data = np.vectorize(int)(data,16)
+    return data
 
 def fixedHex(data,N):
     return np.vectorize(lambda d : '{num:0{width}x}'.format(num=d, width=N))(data)
 
-def send_capture(lc="lc-ASIC",mode="BX",bx=0,nwords=4095,verbose=False):
+def send_capture(lc="lc-ASIC",mode="BX",bx=0,nwords=4095,verbose=False,asHex=False):
     cmd = f'python testing/uhal/capture.py --capture --lc {lc} --mode {mode} --bx {bx} --nwords {nwords} --fname temp'
     if verbose:
         cmd += '--phex'
     os.system(cmd)
+    data = read_testvector("lc-ASICtemp.csv",nlinks=13,asHex=asHex)
+    return data
 
 def set_PLL_phase_of_enable(phase=0):
     call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
@@ -49,7 +47,6 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
         
         # capture data at a fixed BX
         send_capture("lc-ASIC","BX",bx,nwords)
-        data = read_testvector("lc-ASICtemp.csv",nlinks=13)
         scanData.append(data)
 
         dataHex = fixedHex(data,8)
@@ -83,16 +80,69 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=True):
     # go back to good phase
     set_PLL_phase_of_enable(goodPhase)
 
+
+def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False):
+    call_i2c(args_name='CH_ALIGNER_[0-11]_user_word_0,CH_ALIGNER_*_patt_*',args_value='[0xffffffff]*12,[1]*24')
+    call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_value='3')
+
+    x=call_i2c(args_name='CH_ALIGNER_[0-11]_select')
+    selValues=','.join([str(x['ASIC']['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['select']) for i in range(12)])
+    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value='0')
+
+
+    for i_pll in range(8):
+        call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
+        print(i_pll)
+        data=send_capture(bx=0,nwords=nwords)
+        #only works for checking links 1-10,  eTx 0 has the header, so we don't expect 32 straight 1's, and eTx 11 & 12 are not used in repeater more
+        goodLink=[]
+        if verbose:
+            for n in fixedHex(data,8): print(','.join(n))
+        for i in range(1,11):
+            x=''.join(np.vectorize(lambda x: f'{x:032b}')(data.T[i])[::-1])
+
+            pattern=f'{(2**32-1):0128b}'*2
+            if i==10:
+                #last link is not full, expect only 21 1's
+                pattern=f'{(2**21-1):0128b}'*2
+
+            if x.rfind(pattern)>-1:
+                goodLink.append(True)
+            else:
+                goodLink.append(False)
+                print(f'ERROR on eTx {i}, pattern not found')
+                print(f'   {x[-256:]}')
+        if np.array(goodLink).all():
+            print('GOOD SETTING')
+
+    call_i2c(args_name='PLL_phase_of_enable_1G28',args_value='0')
+    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=selValues)
+    call_i2c(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
+    return data
+
 if __name__=='__main__':
     """
     ETX monitoring
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--scan', dest='scanPhaseEnable',default=False, action='store_true')
-    parser.add_argument('--bx', type=int, default=40, help='bx')
+    parser.add_argument('--capture', dest='capture',default=False, action='store_true')
+    parser.add_argument('--bx', type=int, default=12, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
     parser.add_argument('--good', type=int, default=0, help='good phase')
+    parser.add_argument('--fixedPattern', dest='doFixedPatternTest',default=False, action='store_true')
+    parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
 
     if args.scanPhaseEnable:
-        scan_PLL_phase_of_enable(args.bx,args.nwords,args.good)
+        if args.doFixedPatternTest:
+            data=PLL_phaseOfEnable_fixedPatternTest(nwords=12, verbose=args.verbose)
+        else:
+            scan_PLL_phase_of_enable(args.bx,args.nwords,args.good)
+    if args.capture:
+        data=send_capture(bx=args.bx, nwords=args.nwords,asHex=True)
+        if args.verbose:
+            for n in data: print(','.join(n))
+
+
+
