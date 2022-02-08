@@ -10,7 +10,7 @@
 ```
 source scripts/quickASICSetup.sh $BOARD
 ```
-where $BOARD = 2 (45) ,3(48)
+where $BOARD = 2 (45), 3(48)
 
 (Assumes that FC stream, BCR are enabled)
 - Locks FC by configuring when FC clock locks to data
@@ -74,10 +74,19 @@ where $BOARD = 2 (45) ,3(48)
 ### Word and phase alignment
   For example:
   ```
-  # Board 3 (48)
-  source scripts/inputWordAlignment.sh 4 4 7,6,7,7,7,8,7,8,8,8,8,8
-  # Board 2 (45) 
-  source scripts/inputWordAlignment.sh 4 4 7,7,8,8,8,9,8,9,8,9,8,9
+  source scripts/inputWordAlignment.sh 4 4 BESTPHASE
+  ```
+
+  For board 3 (48):
+  ```
+  BESTPHASE (PRBS w best setting, thr 500) = 6,13,7,14,14,0,7,8,7,7,7,8
+  BESTPHASE (PRBS w min errors) = 7 6 0 7 7 0 0 0 7 0 0 0
+  BESTPHASE (scan hdr_mm_cntr) = 
+  ```
+
+  For board 2 (45)
+  ```
+  BESTPHASE = 
   ```
 
   - Set up the alignment registers.
@@ -160,6 +169,10 @@ where $BOARD = 2 (45) ,3(48)
     ```
     python testing/uhal/check_align.py --block from-IO
     ```
+    Once automatic alignment works, one can set to manual delay mode:
+    ```
+    python testing/uhal/align_on_tester.py --step manual-IO    
+    ```
 
 ### ASIC Link capture alignment
   ```
@@ -207,6 +220,7 @@ where $BOARD = 2 (45) ,3(48)
    ```
    python testing/uhal/test_vectors.py --idir $IDIR
    ```
+
    ### Phase alignment
    - To log `hdr_mm_cntr`:
    ```
@@ -220,19 +234,33 @@ where $BOARD = 2 (45) ,3(48)
    ```
    python3 testing/eRxMonitoring.py --snapshot --bx 4 
    ```
-
+   - To scan `hdr_mm_cntr` after manually changing phase:
+  
 ## ETX and Output data
 
-   Main script is `testing/uhal/capture.py`, for example:
+   - Main script is `testing/uhal/capture.py`, for example:
    ```
    # for input link capture:
    python testing/uhal/capture.py --lc lc-input --mode BX --bx 0 --capture --nwords 511
+   # for output link capture 
+   python testing/uhal/capture.py --lc lc-ASIC --mode BX --bx 0 --capture --nwords 10
+   # for emulator link capture
+   python testing/uhal/capture.py --lc lc-emulator --mode BX --bx 0 --capture --nwords 10        
+   ```
+   - Using capture in eTxMonitoring
+   ```
+   # for output link capture on ASIC:
+   python3 testing/eTxMonitoring.py --capture --verbose --nwords 12
+   ```
+   - Using compare:
+   ```
+   python testing/uhal/capture.py --compare --sleep 1 --nlinks 13
    ```
 
 ### PLL_phase_of_enable_1G28 Scan
-    
+    - To scan PLL_phase_of_enable_1G28 while sending zeros and just scan headers (assuming 0 is good Phase that you want to go back to):
     ```
-    python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100
+    python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100 --goodPhase 0
     ```
 
 ## Fast commands

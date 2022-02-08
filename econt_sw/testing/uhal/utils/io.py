@@ -2,6 +2,7 @@ import os
 import uhal
 from uhal_config import names,input_nlinks,output_nlinks
 
+import time
 import logging
 logging.basicConfig()
 logger = logging.getLogger('utils')
@@ -37,7 +38,25 @@ def configure_IO(dev,io,io_name='IO',invert=False):
     # reset
     dev.getNode(names[io_name][io]+".global.global_rstb_links").write(0x1)
     dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
-    import time
+    time.sleep(1)
+    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
+    dev.dispatch()
+
+def manual_IO(dev,io,io_name='IO'):
+    nlinks = input_nlinks if io=='to' else output_nlinks
+
+    # read delays found by automatic delay setting
+    delay_P,delay_N = get_delay(dev,io,nlinks=nlinks,io_name=io_name,verbose=False)
+
+    # set delay mode to 0 and delays to what we found
+    for l in range(nlinks):
+        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_mode").write(0)
+        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_in").write(delay_P[0])
+        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_offset").write(delay_N[0])
+    dev.dispatch()
+
+    # reset counters
+    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
     time.sleep(1)
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
@@ -48,7 +67,6 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
     """
     # reset the counters
     dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
-    import time
     time.sleep(1)
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
@@ -91,4 +109,15 @@ def print_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):
             vals[reg] = int(tmp)
         logger.info("%s-IO link%i: %s"%(io,l,vals))
 
-    
+def get_delay(dev,io='from',nlinks=output_nlinks,io_name='IO',verbose=True):
+    delay_P = {}
+    delay_N = {}
+    for link in range(nlinks):
+        delay_out = dev.getNode(names['IO'][io]+".link%i"%link+".reg3.delay_out").read()
+        delay_out_N = dev.getNode(names['IO'][io]+".link%i"%link+".reg3.delay_out_N").read()
+        dev.dispatch()
+        if verbose:
+            logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+        delay_P[link] = int(delay_out)
+        delay_N[link] = int(delay_out_N)
+    return delay_P,delay_N

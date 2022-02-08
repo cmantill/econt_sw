@@ -49,19 +49,10 @@ if __name__ == "__main__":
         if args.block=='from-IO':
             utils_io.print_IO(dev,io='from',nlinks=output_nlinks,io_name='IO')
             # check eye width
-            for link in range(output_nlinks):
-                delay_out = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out").read()
-                delay_out_N = dev.getNode(names['IO']['from']+".link%i"%link+".reg3.delay_out_N").read()
-                dev.dispatch()
-                logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+            utils_io.get_delay(dev,io='from',nlinks=output_nlinks,io_name='IO',verbose=True)
         elif args.block=='to-IO':
             utils_io.print_IO(dev,io='to',nlinks=output_nlinks,io_name='IO')
-            for link in range(output_nlinks):
-                delay_out = dev.getNode(names['IO']['to']+".link%i"%link+".reg3.delay_out").read()
-                delay_out_N = dev.getNode(names['IO']['to']+".link%i"%link+".reg3.delay_out_N").read()
-                dev.dispatch()
-                logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
-
+            utils_io.get_delay(dev,io='to',nlinks=output_nlinks,io_name='IO',verbose=True)
         elif args.block=='lc-ASIC':
             utils_lc.check_lc(dev,lcapture=args.block,nlinks=output_nlinks)
 
