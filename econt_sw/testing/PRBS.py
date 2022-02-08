@@ -137,9 +137,7 @@ def scan_prbs(args,channels,allch,verbose=True):
         for c in counts_window:
             logger.info(" ".join(map(str,c)))
         logger.info('Minimum Arg:')
-        logger.info(" ".join(map(str,range(len(counts_window))))+ "\n")
-        for c in list(np.argsort(err_counts)):
-            logger.info(" ".join(map(str,c)))
+        logger.info(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     if verbose:
         with open("prbs_counters_scan_%is.csv"%args.sleepTime, 'w') as f:
@@ -149,10 +147,13 @@ def scan_prbs(args,channels,allch,verbose=True):
                 writer.writerow([int(err_counts[j][ch]) for ch in channels])
 
     counts_window = np.array(counts_window)
+    # print(counts_window)
     counts_window[ err_counts[:-1]>args.threshold ] = 255*3
+    # print('thr ',counts_window)
     best_setting=np.array(counts_window).argmin(axis=0)
     if verbose:
         logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
+        # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
     return err_counts, best_setting
 
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     """
     All things PRBS related
     - PRBS scan (at a given sleep time)
-      python3 testing/PRBs.py --prbs 32 --sleep 10 --threshold 0
+      python3 testing/PRBs.py --prbs 32 --sleep 10 --threshold 500
     - Check that internal PRBS check works (i.e. prbs_chk_err_cnt should not increase and prbs_chk_err should be 0)
       python3 testing/PRBs.py --prbs 28 --check
       python3 testing/PRBs.py --prbs 32 --check 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     parser.add_argument('--fixed', default=False, action='store_true', help='check that internal PRBS check gives error with fixed pattern')
     parser.add_argument('--opposite', default=False, action='store_true', help='check that internal PRBS check gives error with opposite PRBS')
     parser.add_argument('--internal', default=False, action='store_true', help='enable internal PRBS')
-    parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
+    parser.add_argument('--threshold', dest='threshold',default=500,type=int, help='Threshold of number of allowed errors ')
     args = parser.parse_args()
 
     if args.link==-1:
