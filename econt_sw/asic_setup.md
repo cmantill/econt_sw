@@ -6,6 +6,21 @@
   python testing/uhal/reset_signals.py --reset [soft,hard] --i2c [ASIC,emulator]
   ```
 
+## Quick setup
+```
+source scripts/quickASICSetup.sh $BOARD
+```
+where $BOARD = 2 (45) ,3(48)
+
+(Assumes that FC stream, BCR are enabled)
+- Locks FC by configuring when FC clock locks to data
+- Locks PLL by configuring PLL VCR capacitor value
+- Fixed-mode phase alignment with known "best" settings from PRBS scan
+- Manual word alignment with known `sel` value
+- Sets threshold algorithm with high thresholds, and zero IDLE word
+- Sets run bit to 1
+- Reads PUSM state
+
 ## Start-up
 
 - Start i2c servers in hexacontroller:
@@ -57,10 +72,11 @@
 ## Alignment
 
 ### Word and phase alignment
+  For example:
   ```
-  # Board 2 (48)
+  # Board 3 (48)
   source scripts/inputWordAlignment.sh 4 4 7,6,7,7,7,8,7,8,8,8,8,8
-  # Board 1 (45) 
+  # Board 2 (45) 
   source scripts/inputWordAlignment.sh 4 4 7,7,8,8,8,9,8,9,8,9,8,9
   ```
 
@@ -182,7 +198,7 @@
     ```
 
 ## ERX and Input data
-   To modify the input test vectors:
+   ### To modify the input test vectors
    - With an output produced by elink outputs:
    ```
    python testing/uhal/test_vectors.py --dtype (PRBS,PRBS32,PRBS28,zeros) 
@@ -190,6 +206,19 @@
    - With input test vectors in `idir`:
    ```
    python testing/uhal/test_vectors.py --idir $IDIR
+   ```
+   ### Phase alignment
+   - To log `hdr_mm_cntr`:
+   ```
+   python3 testing/eRxMonitoring.py --logging --sleep 120 -N 10
+   ```
+   - To check `hdr_mm_cntr`:
+   ```
+   python3 testing/eRxMonitoring.py --hdrMM
+   ```
+   - To manually take a snapshot at a fixed BX:
+   ```
+   python3 testing/eRxMonitoring.py --snapshot --bx 4 
    ```
 
 ## ETX and Output data
@@ -201,11 +230,13 @@
    ```
 
 ### PLL_phase_of_enable_1G28 Scan
+    
     ```
     python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100
     ```
 
 ## Fast commands
+   - Introduce delay in FC data:
    ```
    python testing/uhal/fast_command.py --fc command-delay
    ```
