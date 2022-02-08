@@ -102,7 +102,7 @@ def checkSnapshots(compare=True, verbose=False, bx=4):
             badSnapshots=np.argwhere(shiftedSnapshots!=vote)
 
             if len(badSnapshots)==0:
-                logger.info(f'After shifting to accomodate select values, all snapshots match:', f'{hex(vote)}')
+                logger.info(f'After shifting to accomodate select values, all snapshots match: {hex(vote)}')
             else:
                 errors={i: hex(snapshots[i]) for i in badSnapshots.flatten()}
                 logger.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
