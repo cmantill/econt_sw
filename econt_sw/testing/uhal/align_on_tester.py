@@ -10,7 +10,7 @@ import utils.link_capture as utils_lc
 import utils.io as utils_io
 import utils.test_vectors as utils_tv
 
-from capture import reset_lc,compare_counters
+from capture import reset_lc
 
 def configure_io(dev,args):
     for io in names['IO'].keys():
@@ -191,12 +191,11 @@ if __name__ == "__main__":
     parser.add_argument('--step', 
                         choices=['init',
                                  'configure-IO',
+                                 'manual-IO',
                                  'lr-roct',
                                  'lr-econt',
                                  'manual-lcASIC',
-                                 'capture',
                                  'latency',
-                                 'compare',
                              ],
                         help='alignment steps')
     parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
@@ -218,6 +217,9 @@ if __name__ == "__main__":
     if args.step == "configure-IO":
         configure_io(dev,args)
 
+    if args.step == "manual-IO":
+        utils_io.manual_IO(dev,"from","IO")
+
     if args.step == "init":
         init(dev,args)
 
@@ -232,6 +234,3 @@ if __name__ == "__main__":
 
     if args.step == 'latency':
         modify_latency(dev,args)
-
-    if args.step == 'compare':
-        compare_counters(dev)

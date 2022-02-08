@@ -8,6 +8,7 @@ from utils.uhal_config import *
 import utils.link_capture as utils_lc
 import utils.test_vectors as utils_tv
 import utils.fast_command as utils_fc
+import utils.stream_compare as utils_sc
 
 logger = logging.getLogger('capture')
 logger.setLevel('INFO')
@@ -93,21 +94,12 @@ def syncword_lc(dev,lcapture,syncword,nlinks=-1):
         dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(int(syncword,16))
     dev.dispatch()
 
-def compare_counters(dev,sleepTime=0.001):
-    dev.getNode(names['stream_compare']+".control.reset").write(0x1) # start the counters from zero                                                                                                                                                                         
-    time.sleep(sleepTime)
-    dev.getNode(names['stream_compare']+".control.latch").write(0x1) # latch the counters                                                                                                                                                                                   
-    dev.dispatch()
-    word_count = dev.getNode(names['stream_compare']+".word_count").read()
-    err_count = dev.getNode(names['stream_compare']+".err_count").read()
-    dev.dispatch()
-    logger.info('Stream compare, word count %d, error count %d'%(word_count,err_count))
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
     parser.add_argument('--capture', action='store_true', default=False, help='capture data')
+    parser.add_argument('--compare', action='store_true', default=False, help='compare counters in stream-compare')
     parser.add_argument('--csv', action='store_true', default=True, help='save captured data in csv format')
     parser.add_argument('--phex', action='store_true', default=False, help='print in hex format')
     parser.add_argument('--odir',dest="odir",type=str, default="./", help='output directory')
@@ -117,6 +109,7 @@ if __name__ == "__main__":
     parser.add_argument('--bx', type=int, default=0, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
     parser.add_argument('--nlinks', type=int, default=-1, help='number of links')
+    parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
     
     args = parser.parse_args()
 
@@ -132,3 +125,10 @@ if __name__ == "__main__":
 
     if args.capture:
         capture_lc(dev,args.lc,args.nwords,args.mode,args.bx,args.csv,args.odir,args.fname,args.nlinks,args.phex)
+    if args.compare:
+        if args.nlinks==-1:
+            nlinks = output_nlinks
+        else:
+            nlinks = args.nlinks
+        utils_sc.compare(dev,nlinks=nlinks,stime=args.sleepTime)
+
