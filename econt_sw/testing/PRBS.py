@@ -60,13 +60,13 @@ def enable_prbschk(args,channels,allch=True):
 def check_prbs(args,channels,allch):
     if args.fixed:
         # send a fixed pattern
-        os.system('python testing/uhal/align_on_tester.py --step test-data --idir configs/test_vectors/counterPatternInTC_by2/RPT/')
+        os.system('python testing/uhal/test_vectors.py --idir configs/test_vectors/counterPatternInTC_by2/RPT/')
     elif args.opposite:
         # send oppposite PRBS on purpose
         if args.prbs==28:
-            os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS')
+            os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
         else:
-            os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS28')
+            os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
     elif args.internal:
         for channel in channels:
             call_i2c(args_name=f'CH_ALIGNER_{channel}_patt_en,CH_ALIGNER_{channel}_patt_sel',args_value='1,1',args_i2c=args.i2c)
@@ -74,9 +74,9 @@ def check_prbs(args,channels,allch):
             # call_i2c(args_name=f'CH_ALIGNER_{channel}_seed_in',args_value=f'{seed}',args_i2c=args.i2c) 
     else:
         if args.prbs==28:
-            os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS28')
+            os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
         else:
-            os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS')
+            os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
     
     # clear counters
     clear_counters(args)
@@ -90,10 +90,10 @@ def scan_prbs(args,channels,allch,verbose=True):
     # reset things for PRBS
     call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=args.i2c)
     if args.prbs==28:
-        os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS28')
+        os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
     else:
         # switch off the headers
-        os.system('python testing/uhal/align_on_tester.py --step test-data --dtype PRBS32')            
+        os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
 
     err_counts = []
     for sel in range(0,16):
