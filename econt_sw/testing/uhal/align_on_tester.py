@@ -198,7 +198,7 @@ if __name__ == "__main__":
                                  'latency',
                              ],
                         help='alignment steps')
-    parser.add_argument('--invertIO', action='store_true', default=True, help='invert IO')
+    parser.add_argument('--invertIO', action='store_true', default=False, help='invert IO')
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
     args = parser.parse_args()
