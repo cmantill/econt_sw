@@ -13,7 +13,7 @@ import utils.test_vectors as utils_tv
 from capture import reset_lc
 
 def configure_io(dev,args):
-    for io in names['IO'].keys():
+    for io in args.io_names.split(','):
         if args.invertIO:
             utils_io.configure_IO(dev,io,io_name='IO',invert=True)
         else:
@@ -198,6 +198,7 @@ if __name__ == "__main__":
                                  'latency',
                              ],
                         help='alignment steps')
+    parser.add_argument('--io_names', type=str, default='to,from', help='IO block names to configure')
     parser.add_argument('--invertIO', action='store_true', default=False, help='invert IO')
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
