@@ -13,46 +13,53 @@ import utils.stream_compare as utils_sc
 logger = logging.getLogger('capture')
 logger.setLevel('INFO')
 
-def capture_lc(dev,lcapture,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks=-1,phex=False):
+def capture_lc(dev,lcaptures,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
+    """
+    Allows for captures in multiple lcs
+    """
+    fc_by_lfc = {'linkreset_ECONt': 'link_reset_econt',
+                 'linkreset_ECONd': 'link_reset_econd',
+                 'linkreset_ROCt': 'link_reset_roct',
+                 'linkreset_ROCd': 'link_reset_rocd',
+             }
+
     # make sure that fc is reset
     utils_fc.configure_fc(dev)
 
-    if nlinks==-1:
-        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-
-    # configure acquisition
-    utils_lc.configure_acquire(dev,lcapture,mode,nwords,nlinks,bx,verbose=False)
+    for lcapture in lcaptures:
+        if nlinks==-1:
+            nlinks = input_nlinks if 'input' in lcapture else output_nlinks
+        # configure acquisition
+        utils_lc.configure_acquire(dev,lcapture,mode,nwords,nlinks,bx,verbose=False)
     
     # do link capture
-    if mode == "linkreset_ECONt":
-        utils_lc.do_fc_capture(dev,"link_reset_econt",lcapture,verbose=False)
+    if mode in fc_by_lfc.keys():
+        utils_lc.do_fc_capture(dev,fc_by_lfc[mode],lcaptures,verbose=False)
         time.sleep(0.001)
-        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
+        counter = dev.getNode(names['fc-recv']+".counters.%s"%fc_by_lfc[mode]).read();
         dev.dispatch()
-        logger.info('link reset econt counter %i'%lrc)
-    elif mode =="linkreset_ROCt":
-        utils_lc.do_fc_capture(dev,"link_reset_roct",lcapture,verbose=False)
-        time.sleep(0.001)
-        lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
-        dev.dispatch()
-        logger.info('link reset roct counter %i'%lrc)
-    elif mode == "L1A":
-        l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
-        dev.dispatch()
-        logger.debug('L1A counter %i'%(int(l1a_counter)))
-        utils_fc.send_l1a(dev)
+        logger.info('%s counter %i'%(fc_by_lfc[mode],counter))
     else:
-        utils_lc.do_capture(dev,lcapture,verbose=False)
+        if mode == 'L1A' and not trigger:
+            l1a_counter = dev.getNode(names['fc-recv']+".counters.l1a").read()
+            dev.dispatch()
+            logger.debug('L1A counter %i'%(int(l1a_counter)))
+            utils_fc.send_l1a(dev)
+            utils_lc.do_capture(dev,lcaptures,verbose=False)            
+        else:
+            utils_lc.do_capture(dev,lcaptures,verbose=False)
 
     # get captured data
-    data = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
+    data = {}
+    for lcapture in lcaptures:
+        data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
     
-    # save or print
-    if csv:
-        utils_tv.save_testvector("%s/%s%s.csv"%(odir,lcapture,fname), data)
-    if phex:
-        datahex = utils_tv.fixed_hex(data,8)
-        for n in datahex: logger.info(','.join(n))
+        # save or print
+        if csv:
+            utils_tv.save_testvector("%s/%s%s.csv"%(odir,lcapture,fname), data[lcapture])
+        if phex:
+            datahex = utils_tv.fixed_hex(data[lcapture],8)
+            for n in datahex: logger.info(','.join(n))
 
     # reset fc
     utils_fc.configure_fc(dev)
@@ -82,35 +89,107 @@ def reset_lc(dev,lcapture,syncword=""):
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".delay.bit_reverse").write(1);
             dev.dispatch()
 
-def disable_lc(dev,lcapture,nlinks=-1):
-    if nlinks==-1:
-        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-    utils_lc.disable_alignment(dev,lcapture,nlinks)
+def disable_lc(dev,lcaptures,nlinks=-1):
+    for lcapture in lcaptures:
+        if nlinks==-1:
+            inlinks = input_nlinks if 'input' in lcapture else output_nlinks
+        utils_lc.disable_alignment(dev,lcapture,nlinks)
 
-def syncword_lc(dev,lcapture,syncword,nlinks=-1):
+def syncword_lc(dev,lcaptures,syncword,nlinks=-1):
+    for lcapture in lcaptures:
+        if nlinks==-1:
+            inlinks = input_nlinks if 'input' in lcapture else output_nlinks
+        for l in range(inlinks):
+            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(int(syncword,16))
+        dev.dispatch()
+
+def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,csv=True,odir="./",fname="sc",phex=False):
+    # stream compare just compares its two inputs.  
+    # If they match, then it increments the word counter, and doesn't do anything else.
+    # If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).
     if nlinks==-1:
-        nlinks = input_nlinks if 'input' in lcapture else output_nlinks
-    for l in range(nlinks):
-        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(int(syncword,16))
-    dev.dispatch()
+        nlinks = output_nlinks
+
+    if trigger:
+        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing
+        # otherwise we could get in some weird situations wiht link capture
+
+        utils_fc.configure_fc(dev)
+        # configure link captures to acquire on L1A
+        for lcapture in ['lc-ASIC','lc-emulator']:
+            utils_lc.configure_acquire(dev,lcapture,'L1A',nwords,nlinks,0,verbose=False)
+        # set acquire to 1
+        # you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger
+        utils_lc.do_capture(dev,lcaptures,verbose=False)
+
+    # configure stream compare
+    utils_sc.configure_compare(dev,nlinks,trigger)
+    
+    # log counters
+    for i in range(1):
+        err_count = utils_sc.reset_log_counters(dev,stime=0.01)
+        # read data if error count > 0
+        if err_count>0 and trigger:
+             data = {}
+             for lcapture in lcaptures:
+                 data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
+                 if csv:
+                     utils_tv.save_testvector("%s/%s%s.csv"%(odir,lcapture,fname), data)
+                 if phex:
+                     datahex = utils_tv.fixed_hex(data,8)
+                     for n in datahex: logger.info(','.join(n))
+
+    # reset fc
+    utils_fc.configure_fc(dev)
 
 if __name__ == "__main__":
+    """
+    Capture and compare outputs
+    - For capturing data, e.g:
+    python testing/uhal/capture.py --capture --lc lc-ASIC --nwords 100 --mode BX --bx 0
+    python testing/uhal/capture.py --capture --lc lc-ASIC  --nwords 100 --mode L1A
+    
+    Add:
+    --csv: if do not want to save csv
+    --odir: output directory for csv
+    --fname: filename for csv
+    --phex: if you want to print phex
+
+    - For disabling automatic alignment, e.g.:
+    python testing/uhal/capture.py --disable-align --lc lc-ASIC
+    - For modifying sync word, e.g.:
+    python testing/uhal/capture.py --sync 0x122 -lc lc-ASIC
+
+    - For comparing outputs between lc-ASIC and lc-emulator:
+    python testing/uhal/capture.py --compare --nlinks 13 --sleep 120
+    python testing/uhal/capture.py --compare --nlinks 13 --trigger 
+
+    Add:
+    --sleep: sleeptime
+    --trigger: trigger on a mistmatch
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
     parser.add_argument('--capture', action='store_true', default=False, help='capture data')
     parser.add_argument('--compare', action='store_true', default=False, help='compare counters in stream-compare')
-    parser.add_argument('--csv', action='store_true', default=True, help='save captured data in csv format')
-    parser.add_argument('--phex', action='store_true', default=False, help='print in hex format')
-    parser.add_argument('--odir',dest="odir",type=str, default="./", help='output directory')
-    parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
-    parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data')
-    parser.add_argument('--mode', type=str, default='L1A', help='options (BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync)')
+    parser.add_argument('--disable-align',  action='store_true', dest='disablealign', default=False, help='disable automatic alignment')
+    parser.add_argument('--sync', type=str, default=None, help='change sync word')
+
+    parser.add_argument('--lc', type=str, default='lc-ASIC', choices=['lc-ASIC','lc-input','lc-emulator'], help='link capture to capture data')
+    parser.add_argument('--mode', type=str, default='L1A', choices=['BX','L1A','linkreset_ECONt','linkreset_ECONd','linkreset_ROCt','linkreset_ROCd','orbitSync'], help='mode to capture')
     parser.add_argument('--bx', type=int, default=0, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
     parser.add_argument('--nlinks', type=int, default=-1, help='number of links')
-    parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
-    
+
+    parser.add_argument('--csv', action='store_false', default=True, help='do not save captured data in csv format')
+    parser.add_argument('--phex', action='store_true', default=False, help='print in hex format')
+    parser.add_argument('--odir',dest="odir",type=str, default="./", help='output directory')
+    parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
+
+    parser.add_argument('--sleep',dest='sleepTime',default=1,type=int,help='Time to wait between logging iterations')
+    parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
+
     args = parser.parse_args()
 
     set_logLevel(args)
@@ -123,12 +202,14 @@ if __name__ == "__main__":
         logging.error("Invalid log level")
         exit(1)
 
-    if args.capture:
-        capture_lc(dev,args.lc,args.nwords,args.mode,args.bx,args.csv,args.odir,args.fname,args.nlinks,args.phex)
-    if args.compare:
-        if args.nlinks==-1:
-            nlinks = output_nlinks
-        else:
-            nlinks = args.nlinks
-        utils_sc.compare(dev,nlinks=nlinks,stime=args.sleepTime)
+    if args.disablealign:
+        disable_lc(dev,args.lc.split(','),args.nlinks)
 
+    if args.sync:
+        syncword_lc(dev,args.lc.split(','),args.sync,args.nlinks)
+
+    if args.capture:
+        capture_lc(dev,args.lc.split(','),args.nwords,args.mode,args.bx,args.csv,args.odir,args.fname,args.nlinks,args.phex)
+
+    if args.compare:
+        compare_lc(dev,trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,csv=args.csv,odir=args.odir,fname=args.fname,phex=args.phex)

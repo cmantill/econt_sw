@@ -6,7 +6,35 @@ import logging
 logging.basicConfig()
 logger = logging.getLogger('utils')
 logger.setLevel(logging.INFO)
-    
+
+def do_fc_capture(dev,fc,lcaptures,verbose=True):
+    """
+    Acquire data in multiple lcs and send a fast command
+    """
+    for lcapture in lcaptures:
+        dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+        dev.dispatch()
+        dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
+        dev.dispatch()
+
+    dev.getNode(names['fc']+".request.%s"%fc).write(0x1);
+    dev.dispatch()
+
+def do_capture(dev,lcaptures,wait=False,verbose=True):
+    """
+    Set acquire to 1 for multiple lcs
+    """
+    for lcapture in lcaptures:
+        dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
+        dev.dispatch()
+        dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
+        dev.dispatch()
+
+    if wait:
+        import time
+        time.sleep(0.001)
+        raw_input("Acquire set, press link to continue")
+
 def check_links(dev,lcapture='lc-ASIC',nlinks=output_nlinks,use_np=True):
     """
     Is link capture aligned?
@@ -90,6 +118,7 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0,ve
     except:
         logger.warning("Not a valid capture mode!")
         return
+
     if captures["mode_in"] == 2:
         captures[mode] = 1
         bx = 0
@@ -113,32 +142,8 @@ def configure_acquire(dev,lcapture,mode,nwords=4095,nlinks=output_nlinks,bx=0,ve
 
 def disable_alignment(dev,lcapture,nlinks=output_nlinks):
     for l in range(nlinks):
-        dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".link_align_inhibit").write(1);
+        dev.getNode(names[lcapture]['lc']+".link"+str(l)+".link_align_inhibit").write(1);
         dev.dispatch()
-
-def do_fc_capture(dev,fc,lcapture,verbose=True):
-    """
-    Acquire data and send a fast command.
-    """
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
-    dev.dispatch()
-    dev.getNode(names['fc']+".request.%s"%fc).write(0x1);
-    dev.dispatch()
-
-def do_capture(dev,lcapture,wait=False,verbose=True):
-    """
-    Acquire
-    """
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(0)
-    dev.dispatch()
-    dev.getNode(names[lcapture]['lc']+".global.aquire").write(1)
-    dev.dispatch()
-    if wait:
-        import time
-        time.sleep(0.001)
-        raw_input("ready to capture, press link to continue")
 
 def get_captured_data(dev,lcapture,nwords=4095,nlinks=output_nlinks,verbose=True):
     """
@@ -225,7 +230,7 @@ def find_latency(dev,latency,lcapture,bx0=None,savecap=False):
     logger.debug('Read latencies: %s',read_latency)
 
     # capture on link reset econt
-    do_fc_capture(dev,"link_reset_econt",lcapture)
+    do_fc_capture(dev,"link_reset_econt",[lcapture])
     
     # check link reset econt counter 
     lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read()

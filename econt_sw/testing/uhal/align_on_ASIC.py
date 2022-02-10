@@ -62,7 +62,7 @@ if __name__ == "__main__":
     checkPRBS = True
     if checkPRBS:
         utils_lc.configure_acquire(dev,"ASIC-lc-input","BX",4095,input_nlinks)
-        utils_lc.do_capture(dev,"ASIC-lc-input")
+        utils_lc.do_capture(dev,["ASIC-lc-input"])
         input_data = utils_lc.get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
         saveData = True
         if saveData:
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     saveInputData = True
     if saveInputData:
         utils_lc.configure_acquire(dev,"ASIC-lc-input","linkreset_ROCt",4095,input_nlinks)
-        utils_lc.do_capture(dev,"ASIC-lc-input")
+        utils_lc.do_capture(dev,["ASIC-lc-input"])
         input_data = utils_lc.get_captured_data(dev,"ASIC-lc-input",4095,input_nlinks)
         utils_tv.save_testvector("ASIC-lc-input.csv", input_data)
     else:

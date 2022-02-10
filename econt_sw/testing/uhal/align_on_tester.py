@@ -118,14 +118,14 @@ def manual_align(dev,args,lcapture='lc-ASIC'):
         logger.info('Align pos link %i: %i'%(l,int(align_pos)))
         if args.alignpos and l in links:
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".override_align_position").write(1);
-            dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".align_position").write(int(align_pos)+args.alignpos);
+            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_position").write(int(align_pos)+args.alignpos);
             dev.dispatch()
 
-            read_align_pos = dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".align_position").read();
+            read_align_pos = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_position").read();
             dev.dispatch()
             logger.info('Set align pos link %i: %i'%(l,read_align_pos))
 
-            dev.getNode(names['lc-ASIC']['lc']+".link"+str(l)+".explicit_align").write(1);
+            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".explicit_align").write(1);
             dev.dispatch()
 
 def modify_latency(dev,args):

@@ -136,12 +136,12 @@ where $BOARD = 2 (45), 3(48)
 
   - You can check the alignment by using:
     ```
-    python3 testing/eRxMonitoring.py --alignment --verbose
+    python3 testing/eRx.py --alignment --verbose
     ```
 
   - You can log in hdr mis-match counters (should be estable with good phase alignment), with:
     ```
-    python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
+    python3 testing/eRx.py --logging -N 1 --sleep 2
     ```
 
 ### IO alignment
@@ -224,15 +224,15 @@ where $BOARD = 2 (45), 3(48)
    ### Phase alignment
    - To log `hdr_mm_cntr`:
    ```
-   python3 testing/eRxMonitoring.py --logging --sleep 120 -N 10
+   python3 testing/eRx.py --logging --sleep 120 -N 10
    ```
    - To check `hdr_mm_cntr`:
    ```
-   python3 testing/eRxMonitoring.py --hdrMM
+   python3 testing/eRx.py --hdrMM
    ```
    - To manually take a snapshot at a fixed BX:
    ```
-   python3 testing/eRxMonitoring.py --snapshot --bx 4 
+   python3 testing/eRx.py --snapshot --bx 4 
    ```
    - To scan `hdr_mm_cntr` after manually changing phase:
   
@@ -250,7 +250,7 @@ where $BOARD = 2 (45), 3(48)
    - Using capture in eTxMonitoring
    ```
    # for output link capture on ASIC:
-   python3 testing/eTxMonitoring.py --capture --verbose --nwords 12
+   python3 testing/eTx.py --capture --verbose --nwords 12
    ```
    - Using compare:
    ```
@@ -260,7 +260,7 @@ where $BOARD = 2 (45), 3(48)
 ### PLL_phase_of_enable_1G28 Scan
     - To scan PLL_phase_of_enable_1G28 while sending zeros and just scan headers (assuming 0 is good Phase that you want to go back to):
     ```
-    python3 testing/eTxMonitoring.py --scan --bx 40 --nwords 100 --goodPhase 0
+    python3 testing/eTx.py --scan --bx 40 --nwords 100 --goodPhase 0
     ```
 
 ## Fast commands
