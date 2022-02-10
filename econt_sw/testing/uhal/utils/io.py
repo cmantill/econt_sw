@@ -5,7 +5,7 @@ from uhal_config import names,input_nlinks,output_nlinks
 import time
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils')
+logger = logging.getLogger('utils:IO')
 logger.setLevel(logging.INFO)
 
 def configure_IO(dev,io,io_name='IO',invert=False):
@@ -52,7 +52,7 @@ def manual_IO(dev,io,io_name='IO'):
     for l in range(nlinks):
         dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_mode").write(0)
         dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_in").write(delay_P[0])
-        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_offset").write(delay_N[0])
+        dev.getNode(names[io_name][io]+".link"+str(l)+".reg0.delay_offset").write(8) # fix this to 8
     dev.dispatch()
 
     # reset counters
@@ -61,7 +61,7 @@ def manual_IO(dev,io,io_name='IO'):
     dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
 
-def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
+def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000,verbose=False):
     """
     Checks whether IO block is aligned.
     """
@@ -82,7 +82,8 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
             error_counter = dev.getNode(names[io_name][io]+".link"+str(l)+".error_counter").read()
             bit_counter = dev.getNode(names[io_name][io]+".link"+str(l)+".bit_counter").read()
             dev.dispatch()
-            logger.info("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(io,l,bit_tr,delay_ready,error_counter,bit_counter))
+            if verbose or error_counter>0:
+                logger.info("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(io,l,bit_tr,delay_ready,error_counter,bit_counter))
             if delay_ready == 1:
                 break
         IO_delayready.append(delay_ready)
@@ -91,9 +92,9 @@ def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000):
         if delay!=1:
             is_aligned = False
     if is_aligned:
-        logging.info("Links %s-IO are aligned"%io)
+        logger.info("Links %s-IO are aligned"%io)
     else:
-        logging.info("Links %s-IO are not aligned"%io)
+        logger.info("Links %s-IO are not aligned"%io)
     return is_aligned
 
 def print_IO(dev,io='from',nlinks=output_nlinks,io_name='IO'):

@@ -4,7 +4,7 @@ from uhal_config import names,input_nlinks,output_nlinks
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils')
+logger = logging.getLogger('utils:lc')
 logger.setLevel(logging.INFO)
 
 def do_fc_capture(dev,fc,lcaptures,verbose=True):

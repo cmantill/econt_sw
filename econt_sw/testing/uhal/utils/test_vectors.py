@@ -4,7 +4,7 @@ import numpy as np
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils')
+logger = logging.getLogger('utils:tv')
 logger.setLevel(logging.INFO)
 
 def read_testvector(fname,nlinks=12):
@@ -38,10 +38,10 @@ def save_testvector(fname,data,header=False):
             for j in range(len(data)):
                 writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-def set_testvectors(dev,dtype="zeros",idir=None):
+def set_testvectors(dev,dtype="",idir=""):
     """
     Set test vectors
-    dtype [PRBS,PRBS32,PRBS28,debug]
+    dtype [PRBS,PRBS32,PRBS28,debug,zeros]
     """
     testvectors_settings = {
         "output_select": 0x0,
@@ -68,6 +68,8 @@ def set_testvectors(dev,dtype="zeros",idir=None):
         testvectors_settings["output_select"] = 0x2
         testvectors_settings["header_mask"] = 0xf0000000
     if dtype == "debug":
+        logger.info('Setting idle words with only headers and zeros')
+        # send idle word with only headers and zeros
         testvectors_settings["idle_word"] = 0xa0000000
         testvectors_settings["idle_word_BX0"] = 0x90000000
     logger.info('Test vector settings %s'%testvectors_settings)
@@ -85,16 +87,7 @@ def set_testvectors(dev,dtype="zeros",idir=None):
         for l in range(input_nlinks):
             out_brams.append([None] * 4095)
 
-        if idir:
-            fname = idir+"/../testInput.csv"
-            data = read_testvector(fname)
-            logger.info('Writing test vectors from %s'%idir)
-            for l in range(input_nlinks):
-                for i,b in enumerate(out_brams[l]):
-                    out_brams[l][i] = int(data[l][i%3564],16)
-                dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
-                dev.dispatch()
-        else:
+        if dtype == "zeros":
             logger.info('Writing zero data w headers in test vectors')
             for l in range(input_nlinks):
                 for i,b in enumerate(out_brams[l]):
@@ -103,7 +96,16 @@ def set_testvectors(dev,dtype="zeros",idir=None):
                     else:
                         out_brams[l][i] = 0xa0000000
                 dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
-
-            # import numpy as np
-            # data = np.array(out_brams).T
+            # import numpy as np  
+            # data = np.array(out_brams).T 
             # save_testvector("zeros.csv",data,header=True)
+
+        if idir!="":
+            fname = idir+"/../testInput.csv"
+            data = read_testvector(fname)
+            logger.info('Writing test vectors from %s'%idir)
+            for l in range(input_nlinks):
+                for i,b in enumerate(out_brams[l]):
+                    out_brams[l][i] = int(data[l][i%3564],16)
+                dev.getNode(names['testvectors']['bram'].replace('00',"%02d"%l)).writeBlock(out_brams[l])
+                dev.dispatch()

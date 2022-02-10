@@ -5,7 +5,7 @@ from uhal_config import names
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils')
+logger = logging.getLogger('utils:sc')
 logger.setLevel(logging.INFO)
 
 def set_trigger(dev,trigger=False):
