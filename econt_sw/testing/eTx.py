@@ -19,13 +19,36 @@ def read_testvector(fname,nlinks,asHex=False):
 def fixedHex(data,N):
     return np.vectorize(lambda d : '{num:0{width}x}'.format(num=d, width=N))(data)
 
-def send_capture(lc="lc-ASIC",mode="BX",bx=0,nwords=4095,verbose=False,asHex=False):
-    cmd = f'python testing/uhal/capture.py --capture --lc {lc} --mode {mode} --bx {bx} --nwords {nwords} --fname temp'
+def send_capture(lc="lc-ASIC",mode="BX",bx=0,nwords=4095,nlinks=13,fname="temp",verbose=False,asHex=False,sleepTime=0.01,
+                 capture=False,compare=False,trigger=False):
+    # remove old files
+    lc_fname = f"{lc}_{fname}.csv"
+    lc_emu_fname = f"lc-emulator_{fname}.csv"
+    for lname in [lc_fname,lc_emu_fname]:
+        try:
+            os.remove(lname)
+        except:
+            continue
+
+    cmd = f'python testing/uhal/capture.py --lc {lc} --mode {mode} --bx {bx} --nwords {nwords} --fname {fname} --nlinks {nlinks} --sleep {sleepTime}'
+    if capture:
+        cmd += ' --capture '
+    if compare:
+        cmd += ' --compare '
+        if trigger:
+            cmd += ' --trigger '
     if verbose:
-        cmd += '--phex'
+        cmd += ' --phex '
     os.system(cmd)
-    data = read_testvector("lc-ASICtemp.csv",nlinks=13,asHex=asHex)
-    return data
+
+    data_lc = None
+    data_emu = None
+    if os.path.exists(lc_fname):
+        data_lc = read_testvector(lc_fname,nlinks=nlinks,asHex=asHex)
+        if trigger and os.path.exists(lc_emu_fname):
+            data_emu = read_testvector(lc_emu_fname,nlinks=nlinks,asHex=asHex)
+
+    return data_lc,data_emu
 
 def set_PLL_phase_of_enable(phase=0):
     call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
@@ -45,7 +68,7 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=False):
         set_PLL_phase_of_enable(phase)
         
         # capture data at a fixed BX
-        data = send_capture("lc-ASIC","BX",bx,nwords)
+        data = send_capture("lc-ASIC","BX",bx,nwords,capture=True)
         scanData.append(data)
 
         dataHex = fixedHex(data,8)
@@ -104,7 +127,7 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     for i_pll in range(8):
         call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
         print(i_pll)
-        data=send_capture(bx=0,nwords=nwords)
+        data=send_capture(bx=0,nwords=nwords,capture=True)
         datahex = fixedHex(data,8)
         print(datahex)
 
@@ -134,18 +157,71 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     call_i2c(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
     return data
 
+def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01):
+    """
+    Automatize event DAQ.
+    Only modify the input or i2c registers if idir/dtype and/or yamlFile is given.
+    """
+    # check that link capture and IO are aligned
+    os.system('python testing/uhal/check_align.py --check --block from-IO')
+    os.system('python testing/uhal/check_align.py --check --block lc-ASIC')
+
+    # modify inputs
+    if idir!="" or dtype!="":
+        logger.info(f"Loading input test vectors, dtype {dtype}, idir {idir}")
+        inputcmd = f"python testing/uhal/test_vectors.py"
+        if idir !="": inputcmd += f" --idir {idir}"
+        if dtype !="":  inputcmd += f" --dtype {dtype}"
+        os.system(inputcmd)
+        
+        # modify slow control from that idir unless told so
+        if idir!="" and not i2ckeep:
+            yamlFile = f"{idir}/init.yaml"
+            logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
+            x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
+            
+            # read nlinks from here
+            try:
+                nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+            except:
+                logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
+
+    # send compare command
+    data_asic,data_emu = send_capture(compare=True,trigger=trigger,nwords=nwords,nlinks=nlinks,fname="temp",sleepTime=sleepTime)
+
+    # look at first rows of captured data
+    if (data_asic is not None) and (data_emu is not None):
+        for row in fixedHex(data_asic,8)[:10]:
+            logger.info('lc-ASIC: '+",".join(map(str,list(row))))
+        logger.info('.'*50)
+        for row in fixedHex(data_emu,8)[:10]:
+            logger.info('lc-emulator: '+",".join(map(str,list(row))))
+        logger.info('.'*50)
+
 if __name__=='__main__':
     """
     ETX monitoring
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scan', dest='scanPhaseEnable',default=False, action='store_true')
-    parser.add_argument('--capture', dest='capture',default=False, action='store_true')
+    parser.add_argument('--scan', dest='scanPhaseEnable',default=False, action='store_true', help="scan phase_of_enable values")
+    parser.add_argument('--capture', dest='capture',default=False, action='store_true', help="capture data on eTx")
+    parser.add_argument('--daq', dest='daq',default=False, action='store_true', help="take data")
+
     parser.add_argument('--bx', type=int, default=12, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
-    parser.add_argument('--good', type=int, default=0, help='good phase')
+
+    parser.add_argument('--good', type=int, default=0, help='good value of PLL_phase_of_enable')
     parser.add_argument('--fixedPattern', dest='doFixedPatternTest',default=False, action='store_true')
     parser.add_argument('--algo', dest="algo", default="repeater", help="algorithm to use for fixedPattern test (repeater,threshold)")
+
+    parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
+    parser.add_argument('--idir', dest="idir",type=str, default="", help='test vector directory')
+    parser.add_argument('--i2ckeep', dest='i2ckeep',default=False, action='store_true', help="keep i2c configuration")
+    parser.add_argument('--i2ckeys', dest='i2ckeys', type=str, default='ASIC,emulator', help="keys of i2c addresses(ASIC,emulator)")
+
+    parser.add_argument('--sleep',dest='sleepTime',default=1,type=int,help='Time to wait between logging counters')
+    parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
+
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
 
@@ -154,10 +230,11 @@ if __name__=='__main__':
             data=PLL_phaseOfEnable_fixedPatternTest(nwords=12, verbose=args.verbose, algo=args.algo)
         else:
             scan_PLL_phase_of_enable(args.bx,args.nwords,args.good)
-    if args.capture:
-        data=send_capture(bx=args.bx, nwords=args.nwords,asHex=True)
+    elif args.capture:
+        data=send_capture(bx=args.bx, nwords=args.nwords,asHex=True,capture=True)
         if args.verbose:
             for n in data: print(','.join(n))
-
+    elif args.daq:
+        event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=args.sleepTime)
 
 

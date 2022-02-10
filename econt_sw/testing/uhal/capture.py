@@ -13,7 +13,7 @@ import utils.stream_compare as utils_sc
 logger = logging.getLogger('capture')
 logger.setLevel('INFO')
 
-def capture_lc(dev,lcaptures,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
+def capture_lc(dev,lcaptures,nwords,mode,bx=0,nocsv=False,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
     """
     Allows for captures in multiple lcs
     """
@@ -55,8 +55,8 @@ def capture_lc(dev,lcaptures,nwords,mode,bx=0,csv=True,odir="./",fname="",nlinks
         data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
     
         # save or print
-        if csv:
-            utils_tv.save_testvector("%s/%s%s.csv"%(odir,lcapture,fname), data[lcapture])
+        if not nocsv:
+            utils_tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
         if phex:
             datahex = utils_tv.fixed_hex(data[lcapture],8)
             for n in datahex: logger.info(','.join(n))
@@ -103,12 +103,13 @@ def syncword_lc(dev,lcaptures,syncword,nlinks=-1):
             dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_pattern").write(int(syncword,16))
         dev.dispatch()
 
-def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,csv=True,odir="./",fname="sc",phex=False):
+def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="sc",phex=False,sleepTime=0.01,log=False):
     # stream compare just compares its two inputs.  
     # If they match, then it increments the word counter, and doesn't do anything else.
     # If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).
     if nlinks==-1:
         nlinks = output_nlinks
+    lcaptures = ['lc-ASIC','lc-emulator']
 
     if trigger:
         # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing
@@ -116,7 +117,7 @@ def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,csv=True,odir="./",fname=
 
         utils_fc.configure_fc(dev)
         # configure link captures to acquire on L1A
-        for lcapture in ['lc-ASIC','lc-emulator']:
+        for lcapture in lcaptures:
             utils_lc.configure_acquire(dev,lcapture,'L1A',nwords,nlinks,0,verbose=False)
         # set acquire to 1
         # you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger
@@ -126,18 +127,22 @@ def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,csv=True,odir="./",fname=
     utils_sc.configure_compare(dev,nlinks,trigger)
     
     # log counters
-    for i in range(1):
-        err_count = utils_sc.reset_log_counters(dev,stime=0.01)
-        # read data if error count > 0
-        if err_count>0 and trigger:
-             data = {}
-             for lcapture in lcaptures:
-                 data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
-                 if csv:
-                     utils_tv.save_testvector("%s/%s%s.csv"%(odir,lcapture,fname), data)
-                 if phex:
-                     datahex = utils_tv.fixed_hex(data,8)
-                     for n in datahex: logger.info(','.join(n))
+    if log:
+        while err_count <=0:
+            err_count = utils_sc.reset_log_counters(dev,stime=sleepTime)
+    else:
+        err_count = utils_sc.reset_log_counters(dev,stime=sleepTime)
+
+    # read data if error count > 0
+    if err_count>0 and trigger:
+        data = {}
+        for lcapture in lcaptures:
+            data[lcapture] = utils_lc.get_captured_data(dev,lcapture,nwords,nlinks,verbose=False)
+            if not nocsv:
+                utils_tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
+            if phex:
+                datahex = utils_tv.fixed_hex(data[lcapture],8)
+                for n in datahex: logger.info(','.join(n))
 
     # reset fc
     utils_fc.configure_fc(dev)
@@ -150,7 +155,7 @@ if __name__ == "__main__":
     python testing/uhal/capture.py --capture --lc lc-ASIC  --nwords 100 --mode L1A
     
     Add:
-    --csv: if do not want to save csv
+    --nocsv: if do not want to save csv
     --odir: output directory for csv
     --fname: filename for csv
     --phex: if you want to print phex
@@ -182,7 +187,7 @@ if __name__ == "__main__":
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
     parser.add_argument('--nlinks', type=int, default=-1, help='number of links')
 
-    parser.add_argument('--csv', action='store_false', default=True, help='do not save captured data in csv format')
+    parser.add_argument('--nocsv', action='store_true', default=False, help='do not save captured data in csv format')
     parser.add_argument('--phex', action='store_true', default=False, help='print in hex format')
     parser.add_argument('--odir',dest="odir",type=str, default="./", help='output directory')
     parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
@@ -209,7 +214,7 @@ if __name__ == "__main__":
         syncword_lc(dev,args.lc.split(','),args.sync,args.nlinks)
 
     if args.capture:
-        capture_lc(dev,args.lc.split(','),args.nwords,args.mode,args.bx,args.csv,args.odir,args.fname,args.nlinks,args.phex)
+        capture_lc(dev,args.lc.split(','),args.nwords,args.mode,args.bx,args.nocsv,args.odir,args.fname,args.nlinks,args.phex)
 
     if args.compare:
-        compare_lc(dev,trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,csv=args.csv,odir=args.odir,fname=args.fname,phex=args.phex)
+        compare_lc(dev,trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,nocsv=args.nocsv,odir=args.odir,fname=args.fname,phex=args.phex,sleepTime=args.sleepTime)

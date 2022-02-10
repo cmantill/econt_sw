@@ -17,8 +17,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
                         help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
-    parser.add_argument('--dtype', type=str, default="zeros", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
-    parser.add_argument('--idir',dest="idir",type=str, default=None, help='test vector directory')
+    parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
+    parser.add_argument('--idir',dest="idir",type=str, default="", help='test vector directory')
     
     args = parser.parse_args()
 

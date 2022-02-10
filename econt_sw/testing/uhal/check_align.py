@@ -14,7 +14,7 @@ import utils.fast_command as utils_fc
 Check alignment on tester
 
 Usage:
-   python testing/uhal-check_align.py 
+   python testing/uhal-check_align.py --check --block [from-IO,to-IO,lc-ASIC,lc-emulator]
 """
 
 if __name__ == "__main__":
@@ -39,9 +39,9 @@ if __name__ == "__main__":
 
     if args.check:
         if args.block=='from-IO':
-            isIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks)
+            isIO_aligned = utils_io.check_IO(dev,io='from',nlinks=output_nlinks,verbose=False)
         elif args.block=='to-IO':
-            isIO_aligned = utils_io.check_IO(dev,io='to',nlinks=output_nlinks)
+            isIO_aligned = utils_io.check_IO(dev,io='to',nlinks=output_nlinks,verbose=False)
         elif args.block=='lc-ASIC':
             is_lcASIC_aligned = utils_lc.check_links(dev,args.block,output_nlinks)
 

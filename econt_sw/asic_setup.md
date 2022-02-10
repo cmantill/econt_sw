@@ -235,6 +235,17 @@ where $BOARD = 2 (45), 3(48)
    python3 testing/eRx.py --snapshot --bx 4 
    ```
    - To scan `hdr_mm_cntr` after manually changing phase:
+
+   ### Inversion
+   - Test inverting ERX from IO block and with i2c registers:
+   ```
+   # to-IO block (default is with --invertIO)
+   python testing/uhal/align_on_tester.py --step configure-IO --io_names to
+   # i2c (change values to 1 to invert)
+   python3 testing/i2c.py --name ERX_ch_*_invert_data --value 0 --quiet
+   # check snapshot
+   python3 testing/eRxMonitoring.py --snapshot
+   ```
   
 ## ETX and Output data
 
@@ -263,8 +274,42 @@ where $BOARD = 2 (45), 3(48)
     python3 testing/eTx.py --scan --bx 40 --nwords 100 --goodPhase 0
     ```
 
+### Data comparison and acquisition
+    Can be used to:
+    - load new registers and input test vectors
+    - compare outputs between ASIC and emulator
+    - trigger on a mismatch and print out first rows
+    1. To do comparison without changing test vector inputs or i2c registers
+    ```
+    python3 testing/eTx.py --daq
+    ```
+    2. To change the test vectors using a default data type e.g. zeros w headers
+    ```
+    python3 testing/eTx.py --daq --dtype zeros
+    ```
+    3. To load new test vectors from directory (this will change the i2c registers using the yaml file init.yaml in that directory), e.g. `IDIR = configs/test_vectors/counterPatternInTC/RPT/`.
+    ```
+    python3 testing/eTx.py --daq --idir configs/test_vectors/counterPatternInTC/RPT/
+    ```
+    - To keep the i2c registers unmodified for both ASIC and emulator:
+    ```
+    python3 testing/eTx.py --daq --idir configs/test_vectors/counterPatternInTC/RPT/ --i2ckeep
+    ```
+    - To modify the i2c registers of only one of the ECONs:
+    ```
+    python3 testing/eTx.py --daq --idir configs/test_vectors/counterPatternInTC/RPT/ --i2ckeys ASIC # or, emulator
+    ```
+    4. For triggering on mistmatches, capturing data and saving it into files
+    ```
+    python3 testing/eTx.py --daq --idir configs/test_vectors/counterPatternInTC/RPT/ --trigger 
+    ```
+
 ## Fast commands
    - Introduce delay in FC data:
    ```
    python testing/uhal/fast_command.py --fc command-delay
    ```
+   - Chip sync
+   ```
+   python testing/uhal/fast_command.py --fc chipsync
+   ``` 
