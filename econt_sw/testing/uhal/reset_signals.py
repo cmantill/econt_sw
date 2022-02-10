@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('--reset',  type=str, choices=['hard', 'soft'], help="type of reset signal")
     parser.add_argument('--hold', default=False, action='store_true', help='hold reset')
     parser.add_argument('--time', type=float, default=0.5, help='length of time to hold reset (default 0.5 seconds)')
+    parser.add_argument('--repeat', type=int, default=None, help='send repeatedly N times')
     parser.add_argument('--release', default=False, action='store_true', help='release reset')
     parser.add_argument('--read', type=bool, default=False, help='read reset')
 
@@ -53,6 +54,15 @@ if __name__ == "__main__":
         reset = dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).read()
         dev.dispatch()
         print(reset_string, int(reset))
+    elif args.repeat:
+        for i in range(args.repeat):
+            print(i)
+            dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+            dev.dispatch()
+            sleep(args.time)
+            dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
+            dev.dispatch()
+            sleep(args.time)
     else:
         dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
         dev.dispatch()
