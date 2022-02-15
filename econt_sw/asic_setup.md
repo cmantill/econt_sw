@@ -5,21 +5,10 @@
   ```
   python testing/uhal/reset_signals.py --reset [soft,hard] --i2c [ASIC,emulator]
   ```
-
-## Quick setup
-```
-source scripts/quickASICSetup.sh $BOARD
-```
-where $BOARD = 2 (45), 3(48)
-
-(Assumes that FC stream, BCR are enabled)
-- Locks FC by configuring when FC clock locks to data
-- Locks PLL by configuring PLL VCR capacitor value
-- Fixed-mode phase alignment with known "best" settings from PRBS scan
-- Manual word alignment with known `sel` value
-- Sets threshold algorithm with high thresholds, and zero IDLE word
-- Sets run bit to 1
-- Reads PUSM state
+- Sending repeated resets:
+  ```
+  python testing/uhal/reset_signals.py --reset soft --time 0.1 --repeat 10
+  ```
 
 ## Start-up
 
@@ -80,13 +69,15 @@ where $BOARD = 2 (45), 3(48)
   For board 3 (48):
   ```
   BESTPHASE (PRBS w best setting, thr 500) = 6,13,7,14,14,0,7,8,7,7,7,8
-  BESTPHASE (PRBS w min errors) = 7 6 0 7 7 0 0 0 7 0 0 0
-  BESTPHASE (scan hdr_mm_cntr) = 
+  BESTPHASE (PRBS w min errors) = 7,6,0,7,7,0,0,0,7,0,0,0
+  BESTPHASE (scan hdr_mm_cntr) = 7,6,7,7,7,8,7,8,8,8,8,8
   ```
 
   For board 2 (45)
   ```
-  BESTPHASE = 
+  BESTPHASE (PRBS w best setting, thr 500) =
+  BESTPHASE (PRBS w min errors) = 
+  BESTPHASE (scan hdr_mm_cntr) = 7,7,8,8,8,9,8,9,8,9,8,9
   ```
 
   - Set up the alignment registers.
@@ -210,6 +201,23 @@ where $BOARD = 2 (45), 3(48)
     python testing/uhal/align_on_tester.py --step compare
     ```
 
+## Quick setup (if FPGA is set up)
+```
+source scripts/quickASICSetup.sh $BOARD
+```
+where $BOARD = 2 (45), 3(48)
+
+(Assumes that FC stream, BCR are enabled)
+- Locks FC by configuring when FC clock locks to data
+- Locks PLL by configuring PLL VCR capacitor value
+- Fixed-mode phase alignment with known "best" settings from PRBS scan
+- Manual word alignment with known `sel` value
+- Sets threshold algorithm with high thresholds, and zero IDLE word
+- Sets run bit to 1
+- Reads PUSM state
+
+Note that it does not configure IO and it can be used when power cycle the ASIC or do a hard reset but leave the FPGA configuration untouched.
+
 ## ERX and Input data
    ### To modify the input test vectors
    - With an output produced by elink outputs:
@@ -306,6 +314,31 @@ where $BOARD = 2 (45), 3(48)
    python3 testing/eTx.py --daq --idir configs/test_vectors/counterPatternInTC/RPT/ --trigger 
    ```
    
+   ### Using pre-determined test-vectors
+   The general testing procedure is:
+   ```
+   # load the pre-determined test-vectors in $dir, enable triggering on mismatches
+   python3 testing/eTx.py --daq --idir $dir --trigger
+   # capture output in lc-ASIC as a record
+   python3 testing/eTx.py --capture --fname $(basename $dir) --verbose
+   ```
+
+   This is summarized in:
+   ```
+   source scripts/compareEmulator.sh $IDIR
+   ```
+
+   - To Test the the test dataset `TS_diffThreshold`:
+     This sets different threshold levels for the ASIC and the Emulator, at a targeted level, such that a single BX will be different between the two.
+     ```
+     # modify the input dataset and the ASIC i2c parameters but do not compare yet:
+     python3 testing/eTx.py --daq --idir configs/test_vectors/randomPatternExpInTC/TS_diffThreshold/ --nocompare --yaml init_ASIC --i2ckeys ASIC
+     # modify the input dataset and the emulator i2c parameters (From a different yaml file) but do not compare yet:
+     python3 testing/eTx.py --daq --idir configs/test_vectors/randomPatternExpInTC/TS_diffThreshold/ --nocompare --yaml init_emulator --i2ckeys emulator
+     # modify the input dataset, keep the i2c configuration for the ASIC and emulator and do the comparison (and trigger on mis-match):
+     python3 testing/eTx.py --daq --idir configs/test_vectors/randomPatternExpInTC/TS_diffThreshold/ --i2ckeep --trigger
+     ```
+
 ## Fast commands
    - Introduce delay in FC data:
    ```
