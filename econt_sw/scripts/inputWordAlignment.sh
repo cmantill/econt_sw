@@ -29,5 +29,5 @@ python testing/uhal/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --
 
 python3 testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
 
-python3 testing/eRxMonitoring.py --alignment --verbose
-python3 testing/eRxMonitoring.py --logging -N 1 --sleep 2
+python3 testing/eRx.py --alignment --verbose
+python3 testing/eRx.py --logging -N 1 --sleep 2
