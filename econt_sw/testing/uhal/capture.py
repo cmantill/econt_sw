@@ -134,6 +134,7 @@ def compare_lc(dev,trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fna
         err_count = utils_sc.reset_log_counters(dev,stime=sleepTime)
 
     # read data if error count > 0
+    # trigger will capture 32 words prior to a mismatch identified by stream_compare
     if err_count>0 and trigger:
         data = {}
         for lcapture in lcaptures:
@@ -192,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument('--odir',dest="odir",type=str, default="./", help='output directory')
     parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
 
-    parser.add_argument('--sleep',dest='sleepTime',default=1,type=int,help='Time to wait between logging iterations')
+    parser.add_argument('--sleep',dest='sleepTime',default=0.01,type=float,help='Time to wait between logging iterations')
     parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
 
     args = parser.parse_args()

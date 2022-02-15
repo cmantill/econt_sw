@@ -8,6 +8,12 @@ logging.basicConfig()
 logger = logging.getLogger('utils:IO')
 logger.setLevel(logging.INFO)
 
+def reset_counters(dev,io,io_name='IO'):
+    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
+    time.sleep(1)
+    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
+    dev.dispatch()
+
 def configure_IO(dev,io,io_name='IO',invert=False):
     """
     Configures IO blocks.
@@ -35,12 +41,12 @@ def configure_IO(dev,io,io_name='IO',invert=False):
             dev.getNode(names[io_name][io]+".link"+str(l)+"."+key).write(value)
         dev.dispatch()
 
-    # reset
+    # reset links
     dev.getNode(names[io_name][io]+".global.global_rstb_links").write(0x1)
-    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
-    time.sleep(1)
-    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
     dev.dispatch()
+
+    # reset counters
+    reset_counters(dev,io,io_name)
 
 def manual_IO(dev,io,io_name='IO'):
     nlinks = input_nlinks if io=='to' else output_nlinks
@@ -56,20 +62,15 @@ def manual_IO(dev,io,io_name='IO'):
     dev.dispatch()
 
     # reset counters
-    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
-    time.sleep(1)
-    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
-    dev.dispatch()
+    reset_counters(dev,io,io_name)
 
 def check_IO(dev,io='from',nlinks=output_nlinks,io_name='IO',nit=10000,verbose=False):
     """
     Checks whether IO block is aligned.
     """
     # reset the counters
-    dev.getNode(names[io_name][io]+".global.global_reset_counters").write(0x1)
-    time.sleep(1)
-    dev.getNode(names[io_name][io]+".global.global_latch_counters").write(0x1)
-    dev.dispatch()
+    reset_counters(dev,io,io_name)
+
     # check the counters
     IO_delayready = []
     for l in range(nlinks):

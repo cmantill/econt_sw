@@ -68,7 +68,7 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=False):
         set_PLL_phase_of_enable(phase)
         
         # capture data at a fixed BX
-        data = send_capture("lc-ASIC","BX",bx,nwords,capture=True)
+        data,_ = send_capture("lc-ASIC","BX",bx,nwords,capture=True)
         scanData.append(data)
 
         dataHex = fixedHex(data,8)
@@ -127,7 +127,7 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     for i_pll in range(8):
         call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
         print(i_pll)
-        data=send_capture(bx=0,nwords=nwords,capture=True)
+        data,_=send_capture(bx=0,nwords=nwords,capture=True)
         datahex = fixedHex(data,8)
         print(datahex)
 
@@ -157,15 +157,11 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     call_i2c(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
     return data
 
-def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01):
+def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01,nocompare=False,yamlname="init"):
     """
     Automatize event DAQ.
     Only modify the input or i2c registers if idir/dtype and/or yamlFile is given.
     """
-    # check that link capture and IO are aligned
-    os.system('python testing/uhal/check_align.py --check --block from-IO')
-    os.system('python testing/uhal/check_align.py --check --block lc-ASIC')
-
     # modify inputs
     if idir!="" or dtype!="":
         logger.info(f"Loading input test vectors, dtype {dtype}, idir {idir}")
@@ -176,7 +172,7 @@ def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095
         
         # modify slow control from that idir unless told so
         if idir!="" and not i2ckeep:
-            yamlFile = f"{idir}/init.yaml"
+            yamlFile = f"{idir}/{yamlname}.yaml"
             logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
             x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
             
@@ -184,18 +180,28 @@ def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095
             try:
                 nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
             except:
-                logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
+                try:
+                    nlinks = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+                except:
+                    logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
+
+    if nocompare: 
+        return
+
+    # check that IO and LC are aligned
+    os.system('python testing/uhal/check_align.py --check --block from-IO --nlinks %i'%nlinks)
+    os.system('python testing/uhal/check_align.py --check --block lc-ASIC --nlinks %i'%nlinks)
 
     # send compare command
     data_asic,data_emu = send_capture(compare=True,trigger=trigger,nwords=nwords,nlinks=nlinks,fname="temp",sleepTime=sleepTime)
 
     # look at first rows of captured data
     if (data_asic is not None) and (data_emu is not None):
-        for row in fixedHex(data_asic,8)[:10]:
-            logger.info('lc-ASIC: '+",".join(map(str,list(row))))
+        for i,row in enumerate(fixedHex(data_asic,8)[:40]):
+            logger.info(f'lc-ASIC {i}: '+",".join(map(str,list(row))))
         logger.info('.'*50)
-        for row in fixedHex(data_emu,8)[:10]:
-            logger.info('lc-emulator: '+",".join(map(str,list(row))))
+        for i,row in enumerate(fixedHex(data_emu,8)[:40]):
+            logger.info(f'lc-emulator {i}: '+",".join(map(str,list(row))))
         logger.info('.'*50)
 
 if __name__=='__main__':
@@ -209,6 +215,7 @@ if __name__=='__main__':
 
     parser.add_argument('--bx', type=int, default=12, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
+    parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
 
     parser.add_argument('--good', type=int, default=0, help='good value of PLL_phase_of_enable')
     parser.add_argument('--fixedPattern', dest='doFixedPatternTest',default=False, action='store_true')
@@ -218,9 +225,11 @@ if __name__=='__main__':
     parser.add_argument('--idir', dest="idir",type=str, default="", help='test vector directory')
     parser.add_argument('--i2ckeep', dest='i2ckeep',default=False, action='store_true', help="keep i2c configuration")
     parser.add_argument('--i2ckeys', dest='i2ckeys', type=str, default='ASIC,emulator', help="keys of i2c addresses(ASIC,emulator)")
+    parser.add_argument('--yamlname', dest="yamlname",type=str, default="init", help='yaml filename in idir to load (exclude .yaml)')
 
-    parser.add_argument('--sleep',dest='sleepTime',default=1,type=int,help='Time to wait between logging counters')
+    parser.add_argument('--sleep', dest='sleepTime', type=str, default='0.01',help='Time to wait between logging counters')
     parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
+    parser.add_argument('--nocompare', action='store_true', default=False, help='Do not compare and just load the inputs')
 
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
@@ -231,10 +240,13 @@ if __name__=='__main__':
         else:
             scan_PLL_phase_of_enable(args.bx,args.nwords,args.good)
     elif args.capture:
-        data=send_capture(bx=args.bx, nwords=args.nwords,asHex=True,capture=True)
+        data,_=send_capture(bx=args.bx, nwords=args.nwords,asHex=True,capture=True,fname=args.fname)
         if args.verbose:
-            for n in data: print(','.join(n))
+            for row in data[:8]:
+                logger.info('lc-ASIC: '+",".join(map(str,list(row))))
+            logger.info('.'*50)
+
     elif args.daq:
-        event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=args.sleepTime)
+        event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=float(args.sleepTime),nocompare=args.nocompare,yamlname=args.yamlname)
 
 
