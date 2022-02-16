@@ -109,7 +109,7 @@ class Translator():
                             try:
                                 prev_regVal = int.from_bytes(prevCache[addr][0], 'little') if addr in prevCache else 0
                             except:
-                                print('address is a nested dict')
+                                # print('address is a nested dict')
                                 continue
                             
                             for par, parDict in defaultDict['params'].items():
