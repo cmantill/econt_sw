@@ -47,6 +47,38 @@ ECON-SW
     make install -j2 Set=uhal
     ```
 
+#### python3 compatible uhal installation
+
+    If compiling to python3 instead of python2, do not checkout the `asteen/UIO-hgcal-dev` branch, but stick to the default `hgcal-uio` branch from the `hgcal-daq-sw/ipbus-software.git` repository.  Additionally, the `pybind11` libraries need to be installed:
+
+    ```sudo pip3 install pybindll[global]```
+
+    The Makefiles need to be updated in a couple of spots to build the python3 bindings instead of defaulting to python2
+
+    In `config/Makefile.macros`, line 8, change `python` to `python3`
+    ```
+-PYTHON ?= python
++PYTHON ?= python3
+   ```
+   and in `uhal/Makefile`, lines 22:
+```
+-       PACKAGES := $(filter-out python, $(PACKAGES))
++       PACKAGES := $(filter-out python3, $(PACKAGES))
+```
+   and line 57:
+```
+-PYTHON ?= python
++PYTHON ?= python3
+```
+
+Then, finally, compile:
+```
+# compile uHal
+sudo make -j2 Set=uhal
+sudo make install -j2 Set=uhal
+```
+
+
 ## Install:
 
 - **Basic installation of econt-sw on Zynq Trenz module**:
