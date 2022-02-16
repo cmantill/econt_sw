@@ -1,5 +1,5 @@
 import os
-from uhal_config import names,input_nlinks,output_nlinks
+from .uhal_config import names,input_nlinks,output_nlinks
 import numpy as np
 
 import logging

@@ -1,6 +1,6 @@
 import os
 import uhal
-from uhal_config import names,input_nlinks,output_nlinks
+from .uhal_config import names,input_nlinks,output_nlinks
 
 import time
 import logging

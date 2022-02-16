@@ -1,7 +1,7 @@
 import os
 import uhal
 import time
-from uhal_config import names
+from .uhal_config import names
 
 import logging
 logging.basicConfig()
