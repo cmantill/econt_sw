@@ -10,10 +10,10 @@ import utils.io as utils_io
 import utils.test_vectors as utils_tv
 
 """
-Alignment sequence on 'ASIC' - (emulator) using python2 uhal.
+Alignment sequence on 'ASIC' - (emulator)
 
 Usage:
-   python testing/uhal-align_on_ASIC.py 
+   python3 testing/uhal-align_on_ASIC.py 
 """
 
 if __name__ == "__main__":

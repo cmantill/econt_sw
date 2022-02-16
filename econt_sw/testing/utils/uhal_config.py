@@ -37,20 +37,20 @@ names = {
 input_nlinks = 12
 output_nlinks = 13
 
-def set_logLevel(args,disable=True):
+def set_logLevel(logLevel="",disable=True):
     import uhal
     if disable:
         uhal.disableLogging()
     else:
-        if args.logLevel.find("ERROR")==0:
+        if logLevel.find("ERROR")==0:
             uhal.setLogLevelTo(uhal.LogLevel.ERROR)
-        elif args.logLevel.find("WARNING")==0:
+        elif logLevel.find("WARNING")==0:
             uhal.setLogLevelTo(uhal.LogLevel.WARNING)
-        elif args.logLevel.find("NOTICE")==0:
+        elif logLevel.find("NOTICE")==0:
             uhal.setLogLevelTo(uhal.LogLevel.NOTICE)
-        elif args.logLevel.find("DEBUG")==0:
+        elif logLevel.find("DEBUG")==0:
             uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
-        elif args.logLevel.find("INFO")==0:
+        elif logLevel.find("INFO")==0:
             uhal.setLogLevelTo(uhal.LogLevel.INFO)
         else:
             uhal.disableLogging()

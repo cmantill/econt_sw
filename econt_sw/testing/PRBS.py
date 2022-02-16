@@ -8,6 +8,8 @@ import numpy as np
 import csv
 import time
 
+from test_vectors import configure_tv
+
 import logging
 logger = logging.getLogger("prbs")
 logger.setLevel(logging.INFO)
@@ -57,16 +59,16 @@ def enable_prbschk(args,channels,allch=True):
             if args.prbs==28:
                 call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='1',args_i2c=args.i2c)
 
-def check_prbs(args,channels,allch):
+def check_prbs(args,dev,channels,allch):
     if args.fixed:
         # send a fixed pattern
-        os.system('python testing/uhal/test_vectors.py --idir configs/test_vectors/counterPatternInTC_by2/RPT/')
+        configure_tv(dev,dtype="",idir="configs/test_vectors/counterPatternInTC_by2/RPT/")
     elif args.opposite:
         # send oppposite PRBS on purpose
         if args.prbs==28:
-            os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
+            configure_tv(dev,dtype="PRBS32")
         else:
-            os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
+            configure_tv(dev,dtype="PRBS28")
     elif args.internal:
         for channel in channels:
             call_i2c(args_name=f'CH_ALIGNER_{channel}_patt_en,CH_ALIGNER_{channel}_patt_sel',args_value='1,1',args_i2c=args.i2c)
@@ -74,9 +76,9 @@ def check_prbs(args,channels,allch):
             # call_i2c(args_name=f'CH_ALIGNER_{channel}_seed_in',args_value=f'{seed}',args_i2c=args.i2c) 
     else:
         if args.prbs==28:
-            os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
+            configure_tv(dev,dtype="PRBS28")
         else:
-            os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
+            configure_tv(dev,dtype="PRBS32")
     
     # clear counters
     clear_counters(args)
@@ -86,14 +88,14 @@ def check_prbs(args,channels,allch):
     logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
     print_error_and_counters(args,channels)
 
-def scan_prbs(args,channels,allch,verbose=True):
+def scan_prbs(args,dev,channels,allch,verbose=True):
     # reset things for PRBS
     call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=args.i2c)
     if args.prbs==28:
-        os.system('python testing/uhal/test_vectors.py --dtype PRBS28')
+        configure_tv(dev,dtype="PRBS28")
     else:
         # switch off the headers
-        os.system('python testing/uhal/test_vectors.py --dtype PRBS32')
+        configure_tv(dev,dtype="PRBS32")
 
     err_counts = []
     for sel in range(0,16):
@@ -183,6 +185,12 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', dest='threshold',default=500,type=int, help='Threshold of number of allowed errors ')
     args = parser.parse_args()
 
+    import uhal
+    from utils.uhal_config import set_logLevel
+    set_logLevel()
+    man = uhal.ConnectionManager("file://connection.xml")
+    dev = man.getDevice("mylittlememory")
+
     if args.link==-1:
         allch = True
         channels = range(0,12)
@@ -191,7 +199,7 @@ if __name__ == "__main__":
         channels = [args.link]
 
     if args.check:
-        check_prbs(args,channels,allch)
+        check_prbs(args,dev,channels,allch)
     else:
-        scan_prbs(args,channels,allch)
+        scan_prbs(args,dev,channels,allch)
 

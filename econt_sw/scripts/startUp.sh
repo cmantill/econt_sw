@@ -17,8 +17,8 @@ python3 testing/i2c.py --name PUSM_state
 echo ""
 echo "Starting to send 28 bit PRBS data"
 source env.sh
-python testing/uhal/align_on_tester.py --step configure-IO --invertIO
-python testing/uhal/align_on_tester.py --step init
+python testing/align_on_tester.py --step configure-IO --invertIO
+python testing/align_on_tester.py --step init
 
 echo "PUSM state"
 python3 testing/i2c.py --name PUSM_state

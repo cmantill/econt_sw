@@ -4,13 +4,13 @@ import argparse
 import logging
 logging.basicConfig()
 
-from uhal_config import *
+from utils.uhal_config import *
 
 """
-Delay scan using uHAL python2.
+Delay scan on IO blocks.
 
 Usage:
-   python testing/uhal-delayScan.py 
+   python3 testing/delay_scan.py 
 """
 
 if __name__ == "__main__":
