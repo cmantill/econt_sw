@@ -7,21 +7,12 @@ from time import sleep
 
 logger = logging.getLogger('fc')
 
-import utils.fast_command as utils_fc
+from utils.fast_command import FastCommands
 from utils.uhal_config import *
 
 """
 Send/Read fast commands
 """
-
-def command_delay(dev,args):
-    if args.read:
-        d = dev.getNode(names['fc']+".command_delay").read();
-        dev.dispatch()
-        logger.info('command_delay %i'%int(d))
-    else:
-        dev.getNode(names['fc']+".command_delay").write(1);
-        dev.dispatch()
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description='Align links')
@@ -34,8 +25,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     set_logLevel(args)
-    man = uhal.ConnectionManager("file://connection.xml")
-    dev = man.getDevice("mylittlememory")
+
 
     try:
         logger.setLevel(args.logLevel)
@@ -43,8 +33,13 @@ if __name__ == "__main__":
         logging.error("Invalid log level")
         exit(1)
 
-    utils_fc.configure_fc(dev,args.read)
+    fc=FastCommands()
+
+    fc.configure_fc(args.read)
     if args.fc=='chipsync':
-        utils_fc.chipsync(dev)
+        fc.chipsync()
     elif args.fc=='command-delay':
-        command_delay(dev,args)
+        if args.read:
+            fc.read_command_delay()
+        else:
+            fc.set_command_delay()
