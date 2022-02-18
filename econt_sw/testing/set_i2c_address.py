@@ -8,7 +8,7 @@ logger = logging.getLogger('i2cSet')
 
 """
 Setting i2c address with uHal
-Usage: python3 i2c_set_address.py --i2c ASIC --addr 0
+Usage: python3 set_i2c_address.py --i2c ASIC --addr 0
 """
 
 if __name__ == "__main__":    
