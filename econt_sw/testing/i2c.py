@@ -244,6 +244,7 @@ if __name__ == "__main__":
     parser.add_argument('--write', default=False, action='store_true', help='write registers when using yaml file, rather than just read')
     parser.add_argument('--compare', default=False, action='store_true', help='do comparison of read to values in yaml file')
     parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
+    parser.add_argument('--info', default=False, action='store_true', help="Print a description of the register matching pattern in --name argument")
     parser.add_argument('--init', default=False, action='store_true', help='write default register map')
     parser.add_argument('--quiet', default=False, action='store_true', help="quiet mode, don't print output")
     
@@ -282,6 +283,43 @@ if __name__ == "__main__":
             for r in names_to_register.keys():
                 print(names_to_register[r][0], r)
 #                print(r)
+        exit()
+
+    ### adds capability to simply print the list of accessible registers.
+    ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
+    if args.info:
+        import json
+        with open("zmq_i2c/reg_maps/ECON_I2C_dict_info.json") as f:
+            names_to_register = json.load(f)
+        with open("zmq_i2c/reg_maps/ECON_I2C_reg_description_dict.json") as f:
+            registerDescriptions = json.load(f)
+        if args.name:
+            p2 = re.compile('^(\w*)\*(\w*)$')
+            p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
+            regList = []
+            if p2.match(args.name):
+                name_start, name_end = p2.match(args.name).groups()
+                name_mid=''
+            elif p3.match(args.name):
+                name_start, name_mid, name_end = p3.match(args.name).groups()
+            else:
+                name_start=args.name
+                name_mid=''
+                name_end=''
+            for reg in names_to_register.keys():
+                if reg.startswith(name_start) and reg.endswith(name_end) and (name_mid in reg):
+                    regList.append(reg)
+            for r in regList:
+                print(r)
+                regInfo=names_to_register[r]
+                print(f'    ReadWrite   : {regInfo["i2cInfo"][0]}')
+                print(f'    Address     : {regInfo["addr"]}')
+                print(f'    Size (bits) : {regInfo["size"]}')
+                print(f'    Default     : {regInfo["default"]}')
+                print(f'    Bits        : {regInfo["bits"]}')
+                print(f'    Description : {registerDescriptions[regInfo["docName"]]}')
+
+
         exit()
 
     outputs = call_i2c(args_name=args.name,
