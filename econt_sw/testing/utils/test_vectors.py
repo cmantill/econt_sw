@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+import uhal
 from .uhal_config import *
 
 import logging
@@ -50,7 +51,7 @@ class TestVectors():
                 for j in range(len(data)):
                     writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-    def set_testvectors(self,dtype="",idir=""):
+    def configure(self,dtype="",idir=""):
         """
         Set test vectors
         dtype [PRBS,PRBS32,PRBS28,debug,zeros]
