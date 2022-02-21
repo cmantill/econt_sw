@@ -44,6 +44,10 @@ class TestVectors():
         """
         if len(data)>0:
             import csv
+            try:
+                os.remove(fname)
+            except:
+                continue
             with open( fname, 'w') as f:
                 writer = csv.writer(f, delimiter=',')
                 if header:

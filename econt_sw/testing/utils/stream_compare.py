@@ -42,7 +42,9 @@ class StreamCompare():
     def reset_log_counters(self,stime=0.01):
         """
         Reset counters, wait for a time, latch them again.
-        Log word and error count
+        Log word and error count.
+        SC just compares the two inputs: If they match, then it increments the word counter, and doesn't do anything else.
+        If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).
         """
         # reset counters: set counters to zero and immediately continues counting as data comes in
         # latch counters: copies the current counter values to a separate set of registers that you can read out.

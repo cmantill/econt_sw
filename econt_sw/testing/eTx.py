@@ -6,11 +6,11 @@ import os
 import logging
 logger = logging.getLogger("eTx")
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
+#ch = logging.StreamHandler()
+#ch.setLevel(logging.INFO)
+#logger.addHandler(ch)
 
-
+from utils.uhal_config import output_nlinks
 from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
@@ -22,7 +22,15 @@ lc = LinkCapture()
 tv = TestVectors()
 sc = StreamCompare()
 
-def capture(lcaptures,nwords,mode,bx=0,nocsv=False,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
+def save_captured_data(lcaptures,data,csv=False,phex=False)
+    for lcapture in lcaptures:
+        if csv:
+            tv.save_testvector(f"{odir}/{lcapture}_{fname}.csv",data[lcapture])
+        if phex:
+            datahex = tv.fixed_hex(data[lcapture],8)
+            for n in datahex: logger.info(','.join(n))
+
+def capture(lcaptures,nwords,mode,bx=0,csv=False,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
     # reset fc
     fc.configure_fc()
 
@@ -43,106 +51,100 @@ def capture(lcaptures,nwords,mode,bx=0,nocsv=False,odir="./",fname="",nlinks=-1,
             lc.do_capture(lcaptures,verbose=False)
 
     # get captured data
-    data = lc.get_captured_data(lcaptures,nwords,verbose=False)    
-    # save or print                                                                                                                                                                                                                                                                                                       
-    if not nocsv:
-        for lcapture in lcaptures:
-            tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
-    if phex:
-        datahex = tv.fixed_hex(data[lcapture],8)
-        for n in datahex: logger.info(','.join(n))
+    data = lc.get_captured_data(lcaptures,nwords,verbose=False)
+
+    # save or print
+    save_captured_data(lcaptures,data,csv,phex)
 
     # reset fc
     fc.configure_fc()
 
+    return data
+
 def compare_lc(trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="sc",phex=False,sleepTime=0.01,log=False):
-    """                                                                                                                                                                                                                                                                                                                       
-    Stream compare just compares its two inputs.                                                                                                                                                                                                                                                                              
-    If they match, then it increments the word counter, and doesn't do anything else.                                                                                                                                                                                                                                         
-    If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).                                                                                                                            
-    """
+    """Compare two link captures"""
+    lcaptures = ['lc-ASIC','lc-emulator']
     if nlinks==-1:
         nlinks = output_nlinks
-    lcaptures = ['lc-ASIC','lc-emulator']
 
     if trigger:
-        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing                                                                                                                                                                                                            
-        # otherwise we could get in some weird situations wiht link capture                                                                                                                                                                                                                                                   
+        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing
+        # otherwise we could get in some weird situations wiht link capture
 
+        # reset fc
         fc.configure_fc()
 
-        # configure link captures to acquire on L1A                                                                                                                                                                                                                                                                           
-        lc.configure_acquire(['lc-ASIC','lc-emulator'],'L1A',nwords,0,verbose=False)
+        # configure acquire
+        lc.configure_acquire(lcaptures,'L1A',nwords,0,verbose=False)
 
-        # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)                                                                                                                                                                                               
+        # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)
         lc.do_capture(lcaptures,verbose=False)
 
-    # configure stream compare                                                                                                                                                                                                                                                                                                
+    # configure stream compare
     sc.configure_compare(nlinks,trigger)
 
-    # log counters                                                                                                                                                                                                                                                                                                            
+    # log counters
     if log:
         while err_count <=0:
             err_count = sc.reset_log_counters(stime=sleepTime)
     else:
         err_count = sc.reset_log_counters(stime=sleepTime)
 
-    # read data if error count > 0                                                                                                                                                                                                                                                                                            
-    # trigger will capture 32 words prior to a mismatch identified by stream_compare                                                                                                                                                                                                                                          
+    # read data if error count > 0
+    # trigger will capture 32 words prior to a mismatch identified by stream_compare
+    data = None
     if err_count>0 and trigger:
-        data = {}
-        for lcapture in lcaptures:
-            data[lcapture] = lc.get_captured_data(lcapture,nwords,nlinks,verbose=False)
-            if not nocsv:
-                tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
-            if phex:
-                datahex = tv.fixed_hex(data[lcapture],8)
-                for n in datahex: logger.info(','.join(n))
+        data = lc.get_captured_data(lcaptures,nwords,nlinks,verbose=False)
+        save_captured_data(lcaptures,data,csv,phex)
 
-    # reset fc                                                                                                                                                                                                                                                                                                                
-    fc.configure_fc(dev)
+    # reset fc
+    fc.configure_fc()
 
-if __name__ == "__main__":
-    
-def read_testvector(fname,nlinks,asHex=False):
-    data = np.loadtxt(fname,delimiter=',',dtype=np.object)
-    if not asHex:
-        data = np.vectorize(int)(data,16)
     return data
 
-def fixedHex(data,N):
-    return np.vectorize(lambda d : '{num:0{width}x}'.format(num=d, width=N))(data)
+def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01,nocompare=False,yamlname="init"):
+    """Automatize event DAQ.
+    Only modify the input or i2c registers if idir/dtype and/or yamlFile is given.
+    """
 
-def send_capture(lc="lc-ASIC",mode="BX",bx=0,nwords=4095,nlinks=13,fname="temp",verbose=False,asHex=False,sleepTime=0.01,
-                 capture=False,compare=False,trigger=False):
-    # remove old files
-    lc_fname = f"{lc}_{fname}.csv"
-    lc_emu_fname = f"lc-emulator_{fname}.csv"
-    for lname in [lc_fname,lc_emu_fname]:
-        try:
-            os.remove(lname)
-        except:
-            continue
+    # modify inputs
+    if idir!="" or dtype!="":
+        logger.info(f"Loading input test vectors, dtype {dtype}, idir {idir}")
+        tv.configure(dtype,idir)
 
-    cmd = f'python testing/uhal/capture.py --lc {lc} --mode {mode} --bx {bx} --nwords {nwords} --fname {fname} --nlinks {nlinks} --sleep {sleepTime}'
-    if capture:
-        cmd += ' --capture '
-    if compare:
-        cmd += ' --compare '
-        if trigger:
-            cmd += ' --trigger '
-    if verbose:
-        cmd += ' --phex '
-    os.system(cmd)
+        # modify slow control from that idir unless told so
+        if idir!="" and not i2ckeep:
+            yamlFile = f"{idir}/{yamlname}.yaml"
+            logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
+            x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
 
-    data_lc = None
-    data_emu = None
-    if os.path.exists(lc_fname):
-        data_lc = read_testvector(lc_fname,nlinks=nlinks,asHex=asHex)
-        if trigger and os.path.exists(lc_emu_fname):
-            data_emu = read_testvector(lc_emu_fname,nlinks=nlinks,asHex=asHex)
+            # read nlinks from here
+            try:
+                nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+            except:
+                try:
+                    nlinks = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+                except:
+                    logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
+    if nocompare:
+        return
 
-    return data_lc,data_emu
+    # check that IO and LC are aligned
+    from check_block import check_align
+    check_align('from-IO')
+    check_align('lc-ASIC')
+
+    # send compare command
+    data_asic,data_emu = send_capture(compare=True,trigger=trigger,nwords=nwords,nlinks=nlinks,fname="temp",sleepTime=sleepTime)
+
+    # look at first rows of captured data
+    if (data_asic is not None) and (data_emu is not None):
+        for i,row in enumerate(fixedHex(data_asic,8)[:40]):
+            logger.info(f'lc-ASIC {i}: '+",".join(map(str,list(row))))
+        logger.info('.'*50)
+        for i,row in enumerate(fixedHex(data_emu,8)[:40]):
+            logger.info(f'lc-emulator {i}: '+",".join(map(str,list(row))))
+        logger.info('.'*50)
 
 def set_PLL_phase_of_enable(phase=0):
     call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
@@ -251,53 +253,6 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     call_i2c(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
     return data
 
-def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01,nocompare=False,yamlname="init"):
-    """
-    Automatize event DAQ.
-    Only modify the input or i2c registers if idir/dtype and/or yamlFile is given.
-    """
-    # modify inputs
-    if idir!="" or dtype!="":
-        logger.info(f"Loading input test vectors, dtype {dtype}, idir {idir}")
-        inputcmd = f"python testing/uhal/test_vectors.py"
-        if idir !="": inputcmd += f" --idir {idir}"
-        if dtype !="":  inputcmd += f" --dtype {dtype}"
-        os.system(inputcmd)
-        
-        # modify slow control from that idir unless told so
-        if idir!="" and not i2ckeep:
-            yamlFile = f"{idir}/{yamlname}.yaml"
-            logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
-            x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
-            
-            # read nlinks from here
-            try:
-                nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-            except:
-                try:
-                    nlinks = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-                except:
-                    logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
-
-    if nocompare: 
-        return
-
-    # check that IO and LC are aligned
-    os.system('python testing/uhal/check_align.py --check --block from-IO --nlinks %i'%nlinks)
-    os.system('python testing/uhal/check_align.py --check --block lc-ASIC --nlinks %i'%nlinks)
-
-    # send compare command
-    data_asic,data_emu = send_capture(compare=True,trigger=trigger,nwords=nwords,nlinks=nlinks,fname="temp",sleepTime=sleepTime)
-
-    # look at first rows of captured data
-    if (data_asic is not None) and (data_emu is not None):
-        for i,row in enumerate(fixedHex(data_asic,8)[:40]):
-            logger.info(f'lc-ASIC {i}: '+",".join(map(str,list(row))))
-        logger.info('.'*50)
-        for i,row in enumerate(fixedHex(data_emu,8)[:40]):
-            logger.info(f'lc-emulator {i}: '+",".join(map(str,list(row))))
-        logger.info('.'*50)
-
 if __name__=='__main__':
     """
     ETX monitoring
@@ -342,7 +297,6 @@ if __name__=='__main__':
             for row in data[:8]:
                 logger.info('lc-ASIC: '+",".join(map(str,list(row))))
             logger.info('.'*50)
-
     elif args.daq:
         event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=float(args.sleepTime),nocompare=args.nocompare,yamlname=args.yamlname)
     elif args.disablealign:
