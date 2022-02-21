@@ -1,9 +1,10 @@
 import uhal
-import logging
 from time import sleep
 
+import logging
 logging.basicConfig()
-logger = logging.getLogger('reset')
+logger = logging.getLogger('utils:reset')
+logger.setLevel(logging.INFO)
 
 class ResetSignals:
     """
@@ -14,7 +15,8 @@ class ResetSignals:
         """Initialization class to setup connection manager and device"""
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
-
+        self.name = "ASIC-IO-I2C-I2C-fudge-0.resets"
+        
     def send_reset(self, reset='soft',i2c='ASIC', hold=False, release=False, sleepTime=0.5):
         """Send reset signal to device (either ASIC or emulator), either soft or hard reset
         """
@@ -28,16 +30,16 @@ class ResetSignals:
             logger.Error('No reset signal provided')
 
         if hold:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+            self.dev.getNode(self.name + "." + reset_string).write(0)
             self.dev.dispatch()
         elif release:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
+            self.dev.getNode(self.name + "." + reset_string).write(1)
             self.dev.dispatch()
         else:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+            self.dev.getNode(self.name + "." + reset_string).write(0)
             self.dev.dispatch()
             sleep(sleepTime)
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
+            self.dev.getNode(self.name + "." + reset_string).write(1)
             self.dev.dispatch()
 
     def repeat_reset(self,reset='soft',i2c='ASIC', sleepTime=0.5, N=2):
@@ -59,7 +61,7 @@ class ResetSignals:
         else:
             logger.Error('No reset signal provided')
 
-        resetStatus = self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).read()
+        resetStatus = self.dev.getNode(self.name + "." + reset_string).read()
         self.dev.dispatch()
         if verbose:
             print(reset_string, int(resetStatus))

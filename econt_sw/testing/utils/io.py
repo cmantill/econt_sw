@@ -1,11 +1,11 @@
 import os
 import uhal
 from .uhal_config import names,input_nlinks,output_nlinks
-
 import time
+
 import logging
 logging.basicConfig()
-logger = logging.getLogger('IO')
+logger = logging.getLogger('utils:IO')
 logger.setLevel(logging.INFO)
 
 class IOBlock:
@@ -21,15 +21,16 @@ class IOBlock:
         self.nlinks = input_nlinks if io=='to' else output_nlinks
     
     def reset_counters(self):
+        """Resets counters"""
+        # resets the counters (it will clear itself)
         self.dev.getNode(self.name+".global.global_reset_counters").write(0x1)
         time.sleep(1)
+        # latches counters (saves counter values for all links)
         self.dev.getNode(self.name+".global.global_latch_counters").write(0x1)
         self.dev.dispatch()
 
     def configure_IO(self,invert=False):
-        """
-        Configures IO blocks.
-        """
+        """Configures IO blocks to automatic delay setting"""
         ioblock_settings = {
             "reg0.tristate_IOBUF": 0,
             "reg0.bypass_IOBUF": 0,
@@ -62,6 +63,7 @@ class IOBlock:
         self.reset_counters()
 
     def get_delay(self,verbose=True):
+        """Reads delay P and N"""
         delay_P = {}
         delay_N = {}
         for link in range(self.nlinks):
@@ -74,26 +76,62 @@ class IOBlock:
             delay_N[link] = int(delay_out_N)
         return delay_P,delay_N
 
+    def set_delay(self,delay_P):
+        """Sets delay given delay array"""
+        for l in range(self.nlinks):
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_mode").write(0)
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_in").write(delay_P[l])
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_offset").write(8) # fix this to 8
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_set").write(1)
+        self.dev.dispatch()
+        
     def manual_IO(self):
-        """ Configure manual delay setting """
+        """Configures manual delay setting"""
         # read delays found by automatic delay setting
         delay_P,delay_N = self.get_delay(verbose=False)
 
         # set delay mode to 0 and delays to what we found
-        for l in range(nlinks):
-            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_mode").write(0)
-            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_in").write(delay_P[0])
-            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_offset").write(8) # fix this to 8
-        self.dev.dispatch()
+        self.set_delay(delay_P)
 
         # reset counters
-        reset_counters()
+        self.reset_counters()
+        
+    def delay_scan(self):
+        bitcounts = {}
+        errorcounts = {}
+        for l in range(self.nlinks):
+            bitcounts[l] = []
+            errorcounts[l] = []
+        
+        # scan over P and N delays
+        for delay in range(0,504,8):
+            # set delays
+            delay = 0 if delay<0 else delay
+            delay = 503 if delay>503 else delay # 503+8=511
+            self.set_delay([delay]*self.nlinks)
 
+            # TODO: do we need to wait until delay is ready?
+
+            # reset counters
+            self.reset_counters()
+
+            # read bit counter and error counter
+            for l in range(self.nlinks):
+                error_counter = dev.getNode(self.name+".link"+str(l)+".error_counter").read()
+                bit_counter = dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
+                dev.dispatch()
+                bitcounts[l].append(int(bit_counter))
+                errorcounts[l].append(int(error_counter))
+        return bitcounts,errorcounts
+    
     def print_IO(self):
-        regs = ["reg0.reset_link","reg0.reset_counters","reg0.delay_mode","reg0.delay_set","reg0.bypass_IOBUF","reg0.tristate_IOBUF","reg0.latch_counters","reg0.delay_in","reg0.delay_offset","reg0.invert",
+        """Prints IO block configuration"""
+        regs = ["reg0.reset_link","reg0.reset_counters","reg0.delay_mode","reg0.delay_set",
+                "reg0.bypass_IOBUF","reg0.tristate_IOBUF","reg0.latch_counters",
+                "reg0.delay_in","reg0.delay_offset","reg0.invert",
                 "bit_counter","error_counter",
                 "reg3.delay_ready","reg3.delay_out","reg3.delay_out_N","reg3.waiting_for_transitions",
-            ]
+                ]
         for l in range(self.nlinks):
             vals = {}
             for reg in regs:

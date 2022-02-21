@@ -19,9 +19,7 @@ class TestVectors():
         self.nlinks = input_nlinks
 
     def read_testvector(self,fname,nlinks=12):
-        """
-        Read input test vector
-        """
+        """Read input test vector"""
         import csv
         data = [[] for l in range(nlinks)]
         with open(fname) as f:

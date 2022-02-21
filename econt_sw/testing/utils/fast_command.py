@@ -19,7 +19,7 @@ class FastCommands:
 
     def configure_fc(self,read=False):
         """
-        Configure FC
+        Configure FC.
         Do not enable L1A (since this disables link resets)
         """
         if read:
@@ -43,10 +43,21 @@ class FastCommands:
             self.dev.getNode(self.name+".command.global_l1a_enable").write(1);
             self.dev.dispatch()
 
-    def chipsync(self):
-        self.dev.getNode(self.name+".request.chipsync").write(1);
+    def request(self,fc):
+        """
+        Request fast command.
+        Options: chipsync,
+        """
+        self.dev.getNode(self.name+".request."+fc).write(1);
         self.dev.dispatch()
 
+    def get_counter(self,fc,verbose=True):
+        counter = self.dev.getNode(self.name_recv+".counters.link_reset_econt").read()
+        self.dev.dispatch()
+        if verbose:
+            logger.info('%s counter %i'%(fc,int(counter)))
+        return int(counter)
+        
     def read_command_delay(self):
         d = self.dev.getNode(self.name+".command_delay").read();
         self.dev.dispatch()
