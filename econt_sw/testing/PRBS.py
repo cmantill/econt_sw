@@ -2,13 +2,15 @@
 import os
 import sys
 sys.path.append( 'testing' )
+
 from i2c import call_i2c
 
 import numpy as np
 import csv
 import time
 
-from test_vectors import configure_tv
+from utils.test_vectors import TestVectors
+tv = TestVectors()
 
 import logging
 logger = logging.getLogger("prbs")
@@ -59,16 +61,16 @@ def enable_prbschk(args,channels,allch=True):
             if args.prbs==28:
                 call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='1',args_i2c=args.i2c)
 
-def check_prbs(args,dev,channels,allch):
+def check_prbs(args,channels,allch):
     if args.fixed:
         # send a fixed pattern
-        configure_tv(dev,dtype="",idir="configs/test_vectors/counterPatternInTC_by2/RPT/")
+        tv.configure_tv(dtype="",idir="configs/test_vectors/counterPatternInTC_by2/RPT/")
     elif args.opposite:
         # send oppposite PRBS on purpose
         if args.prbs==28:
-            configure_tv(dev,dtype="PRBS32")
+            tv.configure_tv(dtype="PRBS32")
         else:
-            configure_tv(dev,dtype="PRBS28")
+            tv.configure_tv(dtype="PRBS28")
     elif args.internal:
         for channel in channels:
             call_i2c(args_name=f'CH_ALIGNER_{channel}_patt_en,CH_ALIGNER_{channel}_patt_sel',args_value='1,1',args_i2c=args.i2c)

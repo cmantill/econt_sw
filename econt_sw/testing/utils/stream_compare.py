@@ -1,7 +1,8 @@
 import os
-import uhal
 import time
-from .uhal_config import names
+
+import uhal
+from .uhal_config import names,set_logLevel
 
 import logging
 logging.basicConfig()
@@ -10,8 +11,10 @@ logger.setLevel(logging.INFO)
 
 class StreamCompare():
     """Class to handle stream compare via uhal"""
-     def __init__(self):
+     def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
+        set_logLevel(logLevel)
+        
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.sc = names['stream_compare']

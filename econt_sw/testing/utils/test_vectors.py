@@ -1,16 +1,19 @@
 import os
-from .uhal_config import names,input_nlinks,output_nlinks
 import numpy as np
+
+from .uhal_config import *
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('tv')
+logger = logging.getLogger('utils:tv')
 logger.setLevel(logging.INFO)
 
 class TestVectors():
     """ Class to handle test vectors """
-    def __init__(self):
+    def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
+        set_logLevel(logLevel)
+        
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.name_sw = names['testvectors']['switch']

@@ -13,6 +13,9 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
+def configure_tv(dtype,idir):
+    tv.set_testvectors(dtype,idir)
+    
 def readSnapshot(i2c='ASIC',return_status=False):
     """
     Read registers that tell us about word alignment

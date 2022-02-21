@@ -1,23 +1,24 @@
 import uhal
 import time
 import argparse
+
 import logging
 logging.basicConfig()
 
 from utils.uhal_config  import *
-import utils.fast_command as utils_fc
-import utils.link_capture as utils_lc
-import utils.io as utils_io
-import utils.test_vectors as utils_tv
+from utils.io import IOBlock
+from utils.fast_command import FastCommands
+from utils.link_capture import LinkCapture
+from utils.test_vectors import TestVectors
+from utils.stream_compare import StreamCompare
 
-from capture import reset_lc
+from_io = IOBlock('from')
+to_io = IOBlock('to')
+fc = FastCommands()
+lc = LinkCapture()
+tv = TestVectors()
+sc = StreamCompare()
 
-def configure_io(dev,args):
-    for io in args.io_names.split(','):
-        if args.invertIO:
-            utils_io.configure_IO(dev,io,io_name='IO',invert=True)
-        else:
-            utils_io.configure_IO(dev,io,io_name='IO')
 
 def init(dev,args):
     """
@@ -102,32 +103,84 @@ def lr_econt(dev,args):
     dev.dispatch()
     logger.info('link reset econt counter %i'%lrc)
 
-def manual_align(dev,args,lcapture='lc-ASIC'):
-    if args.lalign:
-        links = [int(l) for l in args.lalign.split(',')]
-    else:
-        links = range(output_nlinks)
+ def find_latency(latency,lcapture,bx0=None,savecap=False):
+     """
+     Find with that latency we see the BX0 word.
+     It captures on link reset econt so capture block needs to set acquire to that.
+     If `bx0[l]` is set, then check that that position at which BX0 word is found, is the same as bx0.
+     """
 
-    # set link_align_inhibit so that link capture ignores link reset (for all elinks)
-    disable_alignment(dev,lcapture)
+     # record the new latency for each elink
+     new_latency = {}
+     # record the position at which BX0 was found for each elink (this needs to be the same for all elinks)
+     found_BX0 = {}
 
-    for l in links:
-        align_pos = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_position").read();
-        dev.dispatch()
+     # reset links and set latency
+     lc.set_latency([lcapture],latency)
+
+     # set acquire
+     lc.configure_acquire([lcapture],"linkreset_ECONt")
+
+     # read latency
+     lc.read_latency([lcapture])
+
+     # capture on link reset econt
+     lc.do_capture([lcapture],verbose=True)
+     fc.request("link_reset_econt")
+     fc.get_counter("link_reset_econt")
+     
+     # get captured data
+     data = lc.get_captured_data([lcapture])[lcapture]
+     
+     # find BX0 in data and in link 0                                                                                                                                                                                                                                                                                      
+     BX0_word = 0xf922f922
+     BX0_rows,BX0_cols = (data == BX0_word).nonzero()
+     logger.info('BX0 sync word found on columns %s',BX0_cols)
+     logger.info('BX0 sync word found on rows %s',BX0_rows)
+     
+     try:
+         assert len(BX0_rows) > 0
+         assert (BX0_cols==0).nonzero()
+     except AssertionError:
+         logger.error('BX0 sync word not found anywhere or in link 0')
+         for l in range(lc.nlinks[lcapture]):
+             new_latency[l] = -1
+         return new_latency,found_BX0,data
         
-        logger.info('Align pos link %i: %i'%(l,int(align_pos)))
-        if args.alignpos and l in links:
-            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".override_align_position").write(1);
-            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_position").write(int(align_pos)+args.alignpos);
-            dev.dispatch()
+     # check that BX0 is found in the same position for all output links                                                                                                                                                                                                                                                   
+     row_link_0 = (BX0_cols==0).nonzero()[0][0]
+     for l in range(lc.nlinks[lcapture]):
+         try:
+             row_index = (BX0_cols==l).nonzero()[0][0]
+         except:
+             logger.warning('BX0 sync word not found for link %i'%l)
+             new_latency[l] = -1
+             continue
+         
+            try:
+                assert BX0_rows[row_index] == BX0_rows[row_link_0]
+                if bx0:
+                    assert BX0_rows[row_index] == bx0[row_index]
+                logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+                new_latency[l] = latency[l]
+                found_BX0[l] = BX0_rows[row_index]
+            except AssertionError:
+                if bx0:
+                    if BX0_rows[row_index] > bx0[row_index]:
+			logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
+                        new_latency[l] = latency[l]
+                        found_BX0[l] = BX0_rows[row_index]
+                    else:
+                        logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
+                        new_latency[l] = -1
+                else:
+                    logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+                    new_latency[l] = -1
 
-            read_align_pos = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".align_position").read();
-            dev.dispatch()
-            logger.info('Set align pos link %i: %i'%(l,read_align_pos))
+        return new_latency,found_BX0,data
 
-            dev.getNode(names[lcapture]['lc']+".link"+str(l)+".explicit_align").write(1);
-            dev.dispatch()
 
+            
 def modify_latency(dev,args):
     # re-configure fc
     utils_fc.configure_fc(dev)
@@ -186,8 +239,6 @@ def modify_latency(dev,args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-L", "--logLevel", dest="logLevel",action="store",
-                        help="log level which will be applied to all cmd : ERROR, WARNING, DEBUG, INFO, NOTICE",default='INFO')
     parser.add_argument('--step', 
                         choices=['init',
                                  'configure-IO',
@@ -204,22 +255,18 @@ if __name__ == "__main__":
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
     args = parser.parse_args()
 
-    set_logLevel(args)
-    man = uhal.ConnectionManager("file://connection.xml")
-    dev = man.getDevice("mylittlememory")
-
     logger = logging.getLogger('align:step:%s'%args.step)
-    try:
-        logger.setLevel(args.logLevel)
-    except ValueError:
-        logging.error("Invalid log level")
-        exit(1)
-
+    logger.setLevel('INFO')
+    
     if args.step == "configure-IO":
-        configure_io(dev,args)
+        for io in args.io_names.split(','):
+            if args.invertIO:
+                io.configure_IO(invert=True)
+            else:
+                io.configure_IO()
 
     if args.step == "manual-IO":
-        utils_io.manual_IO(dev,"from","IO")
+        io.manual_IO(dev,"from","IO")
 
     if args.step == "init":
         init(dev,args)

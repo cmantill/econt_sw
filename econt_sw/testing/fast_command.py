@@ -5,8 +5,6 @@ logging.basicConfig()
 
 from time import sleep
 
-logger = logging.getLogger('fc')
-
 from utils.fast_command import FastCommands
 from utils.uhal_config import *
 
@@ -25,8 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     set_logLevel(args)
-
-
+    logger = logging.getLogger('fc')
     try:
         logger.setLevel(args.logLevel)
     except ValueError:
@@ -34,8 +31,8 @@ if __name__ == "__main__":
         exit(1)
 
     fc=FastCommands()
-
     fc.configure_fc(args.read)
+    
     if args.fc=='chipsync':
         fc.chipsync()
     elif args.fc=='command-delay':

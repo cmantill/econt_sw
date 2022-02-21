@@ -10,6 +10,100 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 logger.addHandler(ch)
 
+
+from utils.fast_command import FastCommands
+from utils.link_capture import LinkCapture
+from utils.test_vectors import TestVectors
+from utils.stream_compare import StreamCompare
+
+# initialize classes
+fc = FastCommands()
+lc = LinkCapture()
+tv = TestVectors()
+sc = StreamCompare()
+
+def capture(lcaptures,nwords,mode,bx=0,nocsv=False,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
+    # reset fc
+    fc.configure_fc()
+
+    # configure acquire
+    lc.configure_acquire(lcaptures,mode,nwords,bx,verbose=False)
+
+    # do link capture
+    if mode in fc_by_lfc.keys():
+        lc.do_fc_capture(fc_by_lfc[mode],lcaptures,verbose=False)
+        time.sleep(0.001)
+        fc.get_counter(fc_by_lfc[mode])
+    else:
+        if mode == 'L1A' and not trigger:
+            fc.get_counter("l1a")
+            fc.send_l1a()
+            lc.do_capture(lcaptures,verbose=False)
+        else:
+            lc.do_capture(lcaptures,verbose=False)
+
+    # get captured data
+    data = lc.get_captured_data(lcaptures,nwords,verbose=False)    
+    # save or print                                                                                                                                                                                                                                                                                                       
+    if not nocsv:
+        for lcapture in lcaptures:
+            tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
+    if phex:
+        datahex = tv.fixed_hex(data[lcapture],8)
+        for n in datahex: logger.info(','.join(n))
+
+    # reset fc
+    fc.configure_fc()
+
+def compare_lc(trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="sc",phex=False,sleepTime=0.01,log=False):
+    """                                                                                                                                                                                                                                                                                                                       
+    Stream compare just compares its two inputs.                                                                                                                                                                                                                                                                              
+    If they match, then it increments the word counter, and doesn't do anything else.                                                                                                                                                                                                                                         
+    If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).                                                                                                                            
+    """
+    if nlinks==-1:
+        nlinks = output_nlinks
+    lcaptures = ['lc-ASIC','lc-emulator']
+
+    if trigger:
+        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing                                                                                                                                                                                                            
+        # otherwise we could get in some weird situations wiht link capture                                                                                                                                                                                                                                                   
+
+        fc.configure_fc()
+
+        # configure link captures to acquire on L1A                                                                                                                                                                                                                                                                           
+        lc.configure_acquire(['lc-ASIC','lc-emulator'],'L1A',nwords,0,verbose=False)
+
+        # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)                                                                                                                                                                                               
+        lc.do_capture(lcaptures,verbose=False)
+
+    # configure stream compare                                                                                                                                                                                                                                                                                                
+    sc.configure_compare(nlinks,trigger)
+
+    # log counters                                                                                                                                                                                                                                                                                                            
+    if log:
+        while err_count <=0:
+            err_count = sc.reset_log_counters(stime=sleepTime)
+    else:
+        err_count = sc.reset_log_counters(stime=sleepTime)
+
+    # read data if error count > 0                                                                                                                                                                                                                                                                                            
+    # trigger will capture 32 words prior to a mismatch identified by stream_compare                                                                                                                                                                                                                                          
+    if err_count>0 and trigger:
+        data = {}
+        for lcapture in lcaptures:
+            data[lcapture] = lc.get_captured_data(lcapture,nwords,nlinks,verbose=False)
+            if not nocsv:
+                tv.save_testvector("%s/%s_%s.csv"%(odir,lcapture,fname), data[lcapture])
+            if phex:
+                datahex = tv.fixed_hex(data[lcapture],8)
+                for n in datahex: logger.info(','.join(n))
+
+    # reset fc                                                                                                                                                                                                                                                                                                                
+    fc.configure_fc(dev)
+
+if __name__ == "__main__":
+    
 def read_testvector(fname,nlinks,asHex=False):
     data = np.loadtxt(fname,delimiter=',',dtype=np.object)
     if not asHex:
@@ -212,7 +306,9 @@ if __name__=='__main__':
     parser.add_argument('--scan', dest='scanPhaseEnable',default=False, action='store_true', help="scan phase_of_enable values")
     parser.add_argument('--capture', dest='capture',default=False, action='store_true', help="capture data on eTx")
     parser.add_argument('--daq', dest='daq',default=False, action='store_true', help="take data")
-
+    parser.add_argument('--disable-align',  action='store_true', dest='disablealign', default=False, help='disable automatic alignment')
+    parser.add_argument('--sync', type=str, default=None, help='change sync word')
+    
     parser.add_argument('--bx', type=int, default=12, help='bx')
     parser.add_argument('--nwords', type=int, default=4095, help='number of words')
     parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
@@ -234,6 +330,7 @@ if __name__=='__main__':
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
 
+    
     if args.scanPhaseEnable:
         if args.doFixedPatternTest:
             data=PLL_phaseOfEnable_fixedPatternTest(nwords=12, verbose=args.verbose, algo=args.algo)
@@ -248,5 +345,7 @@ if __name__=='__main__':
 
     elif args.daq:
         event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=float(args.sleepTime),nocompare=args.nocompare,yamlname=args.yamlname)
-
-
+    elif args.disablealign:
+        lc.disable_alignment(args.lc.split(','))
+    elif args.sync:
+        lc.syncword(args.lc.split(','),args.sync)

@@ -1,6 +1,6 @@
 import os
 import uhal
-from .uhal_config import names,input_nlinks,output_nlinks
+from .uhal_config import *
 import time
 
 import logging
@@ -11,15 +11,17 @@ logger.setLevel(logging.INFO)
 class IOBlock:
     """ Class to handle IO blocks via uhal """
 
-    def __init__(self,io,io_name='IO'):
+    def __init__(self,io,io_name='IO',logLevel=""):
         """Initialization class to setup connection manager and device"""
+        set_logLevel(logLevel)
+        
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.name = names[io_name][io]
         self.io = io
         self.io_name = io_name
         self.nlinks = input_nlinks if io=='to' else output_nlinks
-    
+
     def reset_counters(self):
         """Resets counters"""
         # resets the counters (it will clear itself)
