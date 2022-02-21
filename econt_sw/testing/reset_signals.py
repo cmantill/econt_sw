@@ -1,12 +1,11 @@
 import argparse
-import logging
 from time import sleep
-from utils.uhal_config  import set_logLevel
 
+import logging
 logging.basicConfig()
 logger = logging.getLogger('reset')
 
-from utils.reset_signals import ResetSignals
+from utils.asic_signals import ASICSignals
 
 """
 Setting reset signals with uHal
@@ -26,15 +25,9 @@ if __name__ == "__main__":
     parser.add_argument('--read', type=bool, default=False, help='read reset')
 
     args = parser.parse_args()
-
-    set_logLevel(args)
-    try:
-        logger.setLevel(args.logLevel)
-    except ValueError:
-        logging.error("Invalid log level")
-        exit(1)
-
-    resets=ResetSignals()
+    
+    resets = ASICSignals()
+    
     if args.repeat:
         resets.repeat_reset(reset=args.reset,
                             i2c=args.i2c,
