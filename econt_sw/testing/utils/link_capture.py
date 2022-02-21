@@ -1,7 +1,7 @@
 import os
 import uhal
 import time
-from .uhal_config import names,input_nlinks,output_nlinks
+from .uhal_config import *
 
 import logging
 logging.basicConfig()
@@ -76,7 +76,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_pattern").write(sync_pattern)
             self.dev.dispatch()                                
         
-    def disable_alignment(self,lcaptures)
+    def disable_alignment(self,lcaptures):
         """Disable alignment in lcs"""
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
