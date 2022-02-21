@@ -9,7 +9,7 @@ from utils.asic_signals import ASICSignals
 
 """
 Setting reset signals with uHal
-Usage: python reset_signals.py --i2c ASIC --reset hard --release
+Usage: python testing/reset_signals.py --i2c ASIC --reset hard --release
 """
 
 if __name__ == "__main__":    
