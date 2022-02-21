@@ -41,9 +41,6 @@ class LinkCapture:
             'lc-emulator': 0x122,
             'lc-input': 0xaccccccc,
         }
-        # initialize fc
-        from fast_command import FastCommands
-        self.fc = FastCommands()
         
     def reset(self,lcaptures,syncword=""):
         """Reset lcs and sync word"""
