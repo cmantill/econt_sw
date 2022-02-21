@@ -9,7 +9,7 @@ from utils.asic_signals import ASICSignals
 
 """
 Setting i2c address with uHal
-Usage: python testing/i2c_set_address.py --i2c ASIC --addr 0
+Usage: python testing/set_i2c_address.py --i2c ASIC --addr 0
 """
 
 if __name__ == "__main__":    
@@ -21,4 +21,4 @@ if __name__ == "__main__":
     signals = ASICSignals()
     
     # set i2c address
-    signsls.set_i2caddr(args.i2c,args.addr)
+    signals.set_i2caddr(args.i2c,args.addr)

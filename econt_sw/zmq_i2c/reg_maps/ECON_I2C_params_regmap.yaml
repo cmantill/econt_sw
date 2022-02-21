@@ -42,7 +42,7 @@ ECON-T:
        param_mask: 0x01
        param_shift: 0
        
-  CH_ERR_13_ALL:
+  CH_ERR_12_ALL:
    addr_base: 0x0330
    registers:
     config:
