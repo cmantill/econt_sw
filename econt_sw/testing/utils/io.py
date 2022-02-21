@@ -71,7 +71,7 @@ class IOBlock:
         for link in range(self.nlinks):
             delay_out = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out").read()
             delay_out_N = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out_N").read()
-            dev.dispatch()
+            self.dev.dispatch()
             if verbose:
                 logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
             delay_P[link] = int(delay_out)
@@ -119,9 +119,9 @@ class IOBlock:
 
             # read bit counter and error counter
             for l in range(self.nlinks):
-                error_counter = dev.getNode(self.name+".link"+str(l)+".error_counter").read()
-                bit_counter = dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
-                dev.dispatch()
+                error_counter = self.dev.getNode(self.name+".link"+str(l)+".error_counter").read()
+                bit_counter = self.dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
+                self.dev.dispatch()
                 bitcounts[l].append(int(bit_counter))
                 errorcounts[l].append(int(error_counter))
         return bitcounts,errorcounts
@@ -155,11 +155,11 @@ class IOBlock:
             delay_ready=0
             while i < nit:
                 i+=1
-                bit_tr = dev.getNode(self.name+".link"+str(l)+".reg3.waiting_for_transitions").read()
-                delay_ready = dev.getNode(self.name+".link"+str(l)+".reg3.delay_ready").read()
-                error_counter = dev.getNode(self.name+".link"+str(l)+".error_counter").read()
-                bit_counter = dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
-                dev.dispatch()
+                bit_tr = self.dev.getNode(self.name+".link"+str(l)+".reg3.waiting_for_transitions").read()
+                delay_ready = self.dev.getNode(self.name+".link"+str(l)+".reg3.delay_ready").read()
+                error_counter = self.dev.getNode(self.name+".link"+str(l)+".error_counter").read()
+                bit_counter = self.dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
+                self.dev.dispatch()
                 if verbose or error_counter>0:
                     logger.info("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(self.io,l,bit_tr,delay_ready,error_counter,bit_counter))
                 if delay_ready == 1:
