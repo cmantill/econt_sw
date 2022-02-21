@@ -110,6 +110,8 @@ class IOBlock:
             # set delays
             delay = 0 if delay<0 else delay
             delay = 503 if delay>503 else delay # 503+8=511
+            logger.info(f"Set delay to {delay}")
+
             self.set_delay([delay]*self.nlinks)
 
             # TODO: do we need to wait until delay is ready?
@@ -124,6 +126,7 @@ class IOBlock:
                 self.dev.dispatch()
                 bitcounts[l].append(int(bit_counter))
                 errorcounts[l].append(int(error_counter))
+
         return bitcounts,errorcounts
     
     def print_IO(self):
