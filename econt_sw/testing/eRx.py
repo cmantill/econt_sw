@@ -9,10 +9,11 @@ import datetime
 import logging
 logger = logging.getLogger("eRx")
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
+#ch = logging.StreamHandler()
+#ch.setLevel(logging.INFO)
+#logger.addHandler(ch)
 
+    
 def readSnapshot(i2c='ASIC',return_status=False):
     """
     Read registers that tell us about word alignment
@@ -247,36 +248,47 @@ def eRxEnableTests(patterns=None, verbose=False):
 if __name__=='__main__':
     """
     ERX monitoring
+    - To change input test vectors
+      python testing/eRx.py --tv --dtype --idir
     - To log hdr mm cntrs over a period of time: 
-      python3 testing/eRxMonitoring.py --logging --sleep 120 -N 10
+      python testing/eRx.py --logging --sleep 120 -N 10
     - To take a snapshot manually at one bx
-      python3 testing/eRxMonitoring.py --snapshot --bx 4 
+      python testing/eRx.py --snapshot --bx 4 
     - To check word alignment
-      python3 testing/eRxMonitoring.py --alignment --verbose
+      python testing/eRx.py --alignment --verbose
     - To get HDR MM CNTR
-      python3 testing/eRxMonitoring.py --hdrMM
+      python testing/eRx.py --hdrMM
     - To do PRBS scan
-      python3 testing/eRxMonitoring.py --prbs --sleep 1
+      python testing/eRx.py --prbs --sleep 1
     """
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('--tv', dest='configureTV',default=False, action='store_true')
     parser.add_argument('--logging', dest='runLogging',default=False, action='store_true')
     parser.add_argument('--snapshot', dest='getSnapshot',default=False, action='store_true')
-    parser.add_argument('--hdrMM', dest='getHdrMM',default=False, action='store_true')
-    parser.add_argument('--prbs', dest='prbsPhaseScan',default=False, action='store_true')
     parser.add_argument('--alignment', dest='checkWordAlignment',default=False, action='store_true')
     parser.add_argument('--asic', dest='checkOnlyASIC',default=False, action='store_true')
+    parser.add_argument('--hdrMM', dest='getHdrMM',default=False, action='store_true')
+    parser.add_argument('--prbs', dest='prbsPhaseScan',default=False, action='store_true')
     parser.add_argument('--enableTest', dest='enableTests',default=False, action='store_true')
+
     parser.add_argument('-N',dest='N',default=1,type=int,help='Number of iterations to run')
     parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
     parser.add_argument('--tag',dest='tag',default="test",type=str,help="Tag to save hdr mm cntr histogram")
-    parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
     parser.add_argument('--bx', dest='bx',default=4,type=int, help='BX to take snapshot in')
+    parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
+    parser.add_argument('--idir',dest="idir",type=str, default="", help='test vector directory')
+
+    parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
 
     args = parser.parse_args()
 
-    if args.runLogging:
+    if args.configureTV:
+        from utils.test_vectors import TestVectors
+        tv = TestVectors()
+        tv.set_testvectors(dtype,idir)
+
+    elif args.runLogging:
         statusLogging(sleepTime=args.sleepTime, N=args.N, snapshot=args.getSnapshot, tag=args.tag)
 
     elif args.getSnapshot:

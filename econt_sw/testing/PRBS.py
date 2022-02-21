@@ -2,27 +2,31 @@
 import os
 import sys
 sys.path.append( 'testing' )
+
 from i2c import call_i2c
 
 import numpy as np
 import csv
 import time
 
-from test_vectors import configure_tv
-
 import logging
 logger = logging.getLogger("prbs")
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.INFO)
+# logger.addHandler(ch)
+
+from utils.test_vectors import TestVectors
+tv = TestVectors()
 
 def clear_counters(args):
+    """Clear MISC_rw counters"""
     call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
     call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
     call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
 
 def print_error_and_counters(args,channels,verbose=True):
+    """Print error and counters"""
     outputs_aligner = call_i2c(args_name=f'CH_ALIGNER_*',args_i2c=args.i2c)[args.i2c]['RO']
     outputs_err = call_i2c(args_name=f'CH_ERR_*_raw_error_*',args_i2c=args.i2c)[args.i2c]['RO']
 
@@ -45,6 +49,7 @@ def print_error_and_counters(args,channels,verbose=True):
     return prbs_chk_err_cnts
 
 def enable_prbschk(args,channels,allch=True):
+    """Enable prbs chck"""
     if allch:
         call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='[0]*12',args_i2c=args.i2c)
         call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='[1]*12',args_i2c=args.i2c)
@@ -59,16 +64,17 @@ def enable_prbschk(args,channels,allch=True):
             if args.prbs==28:
                 call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='1',args_i2c=args.i2c)
 
-def check_prbs(args,dev,channels,allch):
+def check_prbs(args,channels,allch):
+    """Check PRBS"""
     if args.fixed:
         # send a fixed pattern
-        configure_tv(dev,dtype="",idir="configs/test_vectors/counterPatternInTC_by2/RPT/")
+        tv.configure(dtype="",idir="configs/test_vectors/counterPatternInTC_by2/RPT/")
     elif args.opposite:
         # send oppposite PRBS on purpose
         if args.prbs==28:
-            configure_tv(dev,dtype="PRBS32")
+            tv.configure(dtype="PRBS32")
         else:
-            configure_tv(dev,dtype="PRBS28")
+            tv.configure(dtype="PRBS28")
     elif args.internal:
         for channel in channels:
             call_i2c(args_name=f'CH_ALIGNER_{channel}_patt_en,CH_ALIGNER_{channel}_patt_sel',args_value='1,1',args_i2c=args.i2c)
@@ -76,31 +82,37 @@ def check_prbs(args,dev,channels,allch):
             # call_i2c(args_name=f'CH_ALIGNER_{channel}_seed_in',args_value=f'{seed}',args_i2c=args.i2c) 
     else:
         if args.prbs==28:
-            configure_tv(dev,dtype="PRBS28")
+            tv.configure(dtype="PRBS28")
         else:
-            configure_tv(dev,dtype="PRBS32")
+            tv.configure(dtype="PRBS32")
     
     # clear counters
     clear_counters(args)
+
     # enable prbs chk
     enable_prbschk(args,channels,allch)
     logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
     logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
+    
+    # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(args,dev,channels,allch,verbose=True):
+def scan_prbs(args,channels,allch,verbose=True):
+    """Scan phaseSelect and read PRBS errors"""
+
     # reset things for PRBS
     call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=args.i2c)
     if args.prbs==28:
-        configure_tv(dev,dtype="PRBS28")
+        tv.configure(dtype="PRBS28")
     else:
         # switch off the headers
-        configure_tv(dev,dtype="PRBS32")
+        tv.configure(dtype="PRBS32")
 
     err_counts = []
     for sel in range(0,16):
         # clear counters and hold
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
+
         # change phaseSelect
         logger.debug(f'PhaseSelect: {sel}')
         if allch:
@@ -108,6 +120,7 @@ def scan_prbs(args,dev,channels,allch,verbose=True):
         else:
             for channel in channels:
                 call_i2c(args_name=f'CH_EPRXGRP_{channel}_phaseSelect',args_value=f'{sel}',args_i2c=args.i2c)
+
         # enable prbs chk
         enable_prbschk(args,channels,allch)
         # now count again
@@ -163,14 +176,14 @@ if __name__ == "__main__":
     """
     All things PRBS related
     - PRBS scan (at a given sleep time)
-      python3 testing/PRBs.py --prbs 32 --sleep 10 --threshold 500
+      python testing/PRBS.py --prbs 32 --sleep 10 --threshold 500
     - Check that internal PRBS check works (i.e. prbs_chk_err_cnt should not increase and prbs_chk_err should be 0)
-      python3 testing/PRBs.py --prbs 28 --check
-      python3 testing/PRBs.py --prbs 32 --check 
+      python testing/PRBS.py --prbs 28 --check
+      python testing/PRBS.py --prbs 32 --check 
       - To send opposite PRBS: (e.g enable check for 32 PRBS but send 28 bit PRBS)
-        python3 testing/PRBs.py --prbs 28 --check --opposite 
+        python testing/PRBS.py --prbs 28 --check --opposite 
       - To check that we get PRBS error if we send fixed pattern:
-        python3 testing/PRBs.py --prbs 28 --check --fixed
+        python testing/PRBS.py --prbs 28 --check --fixed
     """
     import argparse
     parser = argparse.ArgumentParser()
@@ -185,12 +198,6 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', dest='threshold',default=500,type=int, help='Threshold of number of allowed errors ')
     args = parser.parse_args()
 
-    import uhal
-    from utils.uhal_config import set_logLevel
-    set_logLevel()
-    man = uhal.ConnectionManager("file://connection.xml")
-    dev = man.getDevice("mylittlememory")
-
     if args.link==-1:
         allch = True
         channels = range(0,12)
@@ -199,7 +206,7 @@ if __name__ == "__main__":
         channels = [args.link]
 
     if args.check:
-        check_prbs(args,dev,channels,allch)
+        check_prbs(args,channels,allch)
     else:
-        scan_prbs(args,dev,channels,allch)
+        scan_prbs(args,channels,allch)
 

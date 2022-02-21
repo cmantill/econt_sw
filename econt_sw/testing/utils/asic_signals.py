@@ -1,19 +1,23 @@
 import uhal
-import logging
 from time import sleep
+from utils.uhal_config  import set_logLevel
 
+import logging
 logging.basicConfig()
-logger = logging.getLogger('reset')
+logger = logging.getLogger('utils:ASIC')
+logger.setLevel(logging.INFO)
 
-class ResetSignals:
+class ASICSignals:
     """
-    Class for handling uhal reset signals
+    Class for handling uhal ASIC signals
     """
 
-    def __init__(self):
+    def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
+        set_logLevel(logLevel)
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
+        self.name = "ASIC-IO-I2C-I2C-fudge-0"
 
     def send_reset(self, reset='soft',i2c='ASIC', hold=False, release=False, sleepTime=0.5):
         """Send reset signal to device (either ASIC or emulator), either soft or hard reset
@@ -28,16 +32,16 @@ class ResetSignals:
             logger.Error('No reset signal provided')
 
         if hold:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+            self.dev.getNode(self.name + ".resets." + reset_string).write(0)
             self.dev.dispatch()
         elif release:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
+            self.dev.getNode(self.name + ".resets." + reset_string).write(1)
             self.dev.dispatch()
         else:
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(0)
+            self.dev.getNode(self.name + ".resets." + reset_string).write(0)
             self.dev.dispatch()
             sleep(sleepTime)
-            self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).write(1)
+            self.dev.getNode(self.name + ".resets." + reset_string).write(1)
             self.dev.dispatch()
 
     def repeat_reset(self,reset='soft',i2c='ASIC', sleepTime=0.5, N=2):
@@ -59,8 +63,13 @@ class ResetSignals:
         else:
             logger.Error('No reset signal provided')
 
-        resetStatus = self.dev.getNode("ASIC-IO-I2C-I2C-fudge-0.resets.%s"%reset_string).read()
+        resetStatus = self.dev.getNode(self.name + ".resets." + reset_string).read()
         self.dev.dispatch()
         if verbose:
             print(reset_string, int(resetStatus))
         return resetStatus
+
+    def set_i2caddr(self,i2c,addr):
+        logger.info("Writing to ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address "%i2c,addr)
+        self.dev.getNode(self.name + ".ECONT_%s_I2C_address"%i2c).write(addr)
+        self.dev.dispatch()
