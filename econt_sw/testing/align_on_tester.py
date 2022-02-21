@@ -17,93 +17,69 @@ to_io = IOBlock('to')
 fc = FastCommands()
 lc = LinkCapture()
 tv = TestVectors()
+bypass = TestVectors('bypass')
 sc = StreamCompare()
+signals = ASICSignals()
 
-
-def init(dev,args):
+def init(args):
     """
     Initial configuration: The channel locks need bit transitions.
     Configure link captures with align pattern.
     Set input clock.
     Send PRBS. (This should get us to PUSM_state 9.) 
     """
-    # fast command
-    utils_fc.configure_fc(dev)
+    # set fast command stream
+    fc.configure_fc()
 
     # configure BXs to send link resets
-    dev.getNode(names['fc']+".bx_link_reset_roct").write(3500)
-    dev.getNode(names['fc']+".bx_link_reset_rocd").write(3501)
-    dev.getNode(names['fc']+".bx_link_reset_econt").write(3502)
-    dev.getNode(names['fc']+".bx_link_reset_econd").write(3503)
-    dev.dispatch()
+    fc.set_bx("link_reset_roct",3500)
+    fc.set_bx("link_reset_rocd",3501)
+    fc.set_bx("link_reset_econt",3502)
+    fc.set_bx("link_reset_econd",3503)
 
     # configure lc with default sync words
-    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
-        reset_lc(dev,lcapture)
+    lc.reset(['lc-input','lc-ASIC','lc-emulator'])
         
     # set input clock (40MHz)
-    dev.getNode("housekeeping-AXI-mux-0.select").write(0);
-    dev.dispatch()
+    signals.set_clock(0)
     
     # send 28 bit PRBS
-    utils_tv.set_testvectors(dev,"PRBS28")
+    tv.configure("PRBS28")
 
-def lr_roct(dev,args):
+def lr_roct(args):
     # re-configure fc
-    utils_fc.configure_fc(dev)
-    dev.getNode(names['fc']+".bx_link_reset_roct").write(args.bxlr)
-    dev.dispatch()
+    fc.configure_fc()
+
+    # set bx of link reset roct
+    fc.set_bx("link_reset_roct",args.bxlr)
 
     # configure bypass (for emulator)
-    for l in range(output_nlinks):
-        dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(0x1)
-    dev.dispatch()
+    bypass.set_bypass(1)
 
     # set delay (for emulator)
     if args.delay:
-        dev.getNode(names['delay']+".delay").write(args.delay)
-        dev.dispatch()
+        signals.set_delay(args.delay)
 
     # send a link reset roct
-    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
-    dev.dispatch()
-    logger.info('link reset roct counter %i'%lrc)
-    
-    dev.getNode(names['fc']+".request.link_reset_roct").write(0x1);
-    dev.dispatch()
+    fc.get_counter("link_reset_roct")
+    fc.request("link_reset_roct")
     time.sleep(0.001)
-    
-    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_roct").read();
-    dev.dispatch()
-    logger.info('link reset roct counter %i'%lrc)
+    fc.get_counter("link_reset_roct")
 
-def lr_econt(dev,args):
+def lr_econt(args):
     # reset lc
-    for lcapture in ['lc-input','lc-ASIC','lc-emulator']:
-        reset_lc(dev,lcapture)
+    lc.reset(['lc-input','lc-ASIC','lc-emulator'])
 
     # configure acquire
-    for lcapture in ['lc-ASIC','lc-emulator']:
-        # configure link captures to acquire on linkreset-ECONt (4095 words)                                                                                                                                                                                                
-        nwords = 4095
-        utils_lc.configure_acquire(dev,lcapture,"linkreset_ECONt",nwords,output_nlinks)
+    lc.configure_acquire(['lc-ASIC','lc-emulator'],"linkreset_ECONt",4095)
 
-    # send link reset econt (once)
-    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
-    dev.dispatch()
-    logger.info('link reset econt counter %i'%lrc)
-
-    dev.getNode(names['fc']+".bx_link_reset_econt").write(3550)
-    dev.dispatch()
-    dev.getNode(names['fc']+".request.link_reset_econt").write(0x1);
-    dev.dispatch()
+    # send link reset econt
+    fc.get_counter("link_reset_econt")
+    fc.request("link_reset_econt")
     time.sleep(0.1)
-    
-    lrc = dev.getNode(names['fc-recv']+".counters.link_reset_econt").read();
-    dev.dispatch()
-    logger.info('link reset econt counter %i'%lrc)
+    fc.get_counter("link_reset_econtt")
 
- def find_latency(latency,lcapture,bx0=None,savecap=False):
+def find_latency(latency,lcapture,bx0=None,savecap=False):
      """
      Find with that latency we see the BX0 word.
      It captures on link reset econt so capture block needs to set acquire to that.
@@ -132,7 +108,7 @@ def lr_econt(dev,args):
      # get captured data
      data = lc.get_captured_data([lcapture])[lcapture]
      
-     # find BX0 in data and in link 0                                                                                                                                                                                                                                                                                      
+     # find BX0 in data and in link 0
      BX0_word = 0xf922f922
      BX0_rows,BX0_cols = (data == BX0_word).nonzero()
      logger.info('BX0 sync word found on columns %s',BX0_cols)
@@ -147,7 +123,7 @@ def lr_econt(dev,args):
              new_latency[l] = -1
          return new_latency,found_BX0,data
         
-     # check that BX0 is found in the same position for all output links                                                                                                                                                                                                                                                   
+     # check that BX0 is found in the same position for all output links
      row_link_0 = (BX0_cols==0).nonzero()[0][0]
      for l in range(lc.nlinks[lcapture]):
          try:
@@ -156,36 +132,35 @@ def lr_econt(dev,args):
              logger.warning('BX0 sync word not found for link %i'%l)
              new_latency[l] = -1
              continue
-         
-            try:
-                assert BX0_rows[row_index] == BX0_rows[row_link_0]
-                if bx0:
-                    assert BX0_rows[row_index] == bx0[row_index]
-                logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
-                new_latency[l] = latency[l]
-                found_BX0[l] = BX0_rows[row_index]
-            except AssertionError:
-                if bx0:
-                    if BX0_rows[row_index] > bx0[row_index]:
-			logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
-                        new_latency[l] = latency[l]
-                        found_BX0[l] = BX0_rows[row_index]
-                    else:
-                        logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
-                        new_latency[l] = -1
-                else:
-                    logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
-                    new_latency[l] = -1
+             
+         try:
+             assert BX0_rows[row_index] == BX0_rows[row_link_0]
+             if bx0:
+                 assert BX0_rows[row_index] == bx0[row_index]
+             logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+             new_latency[l] = latency[l]
+             found_BX0[l] = BX0_rows[row_index]
+         except AssertionError:
+             if bx0:
+                 if BX0_rows[row_index] > bx0[row_index]:
+                     logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
+                     new_latency[l] = latency[l]
+                     found_BX0[l] = BX0_rows[row_index]
+                 else:
+                     logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
+                     new_latency[l] = -1
+             else:
+                 logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+                 new_latency[l] = -1
 
-        return new_latency,found_BX0,data
-
-
+    return new_latency,found_BX0,data
             
-def modify_latency(dev,args):
+def modify_latency(args):
     # re-configure fc
-    utils_fc.configure_fc(dev)
-    dev.getNode(names['fc']+".bx_link_reset_econt").write(3502)
-    dev.dispatch()
+    fc.configure_fc()
+
+    # set bx of lrecont
+    fc.set_bx("link_reset_econt",3502)
     
     all_data = dict.fromkeys(['lc-ASIC','lc-emulator'])
     latency={
@@ -222,22 +197,14 @@ def modify_latency(dev,args):
         print(found_bx0['lc-emulator'],latency['lc-emulator'])
         find_bx0('lc-ASIC',latency,found_bx0,all_data,found_bx0['lc-emulator'])
 
-    # read values of latency (to cross check)
-    latency_values = {}
-    for lcapture in ['lc-ASIC','lc-emulator']:
-        latency_values[lcapture] = []
-        for l in range(output_nlinks):
-            latency = dev.getNode(names[lcapture]['lc']+".link"+str(l)+".fifo_latency").read();
-            dev.dispatch()
-            latency_values[lcapture].append(int(latency))
-    logger.debug('Final latency values: %s',latency_values)
+    # read values of latency 
+    lc.read_latency(['lc-ASIC','lc-emulator'])
 
     # save captured data
     for key,data in all_data.items():
-        utils_tv.save_testvector("%s-alignoutput.csv"%key, data)
+        tv.save_testvector("%s-alignoutput.csv"%key, data)
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--step', 
                         choices=['init',
@@ -266,19 +233,19 @@ if __name__ == "__main__":
                 io.configure_IO()
 
     if args.step == "manual-IO":
-        io.manual_IO(dev,"from","IO")
+        io.manual_IO("from","IO")
 
     if args.step == "init":
-        init(dev,args)
+        init(args)
 
     if args.step == "lr-roct":
-        lr_roct(dev,args)
+        lr_roct(args)
         
     if args.step == "lr-econt":
-        lr_econt(dev,args)
+        lr_econt(args)
 
     if args.step == 'manual-lcASIC':
-        manual_align(dev,args,lcapture='lc-ASIC')
+        lc.manual_align(['lc-ASIC'])
 
     if args.step == 'latency':
         modify_latency(dev,args)

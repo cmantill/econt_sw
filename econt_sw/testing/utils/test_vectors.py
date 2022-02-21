@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 class TestVectors():
     """ Class to handle test vectors """
-    def __init__(self,logLevel=""):
+    def __init__(self,tv='testvectors',logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
@@ -20,8 +20,11 @@ class TestVectors():
         self.name_sw = names['testvectors']['switch']
         self.name_st = names['testvectors']['stream']
         self.name_bram = names['testvectors']['bram']
-        self.nlinks = input_nlinks
-
+        if tv=='testvectors':
+            self.nlinks = input_nlinks
+        else:
+            self.nlinks = output_nlinks
+             
     def read_testvector(self,fname,nlinks=12):
         """Read input test vector"""
         import csv
@@ -127,3 +130,10 @@ class TestVectors():
                         out_brams[l][i] = int(data[l][i%3564],16)
                     self.dev.getNode(self.name_bram.replace('00',"%02d"%l)).writeBlock(out_brams[l])
                     self.dev.dispatch()
+
+    def set_bypass(self,bypass=1):
+        """Set bypass"""
+        for l in range(self.nlinks):
+            self.dev.getNode(self.name_sw+".link"+str(l)+".output_select").write(bypass)
+        self.dev.dispatch()
+

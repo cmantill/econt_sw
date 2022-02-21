@@ -45,6 +45,10 @@ class FastCommands:
             self.dev.getNode(self.name+".command.global_l1a_enable").write(1);
             self.dev.dispatch()
 
+    def set_bx(self,fc,bx):
+        self.dev.getNode(self.name+".bx_"+fc).write(bx)
+        self.dev.dispatch()
+
     def request(self,fc):
         """
         Request fast command.
