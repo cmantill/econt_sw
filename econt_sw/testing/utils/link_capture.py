@@ -41,6 +41,13 @@ class LinkCapture:
             'lc-emulator': 0x122,
             'lc-input': 0xaccccccc,
         }
+        # fast commands by link capture acquire mode
+        self.fc_by_lfc = {
+            'linkreset_ECONt': 'link_reset_econt',
+            'linkreset_ECONd': 'link_reset_econd',
+            'linkreset_ROCt': 'link_reset_roct',
+            'linkreset_ROCd': 'link_reset_rocd',
+        }
         
     def reset(self,lcaptures,syncword=""):
         """Reset lcs and sync word"""
@@ -87,7 +94,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_resetb").write(0)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").write(latency[l]);
             self.dev.dispatch()
-            logger.debug(f'Written latencies in {lcapture}: %s',latency)
+            logger.info(f'Written latencies in {lcapture}: %s',latency)
 
     def read_latency(self,lcaptures):
         """Read latency for multiple lcs"""
@@ -97,7 +104,7 @@ class LinkCapture:
                 lat = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").read();
                 self.dev.dispatch()
                 read_latency[l] = int(lat)
-            logger.debug(f'Read latencies in {lcapture}: %s',read_latency)
+            logger.info(f'Read latencies in {lcapture}: %s',read_latency)
 
     def manual_align(self,lcaptures,links=None,align_position=None):
         """Manual alignment for given links (if align position is given)"""
@@ -171,7 +178,7 @@ class LinkCapture:
                 # acquire length
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire_length").write(nwords)        
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".total_length").write(nwords)
-                for key,val in captures_dit.items():
+                for key,val in capture_dict.items():
                     self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".capture_%s"%key).write(val)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire").write(1)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_rstb_acquire").write(0)
@@ -189,7 +196,7 @@ class LinkCapture:
         
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""
-        daq_data = {}
+        captured_data = {}
         for lcapture in lcaptures:
             # wait some time until acquisition finishes 
             fifo_occupancies = []; nodata=False
@@ -218,7 +225,7 @@ class LinkCapture:
                 continue
 
             # now look at data
-            data = []
+            daq_data = []
             for l in range(self.nlinks[lcapture]):
                 fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link%i"%l+".fifo_occupancy").read()
                 self.dev.dispatch()
@@ -226,18 +233,18 @@ class LinkCapture:
                     logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
                     data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
                     self.dev.dispatch()
-                    data.append([int(d) for d in data])
+                    daq_data.append([int(d) for d in data])
                 else:
                     logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
                     
-            if len(data)>0:
+            if len(daq_data)>0:
                 if verbose:
-                    logger.info('Length of captured data for %s: %i',lcapture,len(data[0]))
+                    logger.info('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
                     
             import numpy as np
-            transpose = np.array(data).T
-            daq_data[lcapture] = transpose
-        return daq_data
+            transpose = np.array(daq_data).T
+            captured_data[lcapture] = transpose
+        return captured_data
 
     def check_links(self,lcaptures):
         """Checks if all links all aligned"""

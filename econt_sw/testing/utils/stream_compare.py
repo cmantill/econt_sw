@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 class StreamCompare():
     """Class to handle stream compare via uhal"""
-     def __init__(self,logLevel=""):
+    def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         

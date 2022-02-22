@@ -17,9 +17,9 @@ class TestVectors():
         
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
-        self.name_sw = names['testvectors']['switch']
-        self.name_st = names['testvectors']['stream']
-        self.name_bram = names['testvectors']['bram']
+        self.name_sw = names[tv]['switch']
+        self.name_st = names[tv]['stream']
+        self.name_bram = names[tv]['bram']
         if tv=='testvectors':
             self.nlinks = input_nlinks
         else:
@@ -50,7 +50,7 @@ class TestVectors():
             try:
                 os.remove(fname)
             except:
-                continue
+                pass
             with open( fname, 'w') as f:
                 writer = csv.writer(f, delimiter=',')
                 if header:

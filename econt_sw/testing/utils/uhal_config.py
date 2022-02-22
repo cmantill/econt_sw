@@ -3,10 +3,11 @@ names = {
            'from': "ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"},
     'testvectors': {'switch': "test-vectors-to-ASIC-and-emulator-test-vectors-ipif-switch-mux",
                     'stream': "test-vectors-to-ASIC-and-emulator-test-vectors-ipif-stream-mux",
-                    'bram': "test-vectors-to-ASIC-and-emulator-test-vectors-out-block00-bram-ctrl"
+                    'bram': "test-vectors-to-ASIC-and-emulator-test-vectors-out-block00-bram-ctrl",
                 },
     'bypass': {'switch': "econt-emulator-bypass-option-expected-outputs-RAM-ipif-switch-mux",
-               'stream': "econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux"
+               'stream': "econt-emulator-bypass-option-expected-outputs-RAM-ipif-stream-mux",
+               'bram': "econt-emulator-bypass-option-expected-outputs-RAM-out-block00-bram-ctrl"
            },
     'fc': "housekeeping-FastControl-fastcontrol-axi-0",
     'fc-recv': "housekeeping-FastControl-fastcontrol-recv-axi-0",

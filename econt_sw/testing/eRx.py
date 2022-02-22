@@ -9,10 +9,9 @@ import datetime
 import logging
 logger = logging.getLogger("eRx")
 logger.setLevel(logging.INFO)
-#ch = logging.StreamHandler()
-#ch.setLevel(logging.INFO)
-#logger.addHandler(ch)
-
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
     
 def readSnapshot(i2c='ASIC',return_status=False):
     """
@@ -40,11 +39,9 @@ def i2cSnapshot(bx=4):
     return snapshots
 
 def checkWordAlignment(verbose=True, ASIC_only=False):
-    """
-    Check word alignment
-    """
+    """Check word alignment"""
     snapshots_ASIC, status_ASIC, select_ASIC=readSnapshot('ASIC', True)
-
+    
     if not ASIC_only: snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
 
     readStatus('ASIC',verbose)
@@ -93,10 +90,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
     return (goodStatus & goodSelect & goodEmulator)
 
 def checkSnapshots(compare=True, verbose=False, bx=4):
-    """
-    Manually take a snapshot in BX bx
-    """
-
+    """Manually take a snapshot in BX bx"""
     snapshots=i2cSnapshot(bx)
 
     if verbose:
@@ -126,9 +120,7 @@ def checkSnapshots(compare=True, verbose=False, bx=4):
             return False
 
 def get_HDR_MM_CNTR(previous=None):
-    """
-    Get hdr mm cntr
-    """
+    """ Get hdr mm cntr """
     x=call_i2c(args_name='CH_ALIGNER_*_hdr_mm_cntr')
     counts=np.array([x['ASIC']['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['hdr_mm_cntr'] for i in range(12)])
     if previous is None:
@@ -145,10 +137,7 @@ def get_HDR_MM_CNTR(previous=None):
     return counts
 
 def statusLogging(sleepTime=120, N=30, snapshot=False, tag=""):
-    """
-    Log hdr mm cntrs
-    """
-    
+    """ Log hdr mm cntrs"""
     hdr_mm_counters = []
 
     x=get_HDR_MM_CNTR()
@@ -286,7 +275,7 @@ if __name__=='__main__':
     if args.configureTV:
         from utils.test_vectors import TestVectors
         tv = TestVectors()
-        tv.set_testvectors(dtype,idir)
+        tv.configure(args.dtype,args.idir)
 
     elif args.runLogging:
         statusLogging(sleepTime=args.sleepTime, N=args.N, snapshot=args.getSnapshot, tag=args.tag)

@@ -11,9 +11,8 @@ from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 from utils.stream_compare import StreamCompare
+from utils.asic_signals import ASICSignals
 
-from_io = IOBlock('from')
-to_io = IOBlock('to')
 fc = FastCommands()
 lc = LinkCapture()
 tv = TestVectors()
@@ -21,7 +20,7 @@ bypass = TestVectors('bypass')
 sc = StreamCompare()
 signals = ASICSignals()
 
-def init(args):
+def init():
     """
     Initial configuration: The channel locks need bit transitions.
     Configure link captures with align pattern.
@@ -46,19 +45,19 @@ def init(args):
     # send 28 bit PRBS
     tv.configure("PRBS28")
 
-def lr_roct(args):
+def lr_roct(bxlr,delay=None):
     # re-configure fc
     fc.configure_fc()
 
     # set bx of link reset roct
-    fc.set_bx("link_reset_roct",args.bxlr)
+    fc.set_bx("link_reset_roct",bxlr)
 
     # configure bypass (for emulator)
     bypass.set_bypass(1)
 
     # set delay (for emulator)
-    if args.delay:
-        signals.set_delay(args.delay)
+    if delay:
+        signals.set_delay(delay)
 
     # send a link reset roct
     fc.get_counter("link_reset_roct")
@@ -66,7 +65,7 @@ def lr_roct(args):
     time.sleep(0.001)
     fc.get_counter("link_reset_roct")
 
-def lr_econt(args):
+def lr_econt():
     # reset lc
     lc.reset(['lc-input','lc-ASIC','lc-emulator'])
 
@@ -77,85 +76,88 @@ def lr_econt(args):
     fc.get_counter("link_reset_econt")
     fc.request("link_reset_econt")
     time.sleep(0.1)
-    fc.get_counter("link_reset_econtt")
+    fc.get_counter("link_reset_econt")
 
 def find_latency(latency,lcapture,bx0=None,savecap=False):
-     """
-     Find with that latency we see the BX0 word.
-     It captures on link reset econt so capture block needs to set acquire to that.
-     If `bx0[l]` is set, then check that that position at which BX0 word is found, is the same as bx0.
-     """
-
-     # record the new latency for each elink
-     new_latency = {}
-     # record the position at which BX0 was found for each elink (this needs to be the same for all elinks)
-     found_BX0 = {}
-
-     # reset links and set latency
-     lc.set_latency([lcapture],latency)
-
-     # set acquire
-     lc.configure_acquire([lcapture],"linkreset_ECONt")
-
-     # read latency
-     lc.read_latency([lcapture])
-
-     # capture on link reset econt
-     lc.do_capture([lcapture],verbose=True)
-     fc.request("link_reset_econt")
-     fc.get_counter("link_reset_econt")
-     
-     # get captured data
-     data = lc.get_captured_data([lcapture])[lcapture]
-     
-     # find BX0 in data and in link 0
-     BX0_word = 0xf922f922
-     BX0_rows,BX0_cols = (data == BX0_word).nonzero()
-     logger.info('BX0 sync word found on columns %s',BX0_cols)
-     logger.info('BX0 sync word found on rows %s',BX0_rows)
-     
-     try:
-         assert len(BX0_rows) > 0
-         assert (BX0_cols==0).nonzero()
-     except AssertionError:
-         logger.error('BX0 sync word not found anywhere or in link 0')
-         for l in range(lc.nlinks[lcapture]):
-             new_latency[l] = -1
-         return new_latency,found_BX0,data
+    """
+    Find with that latency we see the BX0 word.
+    It captures on link reset econt so capture block needs to set acquire to that.
+    If `bx0[l]` is set, then check that that position at which BX0 word is found, is the same as bx0.
+    """
+    
+    # record the new latency for each elink
+    new_latency = {}
+    # record the position at which BX0 was found for each elink (this needs to be the same for all elinks)
+    found_BX0 = {}
+    
+    # reset links and set latency
+    lc.set_latency([lcapture],latency)
+    
+    # set acquire
+    lc.configure_acquire([lcapture],"linkreset_ECONt")
+    
+    # read latency
+    lc.read_latency([lcapture])
+    
+    # capture on link reset econt
+    lc.do_capture([lcapture],verbose=True)
+    fc.request("link_reset_econt")
+    fc.get_counter("link_reset_econt")
+    
+    # get captured data
+    data = lc.get_captured_data([lcapture])[lcapture]
+    if savecap:
+        tv.save_testvector("%s-align-findlatency.csv"%lcapture, data)
         
-     # check that BX0 is found in the same position for all output links
-     row_link_0 = (BX0_cols==0).nonzero()[0][0]
-     for l in range(lc.nlinks[lcapture]):
-         try:
-             row_index = (BX0_cols==l).nonzero()[0][0]
-         except:
-             logger.warning('BX0 sync word not found for link %i'%l)
-             new_latency[l] = -1
-             continue
-             
-         try:
-             assert BX0_rows[row_index] == BX0_rows[row_link_0]
-             if bx0:
-                 assert BX0_rows[row_index] == bx0[row_index]
-             logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
-             new_latency[l] = latency[l]
-             found_BX0[l] = BX0_rows[row_index]
-         except AssertionError:
-             if bx0:
-                 if BX0_rows[row_index] > bx0[row_index]:
-                     logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
-                     new_latency[l] = latency[l]
-                     found_BX0[l] = BX0_rows[row_index]
-                 else:
-                     logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
-                     new_latency[l] = -1
-             else:
-                 logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
-                 new_latency[l] = -1
-
+    # find BX0 in data and in link 0
+    BX0_word = 0xf922f922
+    BX0_rows,BX0_cols = (data == BX0_word).nonzero()
+    logger.info('BX0 sync word found on columns %s',BX0_cols)
+    logger.info('BX0 sync word found on rows %s',BX0_rows)
+    bx0_error = False
+    try:
+        assert len(BX0_rows) > 0
+        assert (BX0_cols==0).nonzero()
+    except AssertionError:
+        logger.error('BX0 sync word not found anywhere or in link 0')
+        bx0_error = True
+        for l in range(lc.nlinks[lcapture]):
+            new_latency[l] = -1
+    if bx0_error:
+        return new_latency,found_BX0,data
+        
+    # check that BX0 is found in the same position for all output links
+    row_link_0 = (BX0_cols==0).nonzero()[0][0]
+    for l in range(lc.nlinks[lcapture]):
+        try:
+            row_index = (BX0_cols==l).nonzero()[0][0]
+        except:
+            logger.warning('BX0 sync word not found for link %i'%l)
+            new_latency[l] = -1
+            continue
+            
+        try:
+            assert BX0_rows[row_index] == BX0_rows[row_link_0]
+            if bx0:
+                assert BX0_rows[row_index] == bx0[row_index]
+            logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+            new_latency[l] = latency[l]
+            found_BX0[l] = BX0_rows[row_index]
+        except AssertionError:
+            if bx0:
+                if BX0_rows[row_index] > bx0[row_index]:
+                    logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
+                    new_latency[l] = latency[l]
+                    found_BX0[l] = BX0_rows[row_index]
+                else:
+                    logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
+                    new_latency[l] = -1
+            else:
+                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+                new_latency[l] = -1
     return new_latency,found_BX0,data
             
-def modify_latency(args):
+def modify_latency():
     # re-configure fc
     fc.configure_fc()
 
@@ -175,9 +177,10 @@ def modify_latency(args):
     def find_bx0(lc,lat,fbx0,all_data,ref=None):
         for i in range(0,31):
             for l in range(output_nlinks):
-                if latency[lc][l]==-1:
-                    latency[lc][l] = i
-            lat[lc],fbx0[lc],daq_data = utils_lc.find_latency(dev,lat[lc],lc,ref)
+                if lat[lc][l]==-1:
+                    lat[lc][l] = i
+            print(i,lat,lc,ref)
+            lat[lc],fbx0[lc],daq_data = find_latency(lat[lc],lc,bx0=ref)
             if -1 not in lat[lc].values():
                 logger.info('Found BX0 for %s: %s, %s',lc,lat[lc],fbx0[lc])
                 all_data[lc] = daq_data
@@ -225,27 +228,26 @@ if __name__ == "__main__":
     logger = logging.getLogger('align:step:%s'%args.step)
     logger.setLevel('INFO')
     
-    if args.step == "configure-IO":
-        for io in args.io_names.split(','):
-            if args.invertIO:
-                io.configure_IO(invert=True)
-            else:
-                io.configure_IO()
-
-    if args.step == "manual-IO":
-        io.manual_IO("from","IO")
-
     if args.step == "init":
-        init(args)
+        init()
 
-    if args.step == "lr-roct":
-        lr_roct(args)
+    elif args.step == "configure-IO":
+        for io in args.io_names.split(','):
+            io_block = IOBlock(io)
+            io_block.configure_IO(invert=args.invertIO)
+
+    elif args.step == "manual-IO":
+        from_io = IOBlock('from')
+        from_io.manual_IO()
+
+    elif args.step == "lr-roct":
+        lr_roct(args.bxlr,args.delay)
         
-    if args.step == "lr-econt":
-        lr_econt(args)
+    elif args.step == "lr-econt":
+        lr_econt()
 
-    if args.step == 'manual-lcASIC':
+    elif args.step == 'manual-lcASIC':
         lc.manual_align(['lc-ASIC'])
 
-    if args.step == 'latency':
-        modify_latency(dev,args)
+    elif args.step == 'latency':
+        modify_latency()

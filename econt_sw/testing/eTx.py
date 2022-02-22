@@ -1,6 +1,7 @@
 from i2c import call_i2c
 import numpy as np
 import argparse
+import time
 import os
 
 import logging
@@ -22,46 +23,56 @@ lc = LinkCapture()
 tv = TestVectors()
 sc = StreamCompare()
 
-def save_captured_data(lcaptures,data,csv=False,phex=False)
-    for lcapture in lcaptures:
+def verbose_captured_data(data,csv=False,phex=False,odir="./",fname="temp",verbose=False):
+    for lcapture in data.keys():
         if csv:
-            tv.save_testvector(f"{odir}/{lcapture}_{fname}.csv",data[lcapture])
+            filename = f"{odir}/{lcapture}_{fname}.csv"
+            if verbose:
+                logger.info(f'Saving data from {lcapture} in {filename}')
+            tv.save_testvector(filename,data[lcapture])
         if phex:
             datahex = tv.fixed_hex(data[lcapture],8)
             for n in datahex: logger.info(','.join(n))
 
-def capture(lcaptures,nwords,mode,bx=0,csv=False,odir="./",fname="",nlinks=-1,phex=False,trigger=False):
+def capture(lcaptures,nwords=4095,
+            mode="BX",bx=0,
+            csv=False,phex=False,odir="./",fname="temp",
+            trigger=False,verbose=False):
     # reset fc
     fc.configure_fc()
 
     # configure acquire
-    lc.configure_acquire(lcaptures,mode,nwords,bx,verbose=False)
+    lc.configure_acquire(lcaptures,mode,nwords,bx,verbose)
 
     # do link capture
-    if mode in fc_by_lfc.keys():
-        lc.do_fc_capture(fc_by_lfc[mode],lcaptures,verbose=False)
+    if mode in lc.fc_by_lfc.keys():
+        lc.do_capture(lcaptures,verbose)
+        fc.request(lc.fc_by_lfc[mode],verbose)
         time.sleep(0.001)
-        fc.get_counter(fc_by_lfc[mode])
+        fc.get_counter(lc.fc_by_lfc[mode],verbose)
     else:
         if mode == 'L1A' and not trigger:
-            fc.get_counter("l1a")
+            fc.get_counter("l1a",verbose)
             fc.send_l1a()
-            lc.do_capture(lcaptures,verbose=False)
+            lc.do_capture(lcaptures,verbose)
         else:
-            lc.do_capture(lcaptures,verbose=False)
+            lc.do_capture(lcaptures,verbose)
 
     # get captured data
-    data = lc.get_captured_data(lcaptures,nwords,verbose=False)
+    data = lc.get_captured_data(lcaptures,nwords,verbose)
 
     # save or print
-    save_captured_data(lcaptures,data,csv,phex)
+    verbose_captured_data(data,csv,phex,odir,fname,verbose)
 
     # reset fc
     fc.configure_fc()
 
     return data
 
-def compare_lc(trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="sc",phex=False,sleepTime=0.01,log=False):
+def compare_lc(trigger=False,nlinks=-1,nwords=4095,
+               csv=False,phex=False,odir="./",fname="sc",
+               sleepTime=0.01,
+               log=False,verbose=False):
     """Compare two link captures"""
     lcaptures = ['lc-ASIC','lc-emulator']
     if nlinks==-1:
@@ -75,10 +86,10 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="
         fc.configure_fc()
 
         # configure acquire
-        lc.configure_acquire(lcaptures,'L1A',nwords,0,verbose=False)
+        lc.configure_acquire(lcaptures,'L1A',nwords,0,verbose)
 
         # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)
-        lc.do_capture(lcaptures,verbose=False)
+        lc.do_capture(lcaptures,verbose)
 
     # configure stream compare
     sc.configure_compare(nlinks,trigger)
@@ -94,20 +105,22 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,nocsv=False,odir="./",fname="
     # trigger will capture 32 words prior to a mismatch identified by stream_compare
     data = None
     if err_count>0 and trigger:
-        data = lc.get_captured_data(lcaptures,nwords,nlinks,verbose=False)
-        save_captured_data(lcaptures,data,csv,phex)
+        data = lc.get_captured_data(lcaptures,nwords,verbose)
+        verbose_captured_data(data,csv,phex,odir,fname,verbose)
 
     # reset fc
     fc.configure_fc()
 
     return data
 
-def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095,trigger=False,nlinks=13,sleepTime=0.01,nocompare=False,yamlname="init"):
-    """Automatize event DAQ.
-    Only modify the input or i2c registers if idir/dtype and/or yamlFile is given.
-    """
-
-    # modify inputs
+def event_daq(idir="",dtype="",
+              i2ckeep=False,i2ckeys='ASIC,emulator',
+              nwords=4095,nlinks=13,
+              trigger=False,sleepTime=0.01,
+              nocompare=False,
+              yamlname="init"):
+    """Automatize event DAQ"""
+    # modify input or i2c registers if idir/dtype and/or yamlFile is given
     if idir!="" or dtype!="":
         logger.info(f"Loading input test vectors, dtype {dtype}, idir {idir}")
         tv.configure(dtype,idir)
@@ -135,16 +148,16 @@ def event_daq(idir="",dtype="",i2ckeep=False,i2ckeys='ASIC,emulator',nwords=4095
     check_align('lc-ASIC')
 
     # send compare command
-    data_asic,data_emu = send_capture(compare=True,trigger=trigger,nwords=nwords,nlinks=nlinks,fname="temp",sleepTime=sleepTime)
+    data = compare_lc(trigger=trigger,nlinks=nlinks,nwords=nwords,
+                      csv=True,phex=False,odir="./",fname="sc",
+                      sleepTime=sleepTime,log=False)
 
     # look at first rows of captured data
-    if (data_asic is not None) and (data_emu is not None):
-        for i,row in enumerate(fixedHex(data_asic,8)[:40]):
-            logger.info(f'lc-ASIC {i}: '+",".join(map(str,list(row))))
-        logger.info('.'*50)
-        for i,row in enumerate(fixedHex(data_emu,8)[:40]):
-            logger.info(f'lc-emulator {i}: '+",".join(map(str,list(row))))
-        logger.info('.'*50)
+    if data is not None:
+        for lcapture,data_lc in data.items():
+            for i,row in enumerate(tv.fixed_hex(data_lc,8)[:40]):
+                logger.info(f'{lcapture} {i}: '+",".join(map(str,list(row))))
+            logger.info('.'*50)
 
 def set_PLL_phase_of_enable(phase=0):
     call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
@@ -164,16 +177,14 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=False):
         set_PLL_phase_of_enable(phase)
         
         # capture data at a fixed BX
-        data,_ = send_capture("lc-ASIC","BX",bx,nwords,capture=True)
-        scanData.append(data)
+        data = capture(["lc-ASIC"],nwords=nwords,mode="BX",bx=bx)
+        scanData.append(data["lc-ASIC"])
 
-        dataHex = fixedHex(data,8)
         if verbose:
             logger.info(f'PLL_phase_of_enable_1G28 = {phase}')
             logger.info('.'*50)
             logger.info(f'Raw Hex output ({phase} bit shift expected)')
-            for n in dataHex: 
-                logger.info(','.join(n))
+            verbose_captured_data(data,phex=True)
 
     for i,data in enumerate(scanData):
         # logger.info(f'PLL_phase_of_enable_1G28 {i}, BX number (first 5 bits)')
@@ -222,15 +233,13 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
 
     for i_pll in range(8):
         call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
-        print(i_pll)
-        data,_=send_capture(bx=0,nwords=nwords,capture=True)
-        datahex = fixedHex(data,8)
-        print(datahex)
+        data = capture(["lc-ASIC"],nwords=nwords,mode="BX",bx=0)
+        if verbose:
+            verbose_captured_data(data,phex=True)
+        data = data["lc-ASIC"]
 
         # only works for checking links 1-10,  eTx 0 has the header, so we don't expect 32 straight 1's, and eTx 11 & 12 are not used in repeater more
         goodLink=[]
-        if verbose:
-            for n in fixedHex(data,8): print(','.join(n))
         for i in range(1,11):
             x=''.join(np.vectorize(lambda x: f'{x:032b}')(data.T[i])[::-1])
 
@@ -256,30 +265,48 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
 if __name__=='__main__':
     """
     ETX monitoring
+    - For PLL Scan:
+      python testing/eTx.py --scan --good 0 --bx 40 --nwords 100
+    - For PLL Scan with fixed Pattern       
+      python testing/eTx.py --scan --fixedPattern --algo repeater
+   
+    - For capturing data:
+      python testing/eTx.py --capture --lc lc-input --mode BX --bx 0 --capture --nwords 511 --csv --verbose
+      # or
+      python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
+
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scan', dest='scanPhaseEnable',default=False, action='store_true', help="scan phase_of_enable values")
-    parser.add_argument('--capture', dest='capture',default=False, action='store_true', help="capture data on eTx")
-    parser.add_argument('--daq', dest='daq',default=False, action='store_true', help="take data")
-    parser.add_argument('--disable-align',  action='store_true', dest='disablealign', default=False, help='disable automatic alignment')
-    parser.add_argument('--sync', type=str, default=None, help='change sync word')
-    
-    parser.add_argument('--bx', type=int, default=12, help='bx')
-    parser.add_argument('--nwords', type=int, default=4095, help='number of words')
-    parser.add_argument('--fname',dest="fname",type=str, default="", help='filename string')
+    parser.add_argument('--scan', dest='scanPhaseEnable', default=False, action='store_true', help="scan phase_of_enable values")
+    parser.add_argument('--fixedPattern', dest='doFixedPatternTest',default=False, action='store_true')
+
+    parser.add_argument('--capture', dest='capture', default=False, action='store_true', help="capture data on eTx")
+    parser.add_argument('--compare', action='store_true', default=False, help='compare counters in stream-compare')
+    parser.add_argument('--daq', dest='daq', default=False, action='store_true', help="take data")
+    parser.add_argument('--disable-align', dest='disablealign', default=False, action='store_true', help='disable automatic alignment')
+    parser.add_argument('--change-sync', dest='changesync', default=False, action='store_true', help='change sync word')
+    parser.add_argument('--log', action='store_true', default=False, help='continuosly log counters in stream-compare')
 
     parser.add_argument('--good', type=int, default=0, help='good value of PLL_phase_of_enable')
-    parser.add_argument('--fixedPattern', dest='doFixedPatternTest',default=False, action='store_true')
     parser.add_argument('--algo', dest="algo", default="repeater", help="algorithm to use for fixedPattern test (repeater,threshold)")
+
+    parser.add_argument('--lc', type=str, default='lc-ASIC', help='link capture to capture data, choices: lc-ASIC,lc-input,lc-emulator')
+    parser.add_argument('--nwords', type=int, default=4095, help='number of words')
+    parser.add_argument('--mode', type=str, default='BX', choices=['BX','L1A','linkreset_ECONt','linkreset_ECONd','linkreset_ROCt','linkreset_ROCd','orbitSync'], help='mode to capture')
+    parser.add_argument('--bx', type=int, default=0, help='bx')
+    parser.add_argument('--csv', action='store_true', default=False, help='save captured data in csv format')
+    parser.add_argument('--phex', action='store_true', default=False, help='print in hex format')
+    parser.add_argument('--odir', dest="odir",type=str, default="./", help='output directory for captured data')
+    parser.add_argument('--fname',dest="fname",type=str, default="temp", help='filename string')
+    parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
+    parser.add_argument('--nlinks', type=int, default=13, help='number of links')
 
     parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
     parser.add_argument('--idir', dest="idir",type=str, default="", help='test vector directory')
     parser.add_argument('--i2ckeep', dest='i2ckeep',default=False, action='store_true', help="keep i2c configuration")
     parser.add_argument('--i2ckeys', dest='i2ckeys', type=str, default='ASIC,emulator', help="keys of i2c addresses(ASIC,emulator)")
     parser.add_argument('--yamlname', dest="yamlname",type=str, default="init", help='yaml filename in idir to load (exclude .yaml)')
-
     parser.add_argument('--sleep', dest='sleepTime', type=str, default='0.01',help='Time to wait between logging counters')
-    parser.add_argument('--trigger', action='store_true', default=False, help='Trigger on a mis-match')
     parser.add_argument('--nocompare', action='store_true', default=False, help='Do not compare and just load the inputs')
 
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
@@ -292,14 +319,22 @@ if __name__=='__main__':
         else:
             scan_PLL_phase_of_enable(args.bx,args.nwords,args.good)
     elif args.capture:
-        data,_=send_capture(bx=args.bx, nwords=args.nwords,asHex=True,capture=True,fname=args.fname)
-        if args.verbose:
-            for row in data[:8]:
-                logger.info('lc-ASIC: '+",".join(map(str,list(row))))
-            logger.info('.'*50)
+        data = capture(args.lc.split(','),nwords=args.nwords,
+                       mode=args.mode,bx=args.bx,
+                       csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,
+                       trigger=args.trigger,verbose=args.verbose)
+    elif args.compare:
+        data = compare_lc(trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,
+                          csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,
+                          sleepTime=float(args.sleepTime),log=args.log)
     elif args.daq:
-        event_daq(idir=args.idir,dtype=args.dtype,i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,nwords=args.nwords,trigger=args.trigger,sleepTime=float(args.sleepTime),nocompare=args.nocompare,yamlname=args.yamlname)
+        event_daq(idir=args.idir,dtype=args.dtype,
+                  i2ckeep=args.i2ckeep,i2ckeys=args.i2ckeys,
+                  nwords=args.nwords,nlinks=args.nlinks,
+                  trigger=args.trigger,sleepTime=float(args.sleepTime),
+                  nocompare=args.nocompare,
+                  yamlname=args.yamlname)
     elif args.disablealign:
         lc.disable_alignment(args.lc.split(','))
-    elif args.sync:
+    elif args.changesync:
         lc.syncword(args.lc.split(','),args.sync)

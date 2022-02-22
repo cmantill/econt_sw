@@ -3,31 +3,31 @@ EMULATOR_DELAY="${2:-4}"
 PHASESELECT="${3:-99}"
 
 echo "starting alignment procedures"
-python3 testing/test_vectors.py --dtype PRBS28
+python testing/eRx.py --tv --dtype PRBS28
 # or
-# python3 testing/test_vectors.py --idir configs/test_vectors/counterPatternInTC/RPT/
+# python testing/test_vectors.py --idir configs/test_vectors/counterPatternInTC/RPT/
 
-python3 testing/i2c.py --yaml configs/align.yaml --write --quiet
-python3 testing/i2c.py --yaml configs/align.yaml --i2c emulator --write --quiet
+python testing/i2c.py --yaml configs/align.yaml --write --quiet
+python testing/i2c.py --yaml configs/align.yaml --i2c emulator --write --quiet
 
 echo $PHASESELECT
 
 if [ $PHASESELECT -eq 0 ]; then
     echo "keeping the same trackMode"
-    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode 
+    python testing/i2c.py --name EPRXGRP_TOP_trackMode 
 elif [ $PHASESELECT -eq 99 ]; then
-    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode --value 1
+    python testing/i2c.py --name EPRXGRP_TOP_trackMode --value 1
 else
-    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
-    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value $PHASESELECT
+    python testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
+    python testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value $PHASESELECT
 fi
 
-python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT
-python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --i2c emulator
+python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT
+python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --i2c emulator
 
-python3 testing/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
+python testing/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
 
-python3 testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
+python testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
 
-python3 testing/eRx.py --alignment --verbose
-python3 testing/eRx.py --logging -N 1 --sleep 2
+python testing/eRx.py --alignment --verbose
+python testing/eRx.py --logging -N 1 --sleep 2

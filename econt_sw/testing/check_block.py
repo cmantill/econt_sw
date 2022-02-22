@@ -21,6 +21,7 @@ Usage:
 """
 
 def check_align(block):
+    align = False
     if block=='from-IO':
         from_io.reset_counters()
         align = from_io.check_IO()

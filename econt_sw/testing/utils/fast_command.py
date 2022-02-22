@@ -49,16 +49,18 @@ class FastCommands:
         self.dev.getNode(self.name+".bx_"+fc).write(bx)
         self.dev.dispatch()
 
-    def request(self,fc):
+    def request(self,fc,verbose=False):
         """
         Request fast command.
         Options: chipsync,
         """
         self.dev.getNode(self.name+".request."+fc).write(1);
         self.dev.dispatch()
+        if verbose:
+            logger.info(f'request {fc}')
 
     def get_counter(self,fc,verbose=True):
-        counter = self.dev.getNode(self.name_recv+".counters.link_reset_econt").read()
+        counter = self.dev.getNode(self.name_recv+".counters."+fc).read()
         self.dev.dispatch()
         if verbose:
             logger.info('%s counter %i'%(fc,int(counter)))
