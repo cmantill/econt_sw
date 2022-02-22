@@ -58,14 +58,14 @@ class TestVectors():
                 for j in range(len(data)):
                     writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-    def configure(self,dtype="",idir=""):
+    def configure(self,dtype="",idir="",pattern=None,n_idle_words=255, verbose=True):
         """
         Set test vectors
         dtype [PRBS,PRBS32,PRBS28,debug,zeros]
         """
         testvectors_settings = {
             "output_select": 0x0,
-            "n_idle_words": 255,
+            "n_idle_words": n_idle_words,
             "idle_word": 0xaccccccc,
             "idle_word_BX0": 0x9ccccccc,
             "header_mask": 0x00000000,
@@ -93,7 +93,8 @@ class TestVectors():
             testvectors_settings["idle_word"] = 0xa0000000
             testvectors_settings["idle_word_BX0"] = 0x90000000
 
-        logger.info('Test vector settings %s'%testvectors_settings)
+        if verbose:
+            logger.info('Test vector settings %s'%testvectors_settings)
 
         for l in range( self.nlinks ):
             for key,value in testvectors_settings.items():
@@ -120,6 +121,12 @@ class TestVectors():
                 # import numpy as np  
                 # data = np.array(out_brams).T 
                 # self.save_testvector("zeros.csv",data,header=True)
+            if dtype=="pattern" and not pattern is None:
+                data=np.array(pattern).reshape(12,-1)
+                if data.shape[1]<3564:
+                    logger.warning('Less than a full orbit of data was provided')
+                for l in range(12):
+                    self.dev.getNode(self.name_bram.replace('00',"%02d"%l)).writeBlock(data[l])
 
             if idir!="":
                 fname = idir+"/../testInput.csv"

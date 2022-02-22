@@ -9,9 +9,6 @@ import datetime
 import logging
 logger = logging.getLogger("eRx")
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
     
 def readSnapshot(i2c='ASIC',return_status=False):
     """
@@ -36,7 +33,7 @@ def i2cSnapshot(bx=4):
     call_i2c(args_name='ALIGNER_snapshot_arm', args_value='1')
     snapshots,status,select=readSnapshot()
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
-    return snapshots
+    return snapshots, status, select
 
 def checkWordAlignment(verbose=True, ASIC_only=False):
     """Check word alignment"""
@@ -44,7 +41,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
     
     if not ASIC_only: snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
 
-    readStatus('ASIC',verbose)
+    #readStatus('ASIC',verbose)
 
     goodStatus=(status_ASIC==3).all()
     goodSelect=(select_ASIC<=64).all() & (select_ASIC>=32).all()
@@ -52,14 +49,14 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
     #if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
     if ASIC_only: goodSelect=True
 
-    # shift the snapshot by select bits, and look for accccccc9ccccccc at the end
-    goodSnapshot = (((snapshots_ASIC >> select_ASIC) & 18446744073709551615) == 12451552248948640972).all()
+    # shift the snapshot by select bits, and look for 9ccccccc at the end
+    goodSnapshot = (((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc).all()
 
     goodASIC = goodStatus & goodSelect & goodSnapshot
     if ASIC_only: 
         goodEmulator=True
     else:
-        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==4237043671203321810880259700014693398528890914913710296268).all()
+        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==0xacccccccacccccccacccccccaccccccc9cccccccaccccccc).all()
 
     if not (goodASIC) and verbose:
         logger.error('Bad ASIC alignment')
@@ -91,7 +88,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
 
 def checkSnapshots(compare=True, verbose=False, bx=4):
     """Manually take a snapshot in BX bx"""
-    snapshots=i2cSnapshot(bx)
+    snapshots,status,select=i2cSnapshot(bx)
 
     if verbose:
         output=''
@@ -195,7 +192,7 @@ def eRxEnableTests(patterns=None, verbose=False):
         #set all by i and j to enabled
         call_i2c(args_name='ERX_ch_[0-11]_enable',args_value=','.join([str(x) for x in enables]))
 
-        snapshots=i2cSnapshot()
+        snapshots,status,select=i2cSnapshot()
         snapshotsHex=np.array([f'{s:048x}' for s in snapshots])
         match=np.array(snapshotsHex=='8ad3a74e9ad5ab56aad7af5eb90000000a0204081a040810')
 
@@ -250,6 +247,10 @@ if __name__=='__main__':
     - To do PRBS scan
       python testing/eRx.py --prbs --sleep 1
     """
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    logger.addHandler(ch)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--tv', dest='configureTV',default=False, action='store_true')
     parser.add_argument('--logging', dest='runLogging',default=False, action='store_true')
