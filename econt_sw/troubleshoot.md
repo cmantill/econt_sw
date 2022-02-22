@@ -5,9 +5,9 @@
 - If you see `RO FCTRL_ALL status_fc_error 0x1`:
   Try changing edgesel/invert for FC:
   ```
-  python3 testing/i2c.py --name FCTRL_EdgeSel_T1 --value 0
+  python testing/i2c.py --name FCTRL_EdgeSel_T1 --value 0
   # and checking again the status registers
-  python3 testing/i2c.py --yaml configs/init.yaml
+  python testing/i2c.py --yaml configs/init.yaml
   ```
   Note: We see this behavior in `Dec9` firmware.
 
@@ -16,7 +16,7 @@
 - i2c registers
   - Verify that alignment registers are the set for both ASIC and emulator:
     ```
-    python3 testing/i2c.py --yaml configs/align.yaml --i2c ASIC,emulator
+    python testing/i2c.py --yaml configs/align.yaml --i2c ASIC,emulator
     ```
 - Word alignment
   - An example of ASIC aligned:
@@ -57,9 +57,9 @@
 
     Everytime these registers are changed we need to send another link-reset-ROCT
     ```
-    python3 testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
-    python testing/uhal-align_on_tester.py --step lr-roct
-    python3 testing/i2c.py --yaml configs/align_read.yaml
+    python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
+    python testing/align_on_tester.py --step lr-roct
+    python testing/i2c.py --yaml configs/align_read.yaml
     ```
     
     Values that have worked with our ASICs:
@@ -67,55 +67,55 @@
 
   - To read the parameters in the `status` register:
     ```
-    python3 testing/i2c.py --yaml configs/align_read_status.yaml 
+    python testing/i2c.py --yaml configs/align_read_status.yaml 
     ```
  
   - If you are not able to see the alignment pattern and status is not aligned, look at `phaseSelect` status and set those values to `config_phaseSelect`. Then, set to trackMode to 0, e.g.
     ```
     # read
-    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_status_phaseSelect 
+    python testing/i2c.py --name CH_EPRXGRP_[0-11]_status_phaseSelect 
     # set
-    python3 testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value 5,5,6,5,6,6,5,5,5,6,6,6
-    python3 testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
+    python testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value 5,5,6,5,6,6,5,5,5,6,6,6
+    python testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
     # run alignment script again (send link reset ROC-T) - where 4 and 4 were the values of snapshot and delay before
     source scripts/inputWordAlignment.sh 4 4 
     ```
  
   - If you need to capture the input when sending a link-reset-ROCT:
     ```
-    python testing/uhal-align_on_tester.py --step capture --lc lc-input --mode linkreset_ROCt
+    python testing/eTx.py --capture --lc lc-input --mode linkreset_ROCt --capture --csv
     ```
 
   - To force a snapshot:
     * To take the snapshot with the trigger mode and then spy on it:
     ```
-    python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 1,1,[0]*12,0 --i2c ASIC
-    python3 testing/i2c.py --name ALIGNER_snapshot_arm --value 1 --i2c ASIC,emulator
-    python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
+    python testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 1,1,[0]*12,0 --i2c ASIC
+    python testing/i2c.py --name ALIGNER_snapshot_arm --value 1 --i2c ASIC,emulator
+    python testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
     ```
     * Otherwise one can try manually:
     ```
-    python3 testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 0,1,[0]*12,0 --i2c ASIC
-    python testing/uhal-align_on_tester.py --step capture --lc lc-input --mode linkreset_ROCt
-    python3 testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
+    python testing/i2c.py --name ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm --value 0,1,[0]*12,0 --i2c ASIC
+    python testing/eTx.py --capture --lc lc-input --mode linkreset_ROCt --capture --csv
+    python testing/i2c.py --name CH_ALIGNER_*_snapshot --i2c emulator
     ```
 
   - Options to send data in elink outputs:
     ```
     # to send a different pattern
-    python testing/uhal-align_on_tester.py --step test-data --dtype debug
+    python testing/eRx.py --tv --dtype debug
     # to send PRBS
-    python testing/uhal-align_on_tester.py --step test-data --dtype PRBS
+    python testing/eRx.py --tv --dtype PRBS
     # to send zero data
-    python testing/uhal-align_on_tester.py --step test-data
+    python testing/eRx.py --tv --dtype zeros
     # to send repeater dataset (or any dataset in a directory)
-    python testing/uhal-align_on_tester.py --step test-data --idir configs/test_vectors/counterPatternInTC/RPT/
+    python testing/eRx.py --tv --idir configs/test_vectors/counterPatternInTC/RPT/
     ```
 
   - If snapshot is 0:
     - Try checking fc registers, and make sure there is no fc_error (see start-up section):
       ```
-      python3 testing/i2c.py --name FCTRL*
+      python testing/i2c.py --name FCTRL*
       ```
    
   - `delay` values that have worked for emulator word-alignment:
@@ -180,31 +180,31 @@
 
     ```
     # configure to check PRBS (also resets counters)
-    python3 testing/i2c.py --yaml configs/prbs.yaml --write
+    python testing/i2c.py --yaml configs/prbs.yaml --write
     # to send PRBS (32 bit)
-    python testing/uhal-align_on_tester.py --step test-data --dtype PRBS
+    python testing/eRx.py --tv --dtype PRBS
     # read prbs_chk_err_cnt
-    python3 testing/i2c.py --name *prbs_chk_err_cnt,*raw_error_prbs_chk_err
+    python testing/i2c.py --name *prbs_chk_err_cnt,*raw_error_prbs_chk_err
     # (before writing the prbs configs, I would see prbs_chk_err_cnt 0xff - maxed out - then went back to 0)
     ```
     
     One can do a phase scan by reading `prbs_chk_err_cnt` while changing `phaseSelect` in `trackMode 0`.
     ```
-    python3 scripts/scanPhasePRBS.py
+    python testing/eRx.py --prbs --sleep 1
     ```
   
 - IO alignment:
   - Make sure that the algorithm is threshold and that the values of threshold are maximum, for BOTH ASIC and emulator:
     ```
     # algo_select should be 0
-    python3 testing/i2c.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --i2c ASIC,emulator
+    python testing/i2c.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --i2c ASIC,emulator
     # threshold values should be 0x3fffff
-    python3 testing/i2c.py --name ALGO_threshold_val_[0-47] --i2c ASIC,emulator
+    python testing/i2c.py --name ALGO_threshold_val_[0-47] --i2c ASIC,emulator
     ```
   - Make sure that IO is inverted `--invertIO` by default.
   - Reset IO (and counters) with:
     ```
-    python testing/uhal-align_on_tester.py --step configure-IO --invertIO
+    python testing/align_on_tester.py --step configure-IO --invertIO
     ```
     Is a good idea to reset IO before checking that is aligned (and many bit transitions are sent).
 
@@ -232,17 +232,17 @@
   - If link capture is not aligned:
     - Check that all elinks are word-aligned in ASIC and emulator:
       ```
-      python3 testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
+      python testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
       ```
     - You should be able to repeat the procedure of setting `ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot`, sending link reset-ROCT and reading back alignment registers.
 
   - If you see bit errors in the captured data:
     - Try increasing the drive strength of the eTx and capturing again:
       ```
-      python3 testing/i2c.py --name ETX_ch_*_drive_strength --value 7
-      python3 testing/i2c.py --name  ETX_ch_*_pre_emphasis_strength --value 7
-      
-      python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
+      python testing/i2c.py --name ETX_ch_*_drive_strength --value 7
+      python testing/i2c.py --name  ETX_ch_*_pre_emphasis_strength --value 7
+
+      python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
       ```
   - To manually align:
     - Check the output saved in the `check-lcASIC` step: lc-ASIC-alignoutput_debug.csv:
@@ -253,13 +253,13 @@
     - Manually override the alignment (and modify the snippet with a different delay if needed) with:
       ```
       # read the current align position
-      python testing/uhal-align_on_tester.py --step manual-lcASIC
+      python testing/align_on_tester.py --step manual-lcASIC
       # change the align position (+ or - 16 bits)
-      python testing/uhal-align_on_tester.py --step manual-lcASIC --alignpos 16
+      python testing/align_on_tester.py --step manual-lcASIC --alignpos 16
       ```
     - Then check again:
       ```
-      python testing/uhal-align_on_tester.py --step capture --lc lc-ASIC --mode linkreset_ECONt
+      python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
       ```
       You should have
       ```
