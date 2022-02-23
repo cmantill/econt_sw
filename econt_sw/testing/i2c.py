@@ -44,6 +44,7 @@ def call_i2c(args_name=None,
              args_i2c='ASIC',
              args_start_server=False,
              args_addr='0',
+             args_ip='localhost',
              args_server='5554',
              args_init=False,
 ):
@@ -201,7 +202,7 @@ def call_i2c(args_name=None,
 
     outputs = {}
     for key in server.keys():
-        i2c_sockets[key] = i2cController("localhost", str(server[key]))
+        i2c_sockets[key] = i2cController(args_ip, str(server[key]))
 
         if args_init:
             i2c_sockets[key].initialize()
@@ -245,6 +246,7 @@ if __name__ == "__main__":
     parser.add_argument('--compare', default=False, action='store_true', help='do comparison of read to values in yaml file')
     parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
     parser.add_argument('--info', default=False, action='store_true', help="Print a description of the register matching pattern in --name argument")
+    parser.add_argument('--ip', type=str, default='localhost', help="IP address of server (default localhost)")
     parser.add_argument('--init', default=False, action='store_true', help='write default register map')
     parser.add_argument('--quiet', default=False, action='store_true', help="quiet mode, don't print output")
     
@@ -334,6 +336,7 @@ if __name__ == "__main__":
                        args_i2c=args.i2c,
                        args_start_server=args.start_server,
                        args_addr=args.addr,
+                       args_ip=args.ip,
                        args_server=args.server,
                        args_init=args.init,
     )
