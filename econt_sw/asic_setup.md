@@ -119,7 +119,7 @@
     You can use `delay` to find the delay of getting data to the ASIC
     ```
     python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X --i2c emulator
-    python testing/uhal/align_on_tester.py --step lr-roct --delay X --bxlr 3500 
+    python testing/align_on_tester.py --step lr-roct --delay X --bxlr 3500 
     python testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
     ```
   
