@@ -6,8 +6,6 @@ from .uhal_config import *
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils:tv')
-logger.setLevel(logging.INFO)
 
 class TestVectors():
     """ Class to handle test vectors """
@@ -20,6 +18,8 @@ class TestVectors():
         self.name_sw = names[tv]['switch']
         self.name_st = names[tv]['stream']
         self.name_bram = names[tv]['bram']
+        self.logger = logging.getLogger(f'utils:{tv}')
+        self.logger.setLevel(logging.INFO)
         if tv=='testvectors':
             self.nlinks = input_nlinks
         else:
@@ -58,7 +58,7 @@ class TestVectors():
                 for j in range(len(data)):
                     writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
-    def configure(self,dtype="",idir="",pattern=None,n_idle_words=255, verbose=True):
+    def configure(self,dtype="",idir="",fname="../testInput.csv",pattern=None,n_idle_words=255, verbose=True):
         """
         Set test vectors
         dtype [PRBS,PRBS32,PRBS28,debug,zeros]
@@ -73,28 +73,28 @@ class TestVectors():
             "header_BX0": 0x90000000,
         }
         if dtype == "PRBS":
-            logger.info('Sending 32 bit PRBS w header mask')
+            self.logger.info('Sending 32 bit PRBS w header mask')
             # 32-bit PRBS, the headers should not be there
             # ECON-T expects no headers when it is checking 32-bit PRBS. 
             testvectors_settings["output_select"] = 0x1
             testvectors_settings["header_mask"] = 0x00000000
         elif dtype == "PRBS32":
-            logger.info('Sending 32 bit PRBS w no header mask')
+            self.logger.info('Sending 32 bit PRBS w no header mask')
             testvectors_settings["output_select"] = 0x1
         elif dtype == "PRBS28":
             # 28-bit PRBS, the headers should be there
             # ECON-T expects headers when it is checking 28-bit PRBS. 
-            logger.info('Sending 28 bit PRBS w headers')
+            self.logger.info('Sending 28 bit PRBS w headers')
             testvectors_settings["output_select"] = 0x2
             testvectors_settings["header_mask"] = 0xf0000000
         elif dtype == "debug":
-            logger.info('Setting idle words with only headers and zeros')
+            self.logger.info('Setting idle words with only headers and zeros')
             # send idle word with only headers and zeros
             testvectors_settings["idle_word"] = 0xa0000000
             testvectors_settings["idle_word_BX0"] = 0x90000000
 
         if verbose:
-            logger.info('Test vector settings %s'%testvectors_settings)
+            self.logger.info('Test vector settings %s'%testvectors_settings)
 
         for l in range( self.nlinks ):
             for key,value in testvectors_settings.items():
@@ -110,7 +110,7 @@ class TestVectors():
                 out_brams.append([None] * 4095)
                 
             if dtype == "zeros":
-                logger.info('Writing zero data w headers in test vectors')
+                self.logger.info('Writing zero data w headers in test vectors')
                 for l in range(self.nlinks):
                     for i,b in enumerate(out_brams[l]):
                         if i==0:
@@ -124,15 +124,15 @@ class TestVectors():
             if dtype=="pattern" and not pattern is None:
                 data=np.array(pattern).reshape(12,-1)
                 if data.shape[1]<3564:
-                    logger.warning('Less than a full orbit of data was provided')
+                    self.logger.warning('Less than a full orbit of data was provided')
                 for l in range(12):
                     self.dev.getNode(self.name_bram.replace('00',"%02d"%l)).writeBlock(data[l])
 
             if idir!="":
-                fname = idir+"/../testInput.csv"
-                data = self.read_testvector(fname)
-                logger.info('Writing test vectors from %s'%idir)
-                for l in range(input_nlinks):
+                filename = f"{idir}/{fname}"
+                data = self.read_testvector(filename,self.nlinks)
+                self.logger.info('Writing test vectors from %s'%idir)
+                for l in range(self.nlinks):
                     for i,b in enumerate(out_brams[l]):
                         out_brams[l][i] = int(data[l][i%3564],16)
                     self.dev.getNode(self.name_bram.replace('00',"%02d"%l)).writeBlock(out_brams[l])
@@ -140,7 +140,8 @@ class TestVectors():
 
     def set_bypass(self,bypass=1):
         """Set bypass"""
-        for l in range(self.nlinks):
-            self.dev.getNode(self.name_sw+".link"+str(l)+".output_select").write(bypass)
+        self.logger.info(f"Setting bypass switch output_select to {bypass}")
+        for l in range(13):
+            self.dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(bypass)
         self.dev.dispatch()
 
