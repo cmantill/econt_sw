@@ -24,9 +24,9 @@ def check_align(block):
     align = False
     if block=='from-IO':
         from_io.reset_counters()
-        align = from_io.check_IO()
+        align = from_io.check_IO(verbose=True)
     elif block=='to-IO':
-        align = to_io.check_IO()
+        align = to_io.check_IO(verbose=True)
     elif block=='lc-ASIC':
         align = lc.check_links(['lc-ASIC'])
     return align
@@ -36,7 +36,7 @@ def print_block(block):
         from_io.print_IO()
         from_io.get_delay(verbose=True)
     elif block=='to-IO':
-        to_io.parint_IO()
+        to_io.print_IO()
         to_io.get_delay(verbose=True)
     elif block=='lc-ASIC':
         lc.check_lc(['lc-ASIC'])
