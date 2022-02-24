@@ -236,6 +236,8 @@ if __name__=='__main__':
     ERX monitoring
     - To change input test vectors
       python testing/eRx.py --tv --dtype --idir
+    - To bypass output test vectors
+      python testing/eRx.py --tv --idir IDIR --tv-name bypass
     - To log hdr mm cntrs over a period of time: 
       python testing/eRx.py --logging --sleep 120 -N 10
     - To take a snapshot manually at one bx
@@ -268,6 +270,8 @@ if __name__=='__main__':
     parser.add_argument('--bx', dest='bx',default=4,type=int, help='BX to take snapshot in')
     parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
     parser.add_argument('--idir',dest="idir",type=str, default="", help='test vector directory')
+    parser.add_argument('--fname',dest="fname",type=str, default="../testInput.csv", help='test vector filename')
+    parser.add_argument('--tv-name', dest="tv_name", type=str, default="testvectors", help='test vector names')
 
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
 
@@ -275,8 +279,12 @@ if __name__=='__main__':
 
     if args.configureTV:
         from utils.test_vectors import TestVectors
-        tv = TestVectors()
-        tv.configure(args.dtype,args.idir)
+        tv = TestVectors(args.tv_name)
+        if args.tv_name=="bypass":
+            tv.set_bypass(0)
+        else:
+            tv.set_bypass(1)
+        tv.configure(args.dtype,args.idir,args.fname)
 
     elif args.runLogging:
         statusLogging(sleepTime=args.sleepTime, N=args.N, snapshot=args.getSnapshot, tag=args.tag)
