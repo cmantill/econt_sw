@@ -232,6 +232,7 @@ if __name__ == "__main__":
         init()
 
     elif args.step == "configure-IO":
+        bypass.set_bypass(1)
         for io in args.io_names.split(','):
             io_block = IOBlock(io)
             io_block.configure_IO(invert=args.invertIO)
