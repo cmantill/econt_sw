@@ -156,6 +156,25 @@ ssh HGCAL_dev@192.168.1.48
 ssh -p 23 HGCAL_dev@wilsonjc.us
 ```
 
+### Communicating with hexactrl
+All of the testing scripts use python3 uhal and can be run directly when logged in to the hexa-controller.
+
+To control remotely:
+1. In remote desktop, forward port to hexacontroller, e.g. for port 6677:
+```
+ssh -L 6677:localhost:6677 HGCAL_dev@192.168.1.48
+```
+2. In hexacontroller, run `zmq_server.py` with that IP address:
+```
+python testing/zmq_server.py --server 6677
+```
+3. In remote desktop, run `zmq_client.py` or script that calls the zmq server with that IP address:
+```
+python testing/zmq_client.py --server 6677
+```
+
+Alternatively, define `daq_controller` in `zmq_controller`. Such that all testing scripts communicate with daq_controller (similar to what i2c.py does).
+
 ### Slow control
 - We use a zmq_server to start the [econ_interface](https://github.com/cmantill/econt_sw/blob/master/econt_sw/zmq_i2c/econ_interface.py) class.
 - To start the server:
