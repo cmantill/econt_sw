@@ -29,15 +29,39 @@ class StreamCompare():
         else:
             self.dev.getNode(self.sc+".trigger").write(0x0)
         self.dev.dispatch()
+        
+    def set_links(self,nlinks=13):
+        self.dev.getNode(self.sc+".control.active_links").write(nlinks)
+        self.dev.dispatch()
 
     def configure_compare(self,nlinks=13,trigger=False):
         """
         Configure comparison lc-ASIC and lc-emulator
         """
-        self.dev.getNode(self.sc+".control.active_links").write(nlinks)
-        self.dev.dispatch()
-    
+        self.set_links(nlinks)
         self.set_trigger(trigger)
+
+    def reset_counters(self):
+        """Set counters to zero and immediately continues counting as data comes in"""
+        self.dev.getNode(self.sc+".control.reset").write(0x1)
+        self.dev.dispatch()
+
+    def latch_counters(self):
+        """
+        Copies the current counter values to a separate set of registers that you can read out.
+        It continues incrementing the counters, but the copies that you read out don't change (unless you tell it to latch again).
+        The counters roll over at 2^32
+        """
+        self.dev.getNode(self.sc+".control.latch").write(0x1)
+        self.dev.dispatch()
+
+    def read_counters(self,verbose=True):
+        word_count = self.dev.getNode(self.sc+".word_count").read()
+        err_count = self.dev.getNode(self.sc+".err_count").read()
+        self.dev.dispatch()
+        if verbose:
+            logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
+        return err_count
 
     def reset_log_counters(self,stime=0.01):
         """
@@ -46,18 +70,8 @@ class StreamCompare():
         SC just compares the two inputs: If they match, then it increments the word counter, and doesn't do anything else.
         If they don't match, then it increments both the word and error counters, and, if it is set to do triggering, then it sets its "mismatch" output to 1 for one clock cycle (otherwise it is 0).
         """
-        # reset counters: set counters to zero and immediately continues counting as data comes in
-        # latch counters: copies the current counter values to a separate set of registers that you can read out.
-        #                 it  continues incrementing the counters, but the copies that you read out don't change (unless you tell it to latch again)
-        self.dev.getNode(self.sc+".control.reset").write(0x1)
-        self.dev.dispatch()
+        self.reset_counters()
         time.sleep(stime)
-        self.dev.getNode(self.sc+".control.latch").write(0x1)
-        self.dev.dispatch()
-
-        word_count = self.dev.getNode(self.sc+".word_count").read()
-        err_count = self.dev.getNode(self.sc+".err_count").read()
-        self.dev.dispatch()
-        
-        logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
+        self.latch_counters()
+        err_count = self.read_counters(True)
         return err_count

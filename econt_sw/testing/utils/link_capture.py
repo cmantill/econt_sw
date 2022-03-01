@@ -157,7 +157,7 @@ class LinkCapture:
             elif "inmediate" in mode:
                 capture_dict["mode_in"] = 0
             else:
-                logger.warning("Not a valid capture mode!")
+                logger.warning("Not a valid capture mode!",mode)
                 return
         except:
             logger.warning("Not a valid capture mode!")
