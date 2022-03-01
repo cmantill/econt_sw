@@ -7,4 +7,4 @@ python testing/i2c.py --name FMTBUF_eporttx_numen,FMTBUF_tx_sync_word --value 13
 python testing/eRx.py --tv --dtype zeros
 python testing/align_on_tester.py --step configure-IO --invertIO
 python testing/check_block.py --check --block from-IO
-#python testing/align_on_tester.py --step manual-IO
+python testing/align_on_tester.py --step manual-IO

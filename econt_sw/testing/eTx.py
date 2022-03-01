@@ -24,6 +24,8 @@ tv = TestVectors()
 sc = StreamCompare()
 
 def verbose_captured_data(data,csv=False,phex=False,odir="./",fname="temp",verbose=False):
+    if csv:
+        os.system(f'mkdir -p {odir}')
     for lcapture in data.keys():
         if csv:
             filename = f"{odir}/{lcapture}_{fname}.csv"
@@ -31,6 +33,7 @@ def verbose_captured_data(data,csv=False,phex=False,odir="./",fname="temp",verbo
                 logger.info(f'Saving data from {lcapture} in {filename}')
             tv.save_testvector(filename,data[lcapture])
         if phex:
+            logger.info(f'Printing {lcapture}')
             datahex = tv.fixed_hex(data[lcapture],8)
             for n in datahex: logger.info(','.join(n))
 

@@ -237,7 +237,7 @@ if __name__=='__main__':
     - To change input test vectors
       python testing/eRx.py --tv --dtype --idir
     - To bypass output test vectors
-      python testing/eRx.py --tv --idir IDIR --tv-name bypass
+      python testing/eRx.py --tv --idir IDIR --tv-name bypass --fname testOutput.csv
     - To log hdr mm cntrs over a period of time: 
       python testing/eRx.py --logging --sleep 120 -N 10
     - To take a snapshot manually at one bx

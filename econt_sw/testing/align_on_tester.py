@@ -78,7 +78,7 @@ def lr_econt():
     time.sleep(0.1)
     fc.get_counter("link_reset_econt")
 
-def find_latency(latency,lcapture,bx0=None,savecap=False):
+def find_latency(latency,lcapture,bx0=None,savecap=True):
     """
     Find with that latency we see the BX0 word.
     It captures on link reset econt so capture block needs to set acquire to that.
@@ -158,6 +158,7 @@ def find_latency(latency,lcapture,bx0=None,savecap=False):
     return new_latency,found_BX0,data
             
 def modify_latency():
+    """Automatically adjust the latency so that ASIC and emulator agree after a link reset ROCT"""
     # re-configure fc
     fc.configure_fc()
 
@@ -207,6 +208,10 @@ def modify_latency():
     for key,data in all_data.items():
         tv.save_testvector("%s-alignoutput.csv"%key, data)
 
+def set_latency(lcapture='lc-emulator',latency=0):
+    lc.set_latency([lcapture],[latency]*13)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--step', 
@@ -217,12 +222,14 @@ if __name__ == "__main__":
                                  'lr-econt',
                                  'manual-lcASIC',
                                  'latency',
+                                 'mlatency',
                              ],
                         help='alignment steps')
     parser.add_argument('--io_names', type=str, default='to,from', help='IO block names to configure')
     parser.add_argument('--invertIO', action='store_true', default=False, help='invert IO')
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
+    parser.add_argument('--lat',  type=int, default=-1, help='Fifo latency')
     args = parser.parse_args()
 
     logger = logging.getLogger('align:step:%s'%args.step)
@@ -252,3 +259,6 @@ if __name__ == "__main__":
 
     elif args.step == 'latency':
         modify_latency()
+
+    elif args.step == 'mlatency':
+        set_latency(lcapture='lc-emulator',latency=args.lat)

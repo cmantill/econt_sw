@@ -8,10 +8,13 @@ logger.setLevel('INFO')
 
 from utils.io import IOBlock
 from utils.link_capture import LinkCapture
+from utils.test_vectors import TestVectors
 
 from_io = IOBlock('from')
 to_io = IOBlock('to')
 lc = LinkCapture()
+tv = TestVectors()
+bypass = TestVectors('bypass')
 
 """
 Check alignment on different blocks
@@ -42,6 +45,10 @@ def print_block(block):
         lc.check_lc(['lc-ASIC'])
     elif block=='latency':
         lc.read_latency(['lc-ASIC','lc-emulator'])
+    elif block=='testvectors':
+        tv.printTV()
+    elif block=='bypass':
+        bypass.printTV()
 
 if __name__ == "__main__":
 

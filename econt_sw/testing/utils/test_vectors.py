@@ -20,6 +20,7 @@ class TestVectors():
         self.name_bram = names[tv]['bram']
         self.logger = logging.getLogger(f'utils:{tv}')
         self.logger.setLevel(logging.INFO)
+        self.tv = tv
         if tv=='testvectors':
             self.nlinks = input_nlinks
         else:
@@ -40,7 +41,7 @@ class TestVectors():
     def fixed_hex(self,data,N):
         return np.vectorize(lambda d : '{num:0{width}x}'.format(num=d, width=N))(data)
 
-    def save_testvector(self,fname,data,header=False):
+    def save_testvector(self,fname,data,header=True):
         """
         Save test vector in csv
         TODO: Writes header as TX
@@ -54,7 +55,10 @@ class TestVectors():
             with open( fname, 'w') as f:
                 writer = csv.writer(f, delimiter=',')
                 if header:
-                    writer.writerow(['TX_DATA_%i'%l for l in range(len(data[0]))])
+                    if len(data[0])==13:
+                        writer.writerow(['TX_DATA_%i'%l for l in range(len(data[0]))])
+                    else:
+                        writer.writerow(['RX_DATA_%i'%l for l in range(len(data[0]))])
                 for j in range(len(data)):
                     writer.writerow(['{0:08x}'.format(int(data[j][k])) for k in range(len(data[j]))])
 
@@ -145,3 +149,17 @@ class TestVectors():
             self.dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(bypass)
         self.dev.dispatch()
 
+    def printTV(self):
+        regs_sw = ["output_select","n_idle_words","idle_word","idle_word_BX0","header_mask","header","header_BX0"]
+        regs_st = ["sync_mode","ram_range","force_sync"]
+        for l in range(self.nlinks):
+            vals = {}
+            for reg in regs_sw:
+                tmp = self.dev.getNode(self.name_sw+".link"+str(l)+"."+reg).read()
+                self.dev.dispatch()
+                vals[reg] = int(tmp)
+            for reg in regs_st:
+                tmp = self.dev.getNode(self.name_st+".link"+str(l)+"."+reg).read()
+                self.dev.dispatch()
+                vals[reg] = int(tmp)
+            self.logger.info("%s link%i: %s"%(self.tv,l,vals))
