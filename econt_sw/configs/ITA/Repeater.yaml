@@ -1,0 +1,23 @@
+ECON-T:
+        
+ RW:
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       params_value: 3
+      density:
+       params_value: 1
+
+  ALGO_DROPLSB: 
+   registers:
+    drop_lsb:
+     value 0x3
+
+  FMTBUF_ALL:
+   registers:
+    config:
+     params:
+      eporttx_numen:
+       param_value: 0xd

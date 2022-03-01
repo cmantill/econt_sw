@@ -1,0 +1,416 @@
+ECON-T:
+
+ RW:
+
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       param_value: 0
+      density:
+       param_value: 1
+
+  ALGO_DROPLSB: 
+   registers:
+    drop_lsb:
+     value: 0x3
+
+  ALGO_THRESHOLD_VAL:
+   registers:
+    threshold_val_*:
+     value: [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
+
+  ALIGNER_ALL:
+   registers:
+    config:
+     params:
+      dbg_fc_cnt_clr:
+       param_value: 0
+      i2c_snapshot_en:
+       param_value: 0
+      snapshot_en:
+       param_value: 1
+      snapshot_arm:
+       param_value: 1
+    idle_hdr:
+     params:
+      mask:
+       param_value: 0
+      val:
+       param_value: 0xa
+    match_mask_val:
+     value: 0x0
+    match_pattern_val:
+     value: 0x9cccccccaccccccc
+    orbsyn_cnt_load_val:
+     value: 0x0
+    orbsyn_cnt_max_val:
+     value: 0xdeb
+    orbsyn_cnt_snapshot:
+     value: 0x4
+    orbsyn_hdr:
+     params:
+      mask:
+       param_value: 0
+      val:
+       param_value: 0x9
+
+  AUTOENCODER_*INPUT:
+   registers:
+    weights_byte0:
+     value: 0x0
+    weights_byte112:
+     value: 0x55555555555555555555555555555555
+    weights_byte128:
+     value: 0x0
+    weights_byte16:
+     value: 0x0
+    weights_byte32:
+     value: 0xffffffffffffffffffffffffffffffff
+    weights_byte48:
+     value: 0xffffffffffffffffffffffffffffffff
+    weights_byte64:
+     value: 0xcccccccccccccccccccccccccccccccc
+    weights_byte80:
+     value: 0xcccccccccccccccccccccccccccccccc
+    weights_byte96:
+     value: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+  CH_ALIGNER_*INPUT_ALL:
+   registers:
+    config:
+     params:
+      force_ch_outputs:
+       param_value: 0x0
+      prbs_chk_en:
+       param_value: 0x0
+      patt_sel:
+       param_value: 0x0
+      prbs28_en:
+       param_value: 0x0
+      patt_en:
+       param_value: 0x0
+      sel_override_en:
+       param_value: 0x0
+      per_ch_align_en:
+       param_value: 0x0    
+    seed_in:
+     value: 0x0
+    sel_override_val:
+     value: 0x0
+    user_word_0:
+     value: 0x0
+    user_word_1:
+     value: 0x0
+    user_word_2:
+     value: 0x0
+    user_word_3:
+     value: 0x0
+
+  CH_EPRXGRP_*INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x0
+      trainChannel:
+       param_value: 0x0
+      resetChannels:
+       param_value: 0x0
+      dllResetReq:
+       param_value: 0x0
+
+  EPRXGRP_TOP_ALL:
+   registers:
+    config:
+     params:
+      enableReInit:
+       param_value: 0x0
+      dllInitSMForceClockEnable:
+       param_value: 0x0
+      dllConfirmCountSelect:
+       param_value: 0x1
+      dllUnLockThreshold:
+       param_value: 0x2
+      dllReLockThreshold:
+       param_value: 0x2
+      dllLockThreshold:
+       param_value: 0x2
+      trackMode:
+       param_value: 0x0
+      dataGatingEnable:
+       param_value: 0x1
+      dllCoarseLockDetection:
+       param_value: 0x0
+      dllCurrentSet:
+       param_value: 0x0
+
+  ERRTOP_ALL:
+   registers:
+    config:
+     params:
+      clr_on_read_top:
+       param_value: 0x0
+      wren_err_top:
+       param_value: 0x0
+      wren_msk_top:
+       param_value: 0x0
+    err_wr_data:
+     value: 0x1
+    wr_data_top:
+     value: 0x0
+
+  ERX_ALL:
+   registers:
+    config_ch_*:
+     value: [0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5]
+    config_mux_*:
+     value: [0x5, 0x5, 0x5]
+
+  ETX_ALL:
+   registers:
+    config_ch_*:
+     value: [0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606,
+             0x0606, 0x0606, 0x0606, 0x0606, 0x0606, 0x0606]
+    config_mux_*:
+     value: [0x0c0d, 0x0c0d, 0x0c0d, 0x0c0d]
+    
+  FCTRL_ALL:
+   registers:
+    config:
+     params:
+      reset_b_fc_counters:
+       param_value: 0x1
+      force_fc_error:
+       param_value: 0x0
+      invert_command_rx:
+       param_value: 0x0
+      PreL1AOffset:
+       param_value: 0x0
+      EdgeSel_T1:
+       param_value: 0x0
+
+  FMTBUF_ALL:
+   registers:
+    buff_t1:
+     value: 0x152
+    buff_t2:
+     value: 0x1ff
+    buff_t3:
+     value: 0x19
+    config:
+     params:
+      eporttx_numen:
+       param_value: 0xd
+      stc_type:
+       param_value: 0x0
+      use_sum:
+       param_value: 0x0
+    mask_ae:
+     value: 0xffffffffffffffffffffffffffffffff
+    mask_ae2:
+     value: 0xffff
+    tx_sync_word:
+     value: 0x122
+
+  MFC_CAL_VAL:
+   registers:
+    cal_*:
+     value: [0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800,
+             0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800,
+             0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800,
+             0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800,
+             0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800,
+             0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800, 0x800]
+
+  MFC_MUX_SELECT:
+   registers:
+    mux_select_*:
+     value: [ 3,  2,  1,  0,  7,  6,  5,  4,
+             11, 10,  9,  8, 15, 14, 13, 12,
+             19, 18, 17, 16, 23, 22, 21, 20,
+             27, 26, 25, 24, 31, 30, 29, 28,
+             35, 34, 33, 32, 39, 38, 37, 36,
+             43, 42, 41, 40, 47, 46, 45, 44]
+
+  MISC_ALL:
+   registers:
+    misc_rw_0:
+     params:
+      run:
+       param_value: 0x1
+      rw_ecc_err_clr:
+       param_value: 0x0
+
+  PLL_ALL:
+   registers:
+    pll_bytes_1to0:
+     params:
+      enableDes:
+       param_value: 0x0
+      enableSer:
+       param_value: 0x1
+      clktreeCdisable:
+       param_value: 0x0
+      clktreeBdisable:
+       param_value: 0x0
+      clktreeAdisable:
+       param_value: 0x0
+    pll_bytes_4to2:
+     params:
+      clk2G56enable:
+       param_value: 0x1
+      clk1G28enable:
+       param_value: 0x1
+      clk640Menable:
+       param_value: 0x1
+      clk320Menable:
+       param_value: 0x1
+      clk160Menable:
+       param_value: 0x1
+      clk80Menable:
+       param_value: 0x1
+      clk40Menable:
+       param_value: 0x1
+      enablePhaseShifter:
+       param_value: 0x1
+    pll_bytes_8to5:
+     params:
+      fromMemToLJCDR_COenableFD:
+       param_value: 0x0
+      fromMemToLJCDR_COenableCDR:
+       param_value: 0x0
+      fromMemToLJCDR_COdisDataCounterRef:
+       param_value: 0x1
+      fromMemToLJCDR_COdisDESvbiasgen:
+       param_value: 0x1
+      fromMemToLJCDR_ENABLE_CDR_R:
+       param_value: 0x0
+      fromMemToLJCDR_dataMuxCfg:
+       param_value: 0x3
+      fromMemToLJCDR_CONFIG_P_FF_CDR:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_P_CDR:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_FLL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_CDR:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_FF_CAP:
+       param_value: 0x6
+    pll_bytes_12to9:
+     params:
+      fromMemToLJCDR_CONFIG_FF_CAP_WL:
+       param_value: 0x3
+      fromMemToLJCDR_PLL_R_CONFIG_WL:
+       param_value: 0x4
+      fromMemToLJCDR_CONFIG_P_PLL_WL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_FLL_WL:
+       param_value: 0x0
+      fromMemToLJCDR_CONFIG_P_FF_CDR_WL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_P_CDR_WL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_CDR_WL:
+       param_value: 0x5
+    pll_bytes_17to13:
+     params:
+      fromMemToLJCDR_CBOvcoCapSelect:
+       param_value: 0x1b
+      fromMemToLJCDR_COrefClkSel:
+       param_value: 0x1
+      fromMemToLJCDR_COoverrideVc:
+       param_value: 0x0
+      VCObypass:
+       param_value: 0x0
+      fromMemToLJCDR_COenablePLL:
+       param_value: 0x1
+      fromMemToLJCDR_COconnectPLL:
+       param_value: 0x1
+      fromMemToLJCDR_COconnectCDR:
+       param_value: 0x0
+      fromMemToLJCDR_vcoRailMode:
+       param_value: 0x1
+      fromMemToLJCDR_vcoDAC:
+       param_value: 0x8
+      fromMemToLJCDR_PLL_R_CONFIG:
+       param_value: 0x4
+      fromMemToLJCDR_CONFIG_P_PLL:
+       param_value: 0x5
+      fromMemToLJCDR_CONFIG_I_PLL:
+       param_value: 0x5
+      fromMemToLJCDR_BIASGEN_CONFIG:
+       param_value: 0x8
+    pll_bytes_21to18:
+     params:
+      fromFrameAligner_FrameAlignerIsLocked:
+       param_value: 0x0
+      fromMemToLJCDR_disableFrameAlignerLockControl:
+       param_value: 0x0
+      fromMemToLJCDR_enableControlOverride:
+       param_value: 0x0
+      fromMemToLJCDR_enableCapBankOverride:
+       param_value: 0x1
+      rxLockMode:
+       param_value: 0x0
+      mode:
+       param_value: 0x0
+      fromMemToLJCDR_lfEnable:
+       param_value: 0x1
+      fromMemToLJCDR_waitPLLTime:
+       param_value: 0x8
+      fromMemToLJCDR_waitCDRTime:
+       param_value: 0x8
+      fromMemToLJCDR_selEndOfCount:
+       param_value: 0xc
+      fromMemToLJCDR_lfUnLockThrCounter:
+       param_value: 0x3
+      fromMemToLJCDR_lfReLockThrCounter:
+       param_value: 0x3
+      fromMemToLJCDR_lfLockThrCounter:
+       param_value: 0x3
+    pll_bytes_24to22:
+     params:
+      phase_of_enable_1G28:
+       param_value: 0x0
+      toclkgen_disVCO:
+       param_value: 0x0
+      toclkgen_disSER:
+       param_value: 0x0
+      toclkgen_disEXT:
+       param_value: 0x1
+      toclkgen_disEOM:
+       param_value: 0x0
+      toclkgen_disDES:
+       param_value: 0x0
+      toclkgen_disCLK:
+       param_value: 0x0
+    pll_bytes_26to25:
+     params:
+      ref_clk_sel:
+       param_value: 0x1
+      output_clk_sel:
+       param_value: 0x0
+      refClk_setCommonMode:
+       param_value: 0x0
+      refClk_enableTermination:
+       param_value: 0x0
+      refClk_enableRx:
+       param_value: 0x1
+      tofbDiv_skip:
+       param_value: 0x0
+    pll_bytes_27:
+     params:
+      reset_eTx_par_enable_intr:
+       param_value: 0x0
+      reset_pll_not_locked_intr:
+       param_value: 0x0

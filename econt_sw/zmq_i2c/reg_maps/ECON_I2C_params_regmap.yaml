@@ -495,13 +495,13 @@ ECON-T:
      params:
       enableDes:
        param_mask: 0x1
-       param_shift: 9
+       param_shift: 12
       enableSer:
        param_mask: 0x1
-       param_shift: 7
+       param_shift: 8
       clktreeCdisable:
        param_mask: 0x01
-       param_shift: 5
+       param_shift: 6
       clktreeBdisable:
        param_mask: 0x01
        param_shift: 3
@@ -515,22 +515,22 @@ ECON-T:
      params:
       clk2G56enable:
        param_mask: 0x01
-       param_shift: 15
+       param_shift: 21
       clk1G28enable:
        param_mask: 0x01
-       param_shift: 13
+       param_shift: 18
       clk640Menable:
        param_mask: 0x01
-       param_shift: 11
+       param_shift: 15
       clk320Menable:
        param_mask: 0x01
-       param_shift: 9
+       param_shift: 12
       clk160Menable:
        param_mask: 0x01
-       param_shift: 7
+       param_shift: 9
       clk80Menable:
        param_mask: 0x01
-       param_shift: 5
+       param_shift: 6
       clk40Menable:
        param_mask: 0x01
        param_shift: 3
