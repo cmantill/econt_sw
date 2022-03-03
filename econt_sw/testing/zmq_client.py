@@ -11,14 +11,28 @@ if __name__ == "__main__":
                         help='server for uhal hexacontroller')
     args = parser.parse_args()
 
-    # send routine
-    def send(cmd, cfg=""):
+    def recv_array(socket, flags=0, copy=True, track=False):
+        """recv a numpy array"""
+        md = socket.recv_json(flags=flags)
+        print(md)
+        msg = socket.recv(flags=flags, copy=copy, track=track)
+        print(msg)
+        buf = memoryview(msg)
+        A = numpy.frombuffer(buf, dtype=md["dtype"])
+        return A.reshape(md["shape"])
+
+    def send(socket, cmd, cfg=""):
+        """send routine"""
         socket.send(cmd.encode())
         status = socket.recv_string()
-        if status == 'READY':
+        if status == 'ready':
             socket.send_string(cfg)
             answer = str(socket.recv_string())
-            return(answer)
+            if answer == "data":
+                answer = recv_array(socket, flags=0, copy=True, track=False)
+                return(answer)
+            else:
+                return(answer)
         else:
             return(status)
 
@@ -28,11 +42,16 @@ if __name__ == "__main__":
     socket.connect("tcp://localhost:%s"%args.server)
     
     # configure
-    ret = send("configure")
-    
+    ans = send(socket,"configure")
+    print(ans)
     # reset counters
-    ret = send("reset")
 
+    ans = send(socket,"reset")
+    print(ans)
+    
     # latch and get errors
-    ret = send("latch")
-    print('ret ',ret)
+    from datetime import datetime
+    dt = datetime.timestamp(datetime.now())
+ 
+    ret_array = send(socket,"latch",f"{dt}")
+    print('re array ',ret_array)

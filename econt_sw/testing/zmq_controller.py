@@ -127,11 +127,11 @@ class daqController(zmqController):
         rep = self.socket.recv_string()
         print(rep)
 
-    def align(self):
-        print('align')
+    def init(self):
+        print('init')
         rep=""
-        while rep.lower().find("align_done")<0:
-            self.socket.send_string("align")
+        while rep.lower().find("ready")<0:
+            self.socket.send_string("init")
             rep = self.socket.recv_string()
             print(rep)
         print(rep)

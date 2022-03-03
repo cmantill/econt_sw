@@ -21,10 +21,24 @@ if __name__ == "__main__":
         string = socket.recv_string().lower()
         if string == "configure":
             ans = hexactrl.configure()
-            socket.send_string("ready")
+            socket.send_string("Configure ready")
         elif string == "reset":
             ans = hexactrl.reset()
-            socket.send_string("ready")
+            socket.send_string("Reset ready")
         elif string == "latch":
-            ans = hexactrl.latch()
-            socket.send_string(ans)
+            socket.send_string("ready")
+            timestamp = socket.recv_string().lower()
+            from datetime import datetime
+            dt = datetime.fromtimestamp(float(timestamp))
+            err_counter,first_rows = hexactrl.latch(dt)
+            if err_counter>0:
+                socket.send_string("data")
+                A = first_rows["lc-input"]
+                md = dict(
+                    dtype=str(A.dtype),
+                    shape=A.shape,
+                )
+                socket.send_json(md, zmq.SNDMORE)
+                socket.send(A, flags=0, copy=True, track=False)
+            else:
+                socket.send_string("Latch with no errors")

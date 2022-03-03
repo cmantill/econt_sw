@@ -1,6 +1,7 @@
 import yaml
 import logging
 import sys
+import os
 
 def _init_logger():
     logger = logging.getLogger('hexactrl')
@@ -21,9 +22,11 @@ class hexactrl_interface():
         from utils.stream_compare import StreamCompare
         from utils.link_capture import LinkCapture
         from utils.fast_command import FastCommands
+        from utils.test_vectors import TestVectors
         self.sc = StreamCompare()
         self.lc = LinkCapture()
         self.fc = FastCommands()
+        self.tv = TestVectors()
 
     def configure(self,trigger=True):
         self.fc.configure_fc()
@@ -38,13 +41,19 @@ class hexactrl_interface():
         self.sc.reset_counters()
         return "ready"
 
-    def latch(self):
+    def latch(self,timestamp=0,odir="tmp/"):
         """ Latch comparison counters"""
         self.sc.latch_counters()
         err_count = self.sc.read_counters(False)
+        os.system(f'mkdir -p {odir}')
+        first_rows = {}
         if err_count>0:
-            data = self.lc.get_captured_data(["lc-input"],511,False)
             data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
-        return f"{err_count}"
+            data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']
+            for lcapture in data.keys():
+                filename = f"{odir}/{lcapture}_{timestamp}.csv"
+                self.tv.save_testvector(filename,data[lcapture])
+                first_rows[lcapture] = self.tv.fixed_hex(data[lcapture],8)[28:32]
+        return err_count,first_rows
 
     
