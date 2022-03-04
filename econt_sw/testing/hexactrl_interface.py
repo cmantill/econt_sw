@@ -33,7 +33,8 @@ class hexactrl_interface():
         self.fc.configure_fc()
         self.lc.configure_acquire(["lc-input"],'L1A',511,0,verbose=True)
         self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',4095,0,verbose=True)
-        self.lc.do_capture(["lc-input","lc-ASIC","lc-emulator"],verbose=True)
+        # self.lc.do_capture(["lc-input","lc-ASIC","lc-emulator"],verbose=True)
+        self.lc.do_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.sc.configure_compare(13,trigger)
         return "ready"
 

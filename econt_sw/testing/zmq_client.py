@@ -18,10 +18,10 @@ if __name__ == "__main__":
 
     daq_socket = daqController("localhost", str(args.server))
     daq_socket.configure()
-    daq_socket.reset_counters()
     try:
         print("Press Ctrl-C to terminate while statement")
         while True:
+            daq_socket.reset_counters()
             dateTimeObj = datetime.now()
             timestamp = args.tag + dateTimeObj.strftime("%d%b_%H%M%S")
             print(timestamp)
