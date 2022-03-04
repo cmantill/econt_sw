@@ -131,15 +131,18 @@ class daqController(zmqController):
             rep = self.socket.recv_string()
 
     def latch_counters(self,timestamp="Mar17"):
+        """Latch counters and returns 4 rows of data 28-32 by default"""
         self.socket.send_string(f"latch_{timestamp}")
         err_counter = self.socket.recv_string()
         self.logger.info(f'Error counter {err_counter}')
         if int(err_counter)>0:
             self.socket.send_string("daq")
             ret_array = self.recv_array(copy=False)
-            print('daq array ',ret_array)
-            import numpy as np
-            print('daq ',np.hstack(ret_array))
+            self.logger.info('ASIC array %s', ret_array[:4])
+            self.logger.info('emulator array %s', ret_array[4:8])
+            self.logger.info('input array %s', ret_array[8:])
+            return ret_array[:4],ret_array[4:8],ret_array[8:]
+        return None
 
     def stop(self):
         self.socket.send_string("stop")
