@@ -2,6 +2,7 @@ import yaml
 import logging
 import sys
 import os
+import numpy as np
 
 def _init_logger():
     logger = logging.getLogger('hexactrl')
@@ -36,24 +37,31 @@ class hexactrl_interface():
         self.sc.configure_compare(13,trigger)
         return "ready"
 
-    def reset(self):
+    def reset_counters(self):
         """ Reset comparison counters"""
         self.sc.reset_counters()
         return "ready"
 
-    def latch(self,timestamp=0,odir="tmp/"):
+    def latch_counters(self,timestamp="0",odir="tmp/",irow=28,frow=32):
         """ Latch comparison counters"""
         self.sc.latch_counters()
         err_count = self.sc.read_counters(False)
         os.system(f'mkdir -p {odir}')
-        first_rows = {}
+        daq_data = None
         if err_count>0:
+            first_rows = {}
             data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
             data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']
             for lcapture in data.keys():
                 filename = f"{odir}/{lcapture}_{timestamp}.csv"
                 self.tv.save_testvector(filename,data[lcapture])
-                first_rows[lcapture] = self.tv.fixed_hex(data[lcapture],8)[28:32]
-        return err_count,first_rows
+                first_rows[lcapture] = self.tv.fixed_hex(data[lcapture],8)[irow:frow]
+            daq_data = np.vstack(
+                (first_rows['lc-ASIC'], 
+                 first_rows['lc-emulator'],
+                 np.pad(first_rows['lc-input'], [(0, 0), (0, 1)])
+             )
+            )
+        return err_count,daq_data
 
     

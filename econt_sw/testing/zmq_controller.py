@@ -2,6 +2,7 @@ import zmq
 import yaml
 from time import sleep
 from nested_dict import nested_dict
+from typing import cast, Dict, Any
 import logging
 import sys
 
@@ -10,10 +11,10 @@ def _init_logger():
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stderr)
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        '%(created)f:%(levelname)s:%(name)s:%(module)s:%(message)s')
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+    return logger
 
 def merge(a, b, path=None):
     "merges b into a"
@@ -115,23 +116,32 @@ class i2cController(zmqController):
         return( yamlread )
 
 class daqController(zmqController):
-    def start(self):
+    def recv_array(self, flags=0, copy=True, track=False):
+        """recv a numpy array"""
+        md = cast(Dict[str, Any], self.socket.recv_json(flags=flags))
+        msg = self.socket.recv(flags=flags, copy=copy, track=track)
+        import numpy as np
+        A = np.frombuffer(msg, dtype=md["dtype"])
+        return A.reshape(md["shape"])
+    
+    def reset_counters(self):
         rep=""
-        while rep.lower().find("running")<0: 
-            self.socket.send_string("start")
+        while rep.lower().find("ready")<0: 
+            self.socket.send_string("reset_counters")
             rep = self.socket.recv_string()
-            print(rep)
+
+    def latch_counters(self,timestamp="Mar17"):
+        self.socket.send_string(f"latch_{timestamp}")
+        err_counter = self.socket.recv_string()
+        self.logger.info(f'Error counter {err_counter}')
+        if int(err_counter)>0:
+            self.socket.send_string("daq")
+            ret_array = self.recv_array(copy=False)
+            print('daq array ',ret_array)
+            import numpy as np
+            print('daq ',np.hstack(ret_array))
 
     def stop(self):
         self.socket.send_string("stop")
         rep = self.socket.recv_string()
-        print(rep)
-
-    def init(self):
-        print('init')
-        rep=""
-        while rep.lower().find("ready")<0:
-            self.socket.send_string("init")
-            rep = self.socket.recv_string()
-            print(rep)
         print(rep)

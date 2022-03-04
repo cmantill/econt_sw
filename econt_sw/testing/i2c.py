@@ -30,6 +30,8 @@ logger = logging.getLogger("i2c")
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 def call_i2c(args_name=None,

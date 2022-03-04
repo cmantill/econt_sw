@@ -168,8 +168,7 @@ class LinkCapture:
             bx = 0
             
         if verbose:
-            logger.info("Configure acquire with bx %i"%bx)
-            logger.info("Configure acquire with %s"%capture_dict)
+            logger.info("Configure acquire with bx %i and  %s"%(bx,capture_dict))
 
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
