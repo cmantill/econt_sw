@@ -148,3 +148,19 @@ class daqController(zmqController):
         self.socket.send_string("stop")
         rep = self.socket.recv_string()
         print(rep)
+
+    def getpll(self):
+        self.socket.send_string("getpll")
+        rep = self.socket.recv_string()
+        return rep
+
+    def resetpll(self):
+        self.socket.send_string("resetpll")
+        rep = self.socket.recv_string()
+        return rep
+
+    def set_testVectors(self, arg):
+        print(arg)
+        self.socket.send_string(f"testvector {arg}")
+        rep = self.socket.recv_string()
+        return rep
