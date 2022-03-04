@@ -3,6 +3,7 @@
 import zmq
 import argparse
 import numpy as np
+import time
 from datetime import datetime
 from zmq_controller import daqController
 
@@ -22,9 +23,10 @@ if __name__ == "__main__":
         print("Press Ctrl-C to terminate while statement")
         while True:
             daq_socket.reset_counters()
+            ## TODO: add fixed time between reset and latch counters ?
             dateTimeObj = datetime.now()
             timestamp = args.tag + dateTimeObj.strftime("%d%b_%H%M%S")
-            print(timestamp)
             daq_arrays = daq_socket.latch_counters(timestamp)
+            time.sleep(15) 
     except KeyboardInterrupt:
         pass
