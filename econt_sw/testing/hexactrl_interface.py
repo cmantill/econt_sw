@@ -24,10 +24,12 @@ class hexactrl_interface():
         from utils.link_capture import LinkCapture
         from utils.fast_command import FastCommands
         from utils.test_vectors import TestVectors
+        from utils.pll_lock_count import PLLLockCount
         self.sc = StreamCompare()
         self.lc = LinkCapture()
         self.fc = FastCommands()
         self.tv = TestVectors()
+        self.pll = PLLLockCount()
 
     def configure(self,trigger=True):
         self.fc.configure_fc()
@@ -49,10 +51,12 @@ class hexactrl_interface():
         err_count = self.sc.read_counters(False)
         os.system(f'mkdir -p {odir}')
         daq_data = None
+        print(err_count)
         if err_count>0:
             first_rows = {}
             data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
             data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']
+            print(data.keys())
             for lcapture in data.keys():
                 filename = f"{odir}/{lcapture}_{timestamp}.csv"
                 self.tv.save_testvector(filename,data[lcapture])
@@ -66,3 +70,30 @@ class hexactrl_interface():
         return err_count,daq_data
 
     
+    def getPLLLockCount(self):
+        return self.pll.getCount()
+
+    def resetPLLLockCount(self):
+        try: 
+            self.pll.reset()
+            return "PLL_LOCK_B reset"
+        except:
+            return "error in PLL_LOCK_B reset"
+
+    def testVectors(self, arg_list=[]):
+        #build dictionary of arguments
+        #arguments are of type "key:val", where key is dtype, idir, or fname that get passed to tv.configure
+        args={}
+        allowed_args=['dtype','idir','fname']
+
+        for x in arg_list:
+            if not ':' in x:
+                return f'ERROR: Bad arguments, missing value for {x}'
+            arg,val=x.split(':')
+            if arg in allowed_args:
+                args[arg]=val
+            else:
+                return f'ERROR: Unknown argument {arg}'
+        print(args)
+        self.tv.configure(**args)
+        return 'Good Test Vector Config'

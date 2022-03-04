@@ -38,7 +38,7 @@ class daqServer():
         return self.socket.send(A, flags, copy=copy, track=track)
 
     def get_string(self):
-        return self.socket.recv_string().lower()
+        return self.socket.recv_string()
 
     def latch_counters(self,timestamp):
         err_counter,daq_data = daq.hexactrl.latch_counters(timestamp)
@@ -48,7 +48,21 @@ class daqServer():
 
     def get_data(self):
         self.send_array(self.data, copy=False)
-        
+
+    def reset_pll_count(self):
+        ans=self.hexactrl.resetPLLLockCount()
+        self.socket.send_string(ans)
+
+    def get_pll_count(self):
+        ans=self.hexactrl.getPLLLockCount()
+        self.socket.send_string(f"{ans}")
+
+    def setTestVectors(self,string):
+        #split string into arguments, and pass along to hexacontroller testVectors
+        args=string.split()[1:]
+        ans=self.hexactrl.testVectors(args)
+        self.socket.send_string(ans)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start hexacontroller server')
     parser.add_argument('--server', type=str,
@@ -59,7 +73,8 @@ if __name__ == "__main__":
     daq = daqServer(args.server)
 
     while True:
-        string = daq.get_string()
+        fullstring = daq.get_string()
+        string=fullstring.lower()
         if string == "configure":
             ans = daq.hexactrl.configure()
             daq.socket.send_string("conf")
@@ -74,3 +89,9 @@ if __name__ == "__main__":
             daq.latch_counters(timestamp)
         elif string == "daq":
             daq.get_data()
+        elif string == "resetpll":
+            daq.reset_pll_count()
+        elif string == "getpll":
+            daq.get_pll_count()
+        elif string.startswith("testvector"):
+            daq.setTestVectors(fullstring)

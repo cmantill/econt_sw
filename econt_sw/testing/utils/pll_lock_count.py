@@ -37,6 +37,6 @@ class PLLLockCount:
     def reset(self):
         self.dev.getNode(self.name+".clear_counter").write(1);
         self.dev.dispatch()
-        sleep(1)
+#        sleep(1)
         self.dev.getNode(self.name+".clear_counter").write(0);
         self.dev.dispatch()
