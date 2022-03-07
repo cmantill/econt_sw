@@ -48,15 +48,13 @@ class hexactrl_interface():
     def latch_counters(self,timestamp="0",odir="tmp/",irow=28,frow=32):
         """ Latch comparison counters"""
         self.sc.latch_counters()
-        err_count = self.sc.read_counters(False)
+        err_count = self.sc.read_counters(True)
         os.system(f'mkdir -p {odir}')
         daq_data = None
-        print(err_count)
         if err_count>0:
             first_rows = {}
             data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
             data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']
-            print(data.keys())
             for lcapture in data.keys():
                 filename = f"{odir}/{lcapture}_{timestamp}.csv"
                 self.tv.save_testvector(filename,data[lcapture])
