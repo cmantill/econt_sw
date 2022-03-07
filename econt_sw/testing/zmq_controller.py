@@ -32,7 +32,7 @@ def merge(a, b, path=None):
     return a
 
 class zmqController:
-    def __init__(self,ip,port,fname="configs/init.yaml"):
+    def __init__(self,ip,port,fname="configs/init.yaml",timeout=3000):
         context = zmq.Context()
         self.ip=ip
         self.port=port
@@ -40,6 +40,9 @@ class zmqController:
         self.socket.connect("tcp://"+str(ip)+":"+str(port))
         self.yamlConfig = None
         self.logger = _init_logger()
+        self.socket.RCVTIMEO = timeout
+        self.socket.SNDTIMEO = timeout
+        self.socket.LINGER = timeout
         if fname:
             with open(fname) as fin:
                 self.yamlConfig=yaml.safe_load(fin)
@@ -50,6 +53,9 @@ class zmqController:
         self.socket = context.socket( zmq.REQ )
         self.socket.connect("tcp://"+str(self.ip)+":"+str(self.port))
 
+    def close(self):
+        self.socket.close(0)
+
     def update_yamlConfig(self,fname="",yamlNode=None):
         if yamlNode:
             config=yamlNode
@@ -59,6 +65,9 @@ class zmqController:
         else:
             print("ERROR in %s"%(__name__))
         self.yamlConfig = merge(self.yamlConfig,config)
+
+    def setTimeout(self, timeout=1000):
+        self.socket.RCVTIMEO = timeout
 
     def configure(self,fname="",yamlNode=None):
         self.socket.send_string("configure")
@@ -98,7 +107,11 @@ class i2cController(zmqController):
 
     def read_config(self,fname=None,key=None,yamlNode=None):
         self.socket.send_string("read")
-        rep = self.socket.recv_string()
+        try:
+            rep = self.socket.recv_string()
+        except zmq.error.Again:
+            self.logger.error('Timeout, check that I2C server is running')
+            exit(1)
         if fname:
             with open(fname) as fin:
                 config = yaml.safe_load(fin)
@@ -143,11 +156,6 @@ class daqController(zmqController):
             self.logger.info('input array %s', ret_array[8:,:-1])
             return ret_array[:4],ret_array[4:8],ret_array[8:,:-1]
         return None
-
-    # def stop(self):
-    #     self.socket.send_string("stop")
-    #     rep = self.socket.recv_string()
-    #     print(rep)
 
     def getpll(self):
         self.socket.send_string("getpll")

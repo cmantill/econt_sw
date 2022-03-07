@@ -17,16 +17,16 @@ if __name__ == "__main__":
                         help='tag for dataset')
     args = parser.parse_args()
 
-    daq_socket = daqController("localhost", str(args.server))
-    daq_socket.configure()
+    daq_socket = daqController("192.168.1.48", str(args.server))
+    print(daq_socket.configure())
     try:
         print("Press Ctrl-C to terminate while statement")
         while True:
-            daq_socket.reset_counters()
+            daq_socket.start_daq()
             ## TODO: add fixed time between reset and latch counters ?
             dateTimeObj = datetime.now()
             timestamp = args.tag + dateTimeObj.strftime("%d%b_%H%M%S")
-            daq_arrays = daq_socket.latch_counters(timestamp)
+            daq_arrays = daq_socket.stop_daq(timestamp)
             time.sleep(15) 
     except KeyboardInterrupt:
         pass
