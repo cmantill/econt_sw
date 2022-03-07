@@ -196,18 +196,15 @@ class LinkCapture:
     def do_continous_capture(self,lcaptures):
         logger.info("Configure continous acquire")
         for lcapture in lcaptures:
-            #self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
-            #self.dev.dispatch()
-            self.dev.getNode(self.lcs[lcapture]+".global.aquire").write(1)
-            self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(1)
             for l in range(self.nlinks[lcapture]):
+                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire").write(1)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(1)
             self.dev.dispatch()
 
     def stop_continous_capture(self,lcaptures):
         for lcapture in lcaptures:
             self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
-            self.dev.dispatch()
+        self.dev.dispatch()
 
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""
