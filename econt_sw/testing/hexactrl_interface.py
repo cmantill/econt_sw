@@ -33,21 +33,23 @@ class hexactrl_interface():
 
     def configure(self,trigger=True):
         self.fc.configure_fc()
-        self.lc.configure_acquire(["lc-input"],'L1A',511,0,verbose=True)
-        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',4095,0,verbose=True)
-        # self.lc.do_capture(["lc-input","lc-ASIC","lc-emulator"],verbose=True)
+        self.lc.configure_acquire(["lc-input"],'L1A',nwords=8,total_length=511,bx=0,verbose=True)
+        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=64,total_length=4095,bx=0,verbose=True)
+        self.lc.stop_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.lc.do_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.sc.configure_compare(13,trigger)
         return "ready"
 
-    def reset_counters(self):
+    def start_daq(self):
         """ Reset comparison counters"""
         self.sc.reset_counters()
+        self.sc.configure_compare(trigger=True)
         return "ready"
 
-    def latch_counters(self,timestamp="0",odir="tmp/",irow=28,frow=32):
+    def stop_daq(self,timestamp="0",odir="tmp/",irow=28,frow=32):
         """ Latch comparison counters"""
         self.sc.latch_counters()
+        self.sc.configure_compare(trigger=False)
         err_count = self.sc.read_counters(True)
         os.system(f'mkdir -p {odir}')
         daq_data = None

@@ -40,8 +40,12 @@ class daqServer():
     def get_string(self):
         return self.socket.recv_string()
 
-    def latch_counters(self,timestamp):
-        err_counter,daq_data = daq.hexactrl.latch_counters(timestamp)
+    def start_daq(self):
+        ans = self.hexactrl.start_daq()
+        self.socket.send_string("ready")
+
+    def stop_daq(self,timestamp):
+        err_counter,daq_data = daq.hexactrl.stop_daq(timestamp)
         self.socket.send_string(f"{err_counter}")
         if err_counter>0:
             self.data = daq_data
@@ -78,16 +82,15 @@ if __name__ == "__main__":
         if string == "configure":
             ans = daq.hexactrl.configure()
             daq.socket.send_string("conf")
-        elif string == "reset_counters":
-            ans = daq.hexactrl.reset_counters()
-            daq.socket.send_string("ready")
-        elif string.startswith("latch"):
+        elif string == "startdaq":
+            daq.start_daq()
+        elif string.startswith("stopdaq"):
             if len(string.split())>1:
                 timestamp=string.split()[1]
             else:
                 timestamp=""
-            daq.latch_counters(timestamp)
-        elif string == "daq":
+            daq.stop_daq(timestamp)
+        elif string == "getdata":
             daq.get_data()
         elif string == "resetpll":
             daq.reset_pll_count()

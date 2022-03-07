@@ -132,7 +132,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_align").write(1);
                 self.dev.dispatch()
                 
-    def configure_acquire(self,lcaptures,mode,nwords=4095,bx=0,verbose=True):
+    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0,verbose=True):
         """Set link captures to acquire with the same mode"""
         """
         mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
@@ -223,7 +223,7 @@ class LinkCapture:
                 
                 fifo_occupancies.append(int(fifo_occupancy))
                 if int(fifo_occupancy)==0: 
-                    logger.warning('no data for %s'%lcapture)
+                    logger.warning('no data for %s on link %i'%(lcapture,l))
                     nodata = True
             if nodata: continue
 

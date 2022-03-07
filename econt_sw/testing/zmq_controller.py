@@ -5,6 +5,7 @@ from nested_dict import nested_dict
 from typing import cast, Dict, Any
 import logging
 import sys
+import numpy as np
 
 def _init_logger():
     logger = logging.getLogger('zmqcontroller')
@@ -120,34 +121,33 @@ class daqController(zmqController):
         """recv a numpy array"""
         md = cast(Dict[str, Any], self.socket.recv_json(flags=flags))
         msg = self.socket.recv(flags=flags, copy=copy, track=track)
-        import numpy as np
         A = np.frombuffer(msg, dtype=md["dtype"])
         return A.reshape(md["shape"])
     
-    def reset_counters(self):
+    def start_daq(self):
         rep=""
         while rep.lower().find("ready")<0: 
-            self.socket.send_string("reset_counters")
+            self.socket.send_string("startdaq")
             rep = self.socket.recv_string()
 
-    def latch_counters(self,timestamp="Mar17"):
+    def stop_daq(self,timestamp="Mar17"):
         """Latch counters and returns 4 rows of data 28-32 by default"""
-        self.socket.send_string(f"latch_{timestamp}")
+        self.socket.send_string(f"stopdaq {timestamp}")
         err_counter = self.socket.recv_string()
         self.logger.info(f'Error counter {err_counter}')
         if int(err_counter)>0:
-            self.socket.send_string("daq")
+            self.socket.send_string("getdata")
             ret_array = self.recv_array(copy=False)
             self.logger.info('ASIC array %s', ret_array[:4])
             self.logger.info('emulator array %s', ret_array[4:8])
-            self.logger.info('input array %s', ret_array[8:])
-            return ret_array[:4],ret_array[4:8],ret_array[8:]
+            self.logger.info('input array %s', ret_array[8:,:-1])
+            return ret_array[:4],ret_array[4:8],ret_array[8:,:-1]
         return None
 
-    def stop(self):
-        self.socket.send_string("stop")
-        rep = self.socket.recv_string()
-        print(rep)
+    # def stop(self):
+    #     self.socket.send_string("stop")
+    #     rep = self.socket.recv_string()
+    #     print(rep)
 
     def getpll(self):
         self.socket.send_string("getpll")
