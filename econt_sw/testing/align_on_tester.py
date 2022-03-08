@@ -70,7 +70,7 @@ def lr_econt():
     lc.reset(['lc-input','lc-ASIC','lc-emulator'])
 
     # configure acquire
-    lc.configure_acquire(['lc-ASIC','lc-emulator'],"linkreset_ECONt",4095)
+    lc.configure_acquire(['lc-ASIC','lc-emulator'],"linkreset_ECONt")
 
     # send link reset econt
     fc.get_counter("link_reset_econt")

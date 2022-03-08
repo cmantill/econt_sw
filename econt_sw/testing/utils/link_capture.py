@@ -132,7 +132,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_align").write(1);
                 self.dev.dispatch()
                 
-    def configure_acquire(self,lcaptures,mode,nwords=4095,bx=0,verbose=True):
+    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0,verbose=True):
         """Set link captures to acquire with the same mode"""
         """
         mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
@@ -196,18 +196,15 @@ class LinkCapture:
     def do_continous_capture(self,lcaptures):
         logger.info("Configure continous acquire")
         for lcapture in lcaptures:
-            #self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
-            #self.dev.dispatch()
-            self.dev.getNode(self.lcs[lcapture]+".global.aquire").write(1)
-            self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(1)
             for l in range(self.nlinks[lcapture]):
+                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire").write(1)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(1)
             self.dev.dispatch()
 
     def stop_continous_capture(self,lcaptures):
         for lcapture in lcaptures:
             self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
-            self.dev.dispatch()
+        self.dev.dispatch()
 
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""
@@ -226,7 +223,7 @@ class LinkCapture:
                 
                 fifo_occupancies.append(int(fifo_occupancy))
                 if int(fifo_occupancy)==0: 
-                    logger.warning('no data for %s'%lcapture)
+                    logger.warning('no data for %s on link %i'%(lcapture,l))
                     nodata = True
             if nodata: continue
 

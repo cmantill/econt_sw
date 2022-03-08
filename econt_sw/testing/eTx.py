@@ -45,7 +45,7 @@ def capture(lcaptures,nwords=4095,
     fc.configure_fc()
 
     # configure acquire
-    lc.configure_acquire(lcaptures,mode,nwords,bx,verbose)
+    lc.configure_acquire(lcaptures,mode,nwords=nwords,total_length=nwords,bx=bx,verbose=verbose)
 
     # do link capture
     if mode in lc.fc_by_lfc.keys():
@@ -89,7 +89,7 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
         fc.configure_fc()
 
         # configure acquire
-        lc.configure_acquire(lcaptures,'L1A',nwords,0,verbose)
+        lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0,verbose)
 
         # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)
         lc.do_capture(lcaptures,verbose)
