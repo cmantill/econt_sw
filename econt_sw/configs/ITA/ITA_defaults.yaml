@@ -37,7 +37,7 @@ ECON-T:
       snapshot_en:
        param_value: 1
       snapshot_arm:
-       param_value: 1
+       param_value: 0
     idle_hdr:
      params:
       mask:
@@ -53,7 +53,7 @@ ECON-T:
     orbsyn_cnt_max_val:
      value: 0xdeb
     orbsyn_cnt_snapshot:
-     value: 0x4
+     value: 0x3
     orbsyn_hdr:
      params:
       mask:
@@ -97,13 +97,13 @@ ECON-T:
       patt_en:
        param_value: 0x0
       sel_override_en:
-       param_value: 0x0
+       param_value: 0x1
       per_ch_align_en:
-       param_value: 0x0    
+       param_value: 0x0
     seed_in:
      value: 0x0
     sel_override_val:
-     value: 0x0
+     value: 0x28
     user_word_0:
      value: 0x0
     user_word_1:
@@ -113,18 +113,100 @@ ECON-T:
     user_word_3:
      value: 0x0
 
+  CH_ALIGNER_4INPUT_ALL:
+   registers:
+    sel_override_val:
+     value: 0x29
+
+  CH_ALIGNER_7INPUT_ALL:
+   registers:
+    sel_override_val:
+     value: 0x29
+
   CH_EPRXGRP_*INPUT_ALL:
    registers:
     config:
      params:
-      phaseSelect:
-       param_value: 0x0
       trainChannel:
        param_value: 0x0
       resetChannels:
        param_value: 0x0
       dllResetReq:
        param_value: 0x0
+
+
+  CH_EPRXGRP_0INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x7
+  CH_EPRXGRP_1INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x6
+  CH_EPRXGRP_2INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_3INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x7
+  CH_EPRXGRP_4INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x0
+  CH_EPRXGRP_5INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_6INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_7INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x0
+  CH_EPRXGRP_8INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_9INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_10INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
+  CH_EPRXGRP_11INPUT_ALL:
+   registers:
+    config:
+     params:
+      phaseSelect:
+       param_value: 0x8
 
   EPRXGRP_TOP_ALL:
    registers:

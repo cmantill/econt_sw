@@ -32,14 +32,15 @@ def merge(a, b, path=None):
     return a
 
 class zmqController:
-    def __init__(self,ip,port,fname="configs/init.yaml",timeout=3000):
+    def __init__(self,ip,port,fname="configs/init.yaml",timeout=10000):
         context = zmq.Context()
         self.ip=ip
         self.port=port
         self.socket = context.socket( zmq.REQ )
         self.socket.connect("tcp://"+str(ip)+":"+str(port))
         self.yamlConfig = None
-        self.logger = _init_logger()
+#        self.logger = _init_logger()
+        self.logger = logging
         self.socket.RCVTIMEO = timeout
         self.socket.SNDTIMEO = timeout
         self.socket.LINGER = timeout
