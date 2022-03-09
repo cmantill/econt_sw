@@ -16,10 +16,6 @@ set_logLevel()
 logging.basicConfig()
 logger = logging.getLogger('Aligner')
 
-# logger.setLevel(logging.INFO)
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.INFO)
-# logger.addHandler(ch)
 
 from eRx import checkWordAlignment, checkSnapshots
 
@@ -27,7 +23,7 @@ tv = TestVectors()
 resets = ASICSignals()
 fc = FastCommands()
 
-def autoAlignment(snapshotBX=3, check=True, verbose=False):
+def autoAlignment(snapshotBX=4, check=True, verbose=False):
     """
     Performs automatic alignment sequence.
     Sets minimum i2c settings required for alignment, then issues a link_reset_roct fast command
@@ -36,7 +32,7 @@ def autoAlignment(snapshotBX=3, check=True, verbose=False):
     call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en,ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_orbsyn_cnt_snapshot,ALIGNER_orbsyn_cnt_load_val',args_value=f'[1]*12,0,1,1,{snapshotBX},0')
     fc.request('link_reset_roct')
     if check:
-        status=checkWordAlignment(verbose=False,ASIC_only=True)
+        status=checkWordAlignment(verbose=verbose,ASIC_only=True)
 
         if status==False:
             checkWordAlignment(verbose=True,ASIC_only=True)
@@ -68,6 +64,10 @@ def alignmentDelayScan():
 
 
 if __name__=="__main__":
-#    autoAlignment()
-    alignmentDelayScan()
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    logger.addHandler(ch)
+    autoAlignment(verbose=True)
+#    alignmentDelayScan()
 

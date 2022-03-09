@@ -21,7 +21,7 @@ tv = TestVectors()
 
 def clear_counters(args):
     """Clear MISC_rw counters"""
-    call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
+#    call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
     call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
     call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
 
@@ -42,27 +42,25 @@ def print_error_and_counters(args,channels,verbose=True):
         prbs_chk_err = aligner['status_prbs_chk_err']
         raw_error_prbs_chk_err = error['raw_error_prbs_chk_err']
         if verbose:
-            logger.info(f'{channel}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err}')
-            logger.info(f'{channel}: {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
+            # logger.info(f'{channel}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err}')
+            # logger.info(f'{channel}: {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
+            logger.info(f'{channel:02n}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err} {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
         prbs_chk_err_cnts[channel] = prbs_chk_err_cnt
 
     return prbs_chk_err_cnts
 
-def enable_prbschk(args,channels,allch=True):
+def enable_prbschk(i2c='ASIC',prbs=32,channels=None,allch=True):
     """Enable prbs chck"""
     if allch:
-        call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='[0]*12',args_i2c=args.i2c)
-        call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='[1]*12',args_i2c=args.i2c)
-        call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs28_en',args_value='[0]*12',args_i2c=args.i2c)
-        if args.prbs==28:
-            call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs28_en',args_value='[1]*12',args_i2c=args.i2c)
+        call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en,CH_ALIGNER_[0-11]_prbs28_en',args_value='[0]*12,[0]*12',args_i2c=i2c)
+        call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en,CH_ALIGNER_[0-11]_prbs28_en',args_value=f'[1]*12,[{1 if prbs==28 else 0}]*12',args_i2c=i2c)
     else:
         for channel in channels:
-            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=args.i2c)
-            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='1',args_i2c=args.i2c)
-            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='0',args_i2c=args.i2c)
-            if args.prbs==28:
-                call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='1',args_i2c=args.i2c)
+            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
+            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='1',args_i2c=i2c)
+            call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='0',args_i2c=i2c)
+            if prbs==28:
+                call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs28_en',args_value='1',args_i2c=i2c)
 
 def check_prbs(args,channels,allch):
     """Check PRBS"""
@@ -90,7 +88,7 @@ def check_prbs(args,channels,allch):
     clear_counters(args)
 
     # enable prbs chk
-    enable_prbschk(args,channels,allch)
+    enable_prbschk(args.i2c,args.prbs,channels,allch)
     logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
     logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
     
@@ -122,7 +120,7 @@ def scan_prbs(args,channels,allch,verbose=True):
                 call_i2c(args_name=f'CH_EPRXGRP_{channel}_phaseSelect',args_value=f'{sel}',args_i2c=args.i2c)
 
         # enable prbs chk
-        enable_prbschk(args,channels,allch)
+        enable_prbschk(args.i2c,args.prbs,channels,allch)
         # now count again
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
         # wait for a time
@@ -134,8 +132,10 @@ def scan_prbs(args,channels,allch,verbose=True):
             for channel in channels:
                 call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=args.i2c)
         # record counts
-        prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
-        err_counts.append(list(prbs_chk_err_cnt.values()))
+        outputs_aligner = call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_err_cnt',args_i2c=args.i2c)[args.i2c]['RO']
+        prbs_chk_err_cnt = [outputs_aligner[f'CH_ALIGNER_{channel}INPUT_ALL']['prbs_chk_err_cnt'] for channel in range(12)]
+        # prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
+        err_counts.append(prbs_chk_err_cnt)#list(prbs_chk_err_cnt.values()))
         
         logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
 
@@ -163,7 +163,7 @@ def scan_prbs(args,channels,allch,verbose=True):
 
     counts_window = np.array(counts_window)
     # print(counts_window)
-    counts_window[ err_counts[:-1]>args.threshold ] = 255*3
+    counts_window[ err_counts[:-1]>0 ] += 255*3
     # print('thr ',counts_window)
     best_setting=np.array(counts_window).argmin(axis=0)
     if verbose:

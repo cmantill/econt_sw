@@ -5,6 +5,7 @@ import os
 
 from time import sleep
 import datetime
+from utils.fast_command import FastCommands
 
 import logging
 logger = logging.getLogger("eRx")
@@ -35,6 +36,32 @@ def i2cSnapshot(bx=4):
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
     return snapshots, status, select
 
+def linkResetAlignment(snapshotBX=4, autoAlign=True, check=True, verbose=False, delay=None):
+    """
+    Performs automatic alignment sequence.
+    Sets minimum i2c settings required for alignment, then issues a link_reset_roct fast command
+    """
+
+    call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en,ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_orbsyn_cnt_snapshot,ALIGNER_orbsyn_cnt_load_val,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',args_value=f'[{1 if autoAlign else 0}]*12,0,1,1,{snapshotBX},0,0x9cccccccaccccccc,0',args_i2c='ASIC,emulator')
+
+    if autoAlign:
+        call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='0')
+
+    if not delay is None:
+        from utils.asic_signals import ASICSignals
+        signals=ASICSignals()
+        signals.set_delay(delay)
+
+    fc=FastCommands()
+    fc.request('link_reset_roct')
+    if check:
+        status=checkWordAlignment(verbose=verbose,ASIC_only=False)
+
+        if status==False:
+            checkWordAlignment(verbose=True,ASIC_only=False)
+        else:
+            print('Good Alignment')
+
 def checkWordAlignment(verbose=True, ASIC_only=False):
     """Check word alignment"""
     snapshots_ASIC, status_ASIC, select_ASIC=readSnapshot('ASIC', True)
@@ -43,7 +70,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
 
     #readStatus('ASIC',verbose)
 
-    goodStatus=(status_ASIC==3).all()
+    goodStatus=((status_ASIC&3)==3).all()
     goodSelect=(select_ASIC<=64).all() & (select_ASIC>=32).all()
 
     #if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
@@ -89,12 +116,11 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
 def checkSnapshots(compare=True, verbose=False, bx=4):
     """Manually take a snapshot in BX bx"""
     snapshots,status,select=i2cSnapshot(bx)
-
+    
     if verbose:
         output=''
         for i in range(12):
-            output += '  CH {:02n}: {:048x}\n'.format(i,snapshots[i])
-        logger.info(output)
+            logger.info('  CH {:02n}: {:048x}'.format(i,snapshots[i]))
 
     if compare:
         if len(np.unique(snapshots))==1:
@@ -107,12 +133,16 @@ def checkSnapshots(compare=True, verbose=False, bx=4):
             vote=0
             for i in range(192):
                 vote += (((shiftedSnapshots>>i)&1).sum()>6)<<i
-            badSnapshots=np.argwhere(shiftedSnapshots!=vote)
+
+            badSnapshots=[]
+            for i in range(12):
+                if shiftedSnapshots[i] != (vote & (2**(int(192-shift[i]))-1)):
+                    badSnapshots.append(i)
 
             if len(badSnapshots)==0:
-                logger.info(f'After shifting to accomodate select values, all snapshots match: {hex(vote)}')
+                logger.info(f'After shifting to accomodate select values, all snapshots match: {vote:048x}')
             else:
-                errors={i: hex(snapshots[i]) for i in badSnapshots.flatten()}
+                errors={i: hex(snapshots[i]) for i in badSnapshots}
                 logger.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
             return False
 
@@ -230,6 +260,40 @@ def eRxEnableTests(patterns=None, verbose=False):
 
     return passTest
 
+def continuousSnapshotCheck(verbose=False, bx=4):
+    """Manually take a snapshot in BX bx"""
+    snapshots,status,select=i2cSnapshot(bx)
+
+    try:
+        while True:
+            snapshots,status,select=i2cSnapshot(bx)
+
+            if len(np.unique(snapshots))==1:
+                logger.info(f'All snapshots match : {hex(snapshots[0])}')
+            else:
+                shift = select-select.min()
+                shiftedSnapshots=(snapshots>>shift)
+
+                vote=0
+                for i in range(192):
+                    vote += (((shiftedSnapshots>>i)&1).sum()>6)<<i
+
+                badSnapshots=[]
+                for i in range(12):
+                    if shiftedSnapshots[i] != (vote & (2**(int(192-shift[i]))-1)):
+                        badSnapshots.append(i)
+
+                if len(badSnapshots)==0:
+                    logger.info(f'After shifting to accomodate select values, all snapshots match: {hex(vote)}')
+                else:
+                    errors={i: hex(snapshots[i]) for i in badSnapshots}
+                    logger.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors.keys()}')
+                    for k,v in errors.items():
+                        logger.error(f'    eRx {k:02n} : {int(v,16):048x}')
+    except KeyboardInterrupt:
+        pass
+
+
 
 if __name__=='__main__':
     """
@@ -249,15 +313,18 @@ if __name__=='__main__':
     - To do PRBS scan
       python testing/eRx.py --prbs --sleep 1
     """
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    logger.addHandler(ch)
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.INFO)
+    # logger.addHandler(ch)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--tv', dest='configureTV',default=False, action='store_true')
     parser.add_argument('--logging', dest='runLogging',default=False, action='store_true')
     parser.add_argument('--snapshot', dest='getSnapshot',default=False, action='store_true')
+    parser.add_argument('--contSnapshot', dest='continuousSnapshots',default=False, action='store_true')
     parser.add_argument('--alignment', dest='checkWordAlignment',default=False, action='store_true')
+    parser.add_argument('--lrAlign', dest='linkResetAlignment',default=False, action='store_true')
+    parser.add_argument('--autoAlign', dest='autoAlignment',default=False, action='store_true')
     parser.add_argument('--asic', dest='checkOnlyASIC',default=False, action='store_true')
     parser.add_argument('--hdrMM', dest='getHdrMM',default=False, action='store_true')
     parser.add_argument('--prbs', dest='prbsPhaseScan',default=False, action='store_true')
@@ -268,6 +335,7 @@ if __name__=='__main__':
     parser.add_argument('--tag',dest='tag',default="test",type=str,help="Tag to save hdr mm cntr histogram")
     parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
     parser.add_argument('--bx', dest='bx',default=4,type=int, help='BX to take snapshot in')
+    parser.add_argument('--delay', dest='delay',default=None,type=int, help='Emulator delay setting for link alignment')
     parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
     parser.add_argument('--idir',dest="idir",type=str, default="", help='test vector directory')
     parser.add_argument('--fname',dest="fname",type=str, default="../testInput.csv", help='test vector filename')
@@ -296,6 +364,9 @@ if __name__=='__main__':
         status=checkWordAlignment(verbose=args.verbose,ASIC_only=args.checkOnlyASIC)
         logger.info('Good Alignment' if status else 'Bad Alignment')
 
+    elif args.linkResetAlignment:
+        linkResetAlignment(snapshotBX=args.bx,autoAlign=args.autoAlignment,verbose=args.verbose, delay=args.delay)
+
     elif args.getHdrMM:
         x=get_HDR_MM_CNTR()
         logger.info(f'hdr_mm_cntr '+" ".join(map(str,list(x))))
@@ -308,3 +379,6 @@ if __name__=='__main__':
 
     elif args.enableTests:
         eRxEnableTests(verbose=args.verbose)
+
+    elif args.continuousSnapshots:
+        continuousSnapshotCheck(verbose=args.verbose, bx=args.bx)
