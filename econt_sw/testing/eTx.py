@@ -45,6 +45,7 @@ def capture(lcaptures,nwords=4095,
     fc.configure_fc()
 
     # configure acquire
+    lc.stop_continous_capture(lcaptures)
     lc.configure_acquire(lcaptures,mode,nwords=nwords,total_length=nwords,bx=bx,verbose=verbose)
 
     # do link capture

@@ -6,6 +6,8 @@ import os
 from time import sleep
 import datetime
 from utils.fast_command import FastCommands
+from utils.link_capture import LinkCapture
+from utils.test_vectors import TestVectors
 
 import logging
 logger = logging.getLogger("eRx")
@@ -263,6 +265,17 @@ def eRxEnableTests(patterns=None, verbose=False):
 def continuousSnapshotCheck(verbose=False, bx=4):
     """Manually take a snapshot in BX bx"""
     snapshots,status,select=i2cSnapshot(bx)
+    
+
+    """
+    fc = FastCommands()
+    lc = LinkCapture()
+    tv = TestVectors()
+    fc.configure_fc()
+    lc.stop_continous_capture(["lc-input"])
+    lc.configure_acquire(["lc-input"],mode="BX",nwords=511,total_length=511,bx=3560,verbose=False)
+    lc.do_continous_capture(["lc-input"])
+    """
 
     try:
         while True:
@@ -271,6 +284,12 @@ def continuousSnapshotCheck(verbose=False, bx=4):
             if len(np.unique(snapshots))==1:
                 logger.info(f'All snapshots match : {hex(snapshots[0])}')
             else:
+                """
+                data = lc.get_captured_data(["lc-input"],511,False)
+                datahex = tv.fixed_hex(data["lc-input"],8)
+                for n in datahex: logger.info(','.join(n))
+                """
+
                 shift = select-select.min()
                 shiftedSnapshots=(snapshots>>shift)
 
@@ -312,6 +331,8 @@ if __name__=='__main__':
       python testing/eRx.py --hdrMM
     - To do PRBS scan
       python testing/eRx.py --prbs --sleep 1
+    - For continuous snapshots
+      python testing/eRx.py --contSnapshot
     """
     # ch = logging.StreamHandler()
     # ch.setLevel(logging.INFO)

@@ -43,6 +43,8 @@ def print_block(block):
         to_io.get_delay(verbose=True)
     elif block=='lc-ASIC':
         lc.check_lc(['lc-ASIC'])
+    elif block=='lc-input':
+        lc.check_lc(['lc-input'])
     elif block=='latency':
         lc.read_latency(['lc-ASIC','lc-emulator'])
     elif block=='testvectors':
