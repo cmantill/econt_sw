@@ -107,6 +107,7 @@ def scan_prbs(args,channels,allch,verbose=True):
         tv.configure(dtype="PRBS32")
 
     err_counts = []
+    call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c=args.i2c)
     for sel in range(0,16):
         # clear counters and hold
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)

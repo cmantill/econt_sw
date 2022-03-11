@@ -1,16 +1,16 @@
 SNAPSHOT="${1:-4}"
 EMULATOR_DELAY="${2:-4}"
-PHASESELECT="${3:-99}"
+PHASESELECT="${3:-0}"
 
 echo "starting alignment procedures"
 python testing/eRx.py --tv --dtype PRBS28
 # or
-# python testing/test_vectors.py --idir configs/test_vectors/counterPatternInTC/RPT/
+# python testing/test_vectors.py --idir . configs/test_vectors/counterPatternInTC/RPT/
 
 python testing/i2c.py --yaml configs/align.yaml --write --quiet
 python testing/i2c.py --yaml configs/align.yaml --i2c emulator --write --quiet
 
-echo $PHASESELECT
+# echo $PHASESELECT
 
 if [ $PHASESELECT -eq 0 ]; then
     echo "keeping the same trackMode"

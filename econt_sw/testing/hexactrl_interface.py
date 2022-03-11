@@ -31,10 +31,10 @@ class hexactrl_interface():
         self.tv = TestVectors()
         self.pll = PLLLockCount()
 
-    def configure(self,trigger=True):
+    def configure(self,trigger=True,nWords_input=8, nWords_output=64):
         self.fc.configure_fc()
-        self.lc.configure_acquire(["lc-input"],'L1A',nwords=8,total_length=511,bx=0,verbose=True)
-        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=64,total_length=4095,bx=0,verbose=True)
+        self.lc.configure_acquire(["lc-input"],'L1A',nwords=nWords_input,total_length=511,bx=0,verbose=True)
+        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=nWords_output,total_length=4095,bx=0,verbose=True)
         self.lc.stop_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.lc.do_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.sc.configure_compare(13,trigger)

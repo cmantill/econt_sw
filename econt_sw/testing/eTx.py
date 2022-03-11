@@ -45,7 +45,7 @@ def capture(lcaptures,nwords=4095,
     fc.configure_fc()
 
     # configure acquire
-    lc.stop_continous_capture(lcaptures)
+    lc.stop_continous_capture(lcaptures,verbose=verbose)
     lc.configure_acquire(lcaptures,mode,nwords=nwords,total_length=nwords,bx=bx,verbose=verbose)
 
     # do link capture
@@ -57,8 +57,9 @@ def capture(lcaptures,nwords=4095,
     else:
         if mode == 'L1A' and not trigger:
             fc.get_counter("l1a",verbose)
-            fc.send_l1a()
             lc.do_capture(lcaptures,verbose)
+            fc.send_l1a()
+            fc.get_counter("l1a",verbose)
         else:
             lc.do_capture(lcaptures,verbose)
 
@@ -313,6 +314,8 @@ if __name__=='__main__':
     parser.add_argument('--sleep', dest='sleepTime', type=str, default='0.01',help='Time to wait between logging counters')
     parser.add_argument('--nocompare', action='store_true', default=False, help='Do not compare and just load the inputs')
 
+    parser.add_argument('--contCapture', dest='continuousCapture', default=False, action='store_true', help="capture data on eTx continuously")
+
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
 
@@ -342,3 +345,26 @@ if __name__=='__main__':
         lc.disable_alignment(args.lc.split(','))
     elif args.changesync:
         lc.syncword(args.lc.split(','),args.sync)
+
+    elif args.continuousCapture:
+        try:
+            data_prev=None
+            while True:
+                data = capture(['lc-ASIC','lc-emulator'],nwords=args.nwords,
+                               mode='L1A',bx=args.bx,
+                               csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,
+                               trigger=args.trigger,verbose=args.verbose)
+                data_ASIC=data['lc-ASIC']
+                data_em=data['lc-emulator']
+                if not (data_ASIC==data_em).all():
+                    logger.error('MISMATCH')
+                    break
+                if not data_prev is None:
+                    if (data_prev==data_ASIC).all():
+                        logger.info('No difference in data from last capture')
+                    else:
+                        logger.info('Different data from last capture')
+                        break
+                data_prev=data_ASIC
+        except KeyboardInterrupt:
+            pass

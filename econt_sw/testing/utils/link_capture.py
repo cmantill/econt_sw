@@ -203,13 +203,14 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(1)
             self.dev.dispatch()
 
-    def stop_continous_capture(self,lcaptures):
+    def stop_continous_capture(self,lcaptures,verbose=False):
         for lcapture in lcaptures:
             self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
             for l in range(self.nlinks[lcapture]):
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(0)
             self.dev.dispatch()
-            logger.info("Stop continous acquire for %s"%lcapture)
+            if verbose:
+                logger.info("Stop continous acquire for %s"%lcapture)
 
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""

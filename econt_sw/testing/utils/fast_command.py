@@ -19,6 +19,10 @@ class FastCommands:
         self.name = names['fc']
         self.name_recv = names['fc-recv']
 
+    def fc_stream(self,value=1):
+        self.dev.getNode(self.name+".command.enable_fast_ctrl_stream").write(value);
+        self.dev.dispatch()
+
     def configure_fc(self,read=False):
         """
         Configure FC.
