@@ -126,9 +126,51 @@
     ```
     [HGCAL_dev@localhost mylittledt]$ sudo ./load.sh ~/firmware/econ-t-tester-Nov12/ && sudo chmod a+rw /dev/i2c-* /dev/uio*
     ```
-Note:
+
+
+## @ ITA:
+- Address:
+```
+ssh -K ita_user@ita-cr-01.fnal.gov 
+```
 - To set fixed IP address, edit (added at end):
 ```
 /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
-- New address for ITA: `192.168.206.46`.
+- New address for ITA: 
+Hexacontroller(Dec.): `192.168.206.46`.
+
+- Config @ ITA (Dec.):
+```
+#NAME=eth0
+#TYPE=ethernet
+#BOOTPROTO=dhcp
+#DEVICE=eth0                               
+#ONBOOT=yes                             
+#NM_CONTROLLED=no                        
+#IPV4_FAILURE_FATAL=no                    
+#IPV6INIT=no
+# static IP address on CentOS 7 or RHEL 7#
+#HWADDR=00:08:A2:0A:BA:B8
+TYPE=Ethernet
+BOOTPROTO=none
+# Server IP #                           
+IPADDR=192.168.206.46
+# Subnet #                              
+PREFIX=24
+# Set default gateway IP #               
+GATEWAY=192.168.2.254
+# Set dns servers #                   
+#DNS1=192.168.2.254                    
+#DNS2=8.8.8.8                       
+#DNS3=8.8.4.4                          
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+# Disable ipv6 #                        
+IPV6INIT=no
+NAME=eth0
+# This is system specific and can be created using 'uuidgen eth0' command #
+#UUID=41171a6f-bce1-44de-8a6e-cf5e782f8bd6     
+DEVICE=eth0
+ONBOOT=yes
+```
