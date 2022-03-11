@@ -6,6 +6,10 @@ import numpy as np
 import time
 from datetime import datetime
 from zmq_controller import daqController
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start hexacontroller client')
@@ -26,7 +30,8 @@ if __name__ == "__main__":
             ## TODO: add fixed time between reset and latch counters ?
             dateTimeObj = datetime.now()
             timestamp = args.tag + dateTimeObj.strftime("%d%b_%H%M%S")
+            time.sleep(14) 
             daq_arrays = daq_socket.stop_daq(timestamp)
-            time.sleep(15) 
+            time.sleep(1) 
     except KeyboardInterrupt:
         pass

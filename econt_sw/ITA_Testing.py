@@ -2,6 +2,7 @@
 from urllib.request import urlopen
 import time
 import sys
+import os
 sys.path.append( 'testing' )
 from i2c import call_i2c 
 
@@ -145,6 +146,8 @@ def main(yaml_config=None, snapshot=False, testVector=None, tag=""):
     init_RW_status, prev_RO_status=init_i2c_config(yaml_config)
     _time, nsteps_SC, localSCOffset=0,0,0
 
+    doPLLUnlock=True
+
     dataStarted=False
     waiting_for_pulse=False
     dataFinished=True
@@ -244,7 +247,7 @@ def main(yaml_config=None, snapshot=False, testVector=None, tag=""):
                 uhalClient.stop_daq(timestamp)
                 oot_dataFinished=True
 
-            elif (_time > (Pulse_SC_time+36)%nsteps_SC) and not manualPLLUnlocked:
+            elif (_time > (Pulse_SC_time+36)%nsteps_SC) and not manualPLLUnlocked and doPLLUnlock:
                 ### Unlocking PLL, then relocking twice, to get increase in lfLossOfLockCount
                 logging.debug(f'Unlocking PLL to increment Loss of Lock counter')
                 newLoLCount=call_i2c(args_name='PLL_lfLossOfLockCount', args_ip='192.168.1.48')['ASIC']['RO']['PLL_ALL']['pll_read_bytes_2to0_lfLossOfLockCount']

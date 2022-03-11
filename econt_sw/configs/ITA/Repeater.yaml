@@ -6,14 +6,14 @@ ECON-T:
     algo:
      params:
       select:
-       params_value: 3
+       param_value: 3
       density:
-       params_value: 1
+       param_value: 1
 
   ALGO_DROPLSB: 
    registers:
     drop_lsb:
-     value 0x3
+     value: 0x3
 
   FMTBUF_ALL:
    registers:

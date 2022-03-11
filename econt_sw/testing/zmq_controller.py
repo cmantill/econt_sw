@@ -152,9 +152,15 @@ class daqController(zmqController):
         if int(err_counter)>0:
             self.socket.send_string("getdata")
             ret_array = self.recv_array(copy=False)
-            self.logger.info('ASIC array %s', ret_array[:4])
-            self.logger.info('emulator array %s', ret_array[4:8])
-            self.logger.info('input array %s', ret_array[8:,:-1])
+            self.logger.info('ASIC array')
+            for x in ret_array[:4]:
+                self.logger.info('    %s'%','.join(x))
+            self.logger.info('emulator array')
+            for x in ret_array[4:8]:
+                self.logger.info('    %s'%','.join(x))
+            self.logger.info('input array')
+            for x in ret_array[8:]:
+                self.logger.info('    %s'%','.join(x[:-1]))
             return ret_array[:4],ret_array[4:8],ret_array[8:,:-1]
         return None
 
