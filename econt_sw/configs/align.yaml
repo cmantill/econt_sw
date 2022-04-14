@@ -28,7 +28,7 @@ ECON-T:
       snapshot_en:
        param_value: 1
       snapshot_arm:
-       param_value: 1
+       param_value: 0
     match_pattern_val:
      value: 0x9cccccccaccccccc
     match_mask_val:
