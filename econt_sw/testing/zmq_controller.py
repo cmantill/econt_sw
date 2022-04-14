@@ -144,6 +144,11 @@ class daqController(zmqController):
             self.socket.send_string("startdaq")
             rep = self.socket.recv_string()
 
+    def empty_fifo(self):
+        self.socket.send_string(f"emptyfifo")
+        fifo_occ = self.socket.recv_string()
+        self.logger.info(f'Fifo occupancy {fifo_occ}')
+
     def stop_daq(self,timestamp="Mar17"):
         """Latch counters and returns 4 rows of data 28-32 by default"""
         self.socket.send_string(f"stopdaq {timestamp}")

@@ -45,7 +45,7 @@ class daqServer():
         self.socket.send_string("ready")
 
     def stop_daq(self,timestamp):
-        err_counter,daq_data = daq.hexactrl.stop_daq(timestamp)
+        err_counter,daq_data = daq.hexactrl.stop_daq(timestamp,irow=28,frow=36)
         self.socket.send_string(f"{err_counter}")
         if err_counter>0:
             self.data = daq_data
@@ -67,6 +67,10 @@ class daqServer():
         ans=self.hexactrl.testVectors(args)
         self.socket.send_string(ans)
 
+    def empty_fifo(self):
+        ans=self.hexactrl.empty_fifo()
+        self.socket.send_string(f"efifo")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start hexacontroller server')
     parser.add_argument('--server', type=str,
@@ -80,7 +84,7 @@ if __name__ == "__main__":
         fullstring = daq.get_string()
         string=fullstring.lower()
         if string == "configure":
-            ans = daq.hexactrl.configure()
+            ans = daq.hexactrl.configure(nlinks=13)
             daq.socket.send_string("conf")
         elif string == "startdaq":
             daq.start_daq()
@@ -98,3 +102,6 @@ if __name__ == "__main__":
             daq.get_pll_count()
         elif string.startswith("testvector"):
             daq.setTestVectors(fullstring)
+        elif string == "emptyfifo":
+            daq.empty_fifo()
+            
