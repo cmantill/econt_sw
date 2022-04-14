@@ -25,31 +25,33 @@ class hexactrl_interface():
         from utils.fast_command import FastCommands
         from utils.test_vectors import TestVectors
         from utils.pll_lock_count import PLLLockCount
+        self.nlinks=13
         self.sc = StreamCompare()
         self.lc = LinkCapture()
         self.fc = FastCommands()
         self.tv = TestVectors()
         self.pll = PLLLockCount()
 
-    def configure(self,trigger=True,nWords_input=8, nWords_output=64):
+    def configure(self,trigger=True,nWords_input=511, nWords_output=4095, nlinks=13):
         self.fc.configure_fc()
+        self.nlinks=nlinks
         self.lc.configure_acquire(["lc-input"],'L1A',nwords=nWords_input,total_length=511,bx=0,verbose=True)
         self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=nWords_output,total_length=4095,bx=0,verbose=True)
         self.lc.stop_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.lc.do_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
-        self.sc.configure_compare(13,trigger)
+        self.sc.configure_compare(self.nlinks,trigger)
         return "ready"
 
     def start_daq(self):
         """ Reset comparison counters"""
         self.sc.reset_counters()
-        self.sc.configure_compare(trigger=True)
+        self.sc.configure_compare(nlinks=self.nlinks,trigger=True)
         return "ready"
 
     def stop_daq(self,timestamp="0",odir="tmp/",irow=28,frow=32):
         """ Latch comparison counters"""
         self.sc.latch_counters()
-        self.sc.configure_compare(trigger=False)
+        self.sc.configure_compare(nlinks=self.nlinks,trigger=False)
         err_count = self.sc.read_counters(True)
         os.system(f'mkdir -p {odir}')
         daq_data = None
@@ -69,7 +71,9 @@ class hexactrl_interface():
             )
         return err_count,daq_data
 
-    
+    def empty_fifo(self):
+        data = self.lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
+
     def getPLLLockCount(self):
         return self.pll.getCount()
 
