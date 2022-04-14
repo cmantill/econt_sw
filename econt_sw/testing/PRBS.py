@@ -141,7 +141,8 @@ def scan_prbs(args,channels,allch,verbose=True):
         logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
 
     err_counts = np.array(err_counts).astype(int)
-
+    logger.info(f'Error Array:\n{repr(err_counts)}')
+    
     counts_window = []
     for i in range(15):
         # add counts over 3 setting window, summing i, i+1, and i-1 (mod 15)  
