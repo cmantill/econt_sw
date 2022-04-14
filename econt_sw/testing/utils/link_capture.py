@@ -212,6 +212,20 @@ class LinkCapture:
             if verbose:
                 logger.info("Stop continous acquire for %s"%lcapture)
 
+    def empty_fifo(self,lcaptures):
+        # sleep a bit in case there was an acquisition
+        time.sleep(1)
+        for lcapture in lcaptures:
+            for l in range(self.nlinks[lcapture]):
+                fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_occupancy").read()
+                self.dev.dispatch()
+                if int(fifo_occupancy)>0:
+                    logger.info('reading words on %s for link %i'%(lcapture,l))
+                    data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
+                    self.dev.dispatch()
+                else:
+                    break
+
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""
         captured_data = {}
@@ -239,17 +253,18 @@ class LinkCapture:
                 assert(fifo_occupancy == fifo_occupancies[0])
                 logger.debug('fifo occupancies ',fifo_occupancies[0],fifo_occupancy)
             except:            
-                logger.error('not same fifo occ for link %i'%l,fifo_occupancies)
+                logger.error('not same fifo occ for link %i or nwords %i'%(l,nwords),fifo_occupancies)
                 continue
 
             # now look at data
             daq_data = []
             for l in range(self.nlinks[lcapture]):
-                fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link%i"%l+".fifo_occupancy").read()
-                self.dev.dispatch()
+                #fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link%i"%l+".fifo_occupancy").read()
+                #self.dev.dispatch()
                 if int(fifo_occupancy)>0:
                     logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
-                    data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
+                    data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(nwords)
+                    #data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
                     self.dev.dispatch()
                     daq_data.append([int(d) for d in data])
                 else:
