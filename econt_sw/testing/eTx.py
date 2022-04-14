@@ -330,6 +330,12 @@ if __name__=='__main__':
                        mode=args.mode,bx=args.bx,
                        csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,
                        trigger=args.trigger,verbose=args.verbose)
+        if 'lc-ASIC' in data.keys() and 'lc-emulator' in data:
+            data_ASIC=data['lc-ASIC']
+            data_em=data['lc-emulator']
+            if not (data_ASIC==data_em).all():
+                logger.error('MISMATCH')
+
     elif args.compare:
         data = compare_lc(trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,
                           csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,

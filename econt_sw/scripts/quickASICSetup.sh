@@ -11,6 +11,7 @@ if [ $ASIC -eq 2 ]; then
     python3 testing/i2c.py --name EPRXGRP_TOP_trackMode,CH_EPRXGRP_[0-11]_phaseSelect --value 0,6,6,7,7,7,8,7,8,7,8,7,8 --quiet
 fi
 if [ $ASIC -eq 3 ]; then
+    # python3 testing/i2c.py --name EPRXGRP_TOP_trackMode,CH_EPRXGRP_[0-11]_phaseSelect --value 0,7,6,8,7,0,8,8,0,8,8,9,8 --quiet
     python3 testing/i2c.py --name EPRXGRP_TOP_trackMode,CH_EPRXGRP_[0-11]_phaseSelect --value 0,7,6,8,7,0,8,8,0,8,8,8,8 --quiet
 fi
 

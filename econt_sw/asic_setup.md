@@ -244,7 +244,10 @@ Note that it does not configure IO and it can be used when power cycle the ASIC 
    ```
    python testing/eRx.py --snapshot --bx 4 
    ```
-   - To scan `hdr_mm_cntr` after manually changing phase:
+   - To do PRBS scan:
+   ```
+   python testing/eRx.py --prbs --sleep 1
+   ````
 
    ### Inversion
    - Test inverting ERX from IO block and with i2c registers:
