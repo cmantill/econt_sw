@@ -2,12 +2,13 @@
 ASIC="${1:-8}"
 GOODPHASEPLL="${2:-0}"
 GOODSELECT="${3:-56}"
+PLLCAP="${4:-15}"
 
 # set edge of FC clock
 python3 testing/i2c.py --name FCTRL_EdgeSel_T1 --value 0 --quiet
 
 # set PLL settings
-python3 testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,15 --quiet
+python3 testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,${PLLCAP} --quiet
 
 # set phase
 python3 testing/set_phase.py --board ${ASIC}

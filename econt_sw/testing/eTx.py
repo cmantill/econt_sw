@@ -122,7 +122,7 @@ def event_daq(idir="",dtype="",
               i2ckeep=False,i2ckeys='ASIC,emulator',
               nwords=4095,nlinks=13,
               trigger=False,sleepTime=0.01,
-              nocompare=False,
+              nocompare=False,odir="./",
               yamlname="init"):
     """Automatize event DAQ"""
     # modify input or i2c registers if idir/dtype and/or yamlFile is given
@@ -139,11 +139,14 @@ def event_daq(idir="",dtype="",
             # read nlinks from here
             try:
                 nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+                print(nlinks)
             except:
                 try:
                     nlinks = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+                    print(nlinks)
                 except:
                     logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
+    print(nlinks)
     if nocompare:
         return
 
@@ -154,7 +157,7 @@ def event_daq(idir="",dtype="",
 
     # send compare command
     data = compare_lc(trigger=trigger,nlinks=nlinks,nwords=nwords,
-                      csv=True,phex=False,odir="./",fname="sc",
+                      csv=True,phex=False,odir=odir,fname="sc",
                       sleepTime=sleepTime,log=False)
 
     # look at first rows of captured data
@@ -346,6 +349,7 @@ if __name__=='__main__':
                   nwords=args.nwords,nlinks=args.nlinks,
                   trigger=args.trigger,sleepTime=float(args.sleepTime),
                   nocompare=args.nocompare,
+                  odir=args.odir,
                   yamlname=args.yamlname)
     elif args.disablealign:
         lc.disable_alignment(args.lc.split(','))

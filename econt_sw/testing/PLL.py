@@ -1,3 +1,6 @@
+from i2c import call_i2c
+import numpy as np
+from time import sleep
 import logging
 logger = logging.getLogger("pll")
 logger.setLevel(logging.INFO)
@@ -5,6 +8,25 @@ logger.setLevel(logging.INFO)
 from utils.pll_lock_count import PLLLockCount
 
 pll=PLLLockCount()
+
+allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
+                                 13,  14,  15,  24,  25,  26,  27,  28,  29,  30,  31,  56,  57,
+                                 58,  59,  60,  61,  62,  63, 120, 121, 122, 123, 124, 125, 126,
+                                 127, 248, 249, 250, 251, 252, 253, 254, 255, 504, 505, 506, 507,
+                                 508, 509, 510, 511])
+
+def scanCapSelect(verbose=False):
+    goodVals=[]
+    for i in allowedCapSelectVals:
+        call_i2c('PLL_*CapSelect',args_value=str(i))
+        sleep(0.1)
+        y=call_i2c('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
+        if verbose:
+            print(f'{i:03d} {i:09b} {y} {" <<<" if y==9 else ""}')
+
+        if y==9:
+            goodVals.append(i)
+    return goodVals
 
 def get_count():
     logger.info('Loss of lock count %s'%pll.getCount())
@@ -21,4 +43,5 @@ def get_count():
     logger.info('Loss of lock count %s'%pll.getCount())
 
 if __name__=='__main__':
-    get_count()
+    # get_count()
+    scanCapSelect(verbose=True)

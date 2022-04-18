@@ -11,5 +11,7 @@ python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snap
 
 python testing/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
 
+python testing/i2c.py --yaml configs/align_read.yaml --i2c ASIC,emulator
+
 python testing/eRx.py --alignment --verbose
 python testing/eRx.py --logging -N 1 --sleep 2
