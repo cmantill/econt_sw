@@ -27,23 +27,23 @@
 
 - Initialize ASIC:
   ```
-  ./scripts/startUp.sh
+  ./scripts/ASICSetup.sh
   ```
-  -  This bash script does the following:
-   * Checks all registers in ASIC.
+  -  Some functionalities:
+   * Check all useful registers in ASIC.
      ```
      python testing/i2c.py --yaml configs/init.yaml
      ```
-   * Locks pll manually. This sets `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CBOvcoCapSelect`.
+   * Lock pll manually. This sets `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CBOvcoCapSelect`.
      It should change `pll_read_bytes_2to0_lfLocked 0x1` and PUSM state to 8 (`STATE_WAIT_CHNS_LOCK`).
      ```
-     python testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,100
+     python testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,CAP_SELECT_VALUE
      ```
-   * Checks Power-Up-State-Machine.
+   * Check Power-Up-State-Machine.
      ```
      python testing/i2c.py --name PUSM_state
      ```
-   * Configures IO (with `invert` option selected):
+   * Configure IO (with `invert` option selected):
      ```
      source env.sh
      python testing/align_on_tester.py --step configure-IO --invertIO
@@ -57,6 +57,21 @@
      ```
      python testing/i2c.py --name MISC_run --value 1
      ```
+     
+- Initialize FPGA:
+  ```
+  ./scripts/fpgaIOsetup.sh
+  ```
+  - Some functionalities:
+  * Configure IO (with `invert` option selected):
+    ```
+    source env.sh
+    python testing/align_on_tester.py --step configure-IO --invertIO
+    ```
+  * Resets fast commands, sets input clock to 40MHz, sends bit transitions with 28 bit PRBS (in the test vectors block).
+    ```
+    python testing/align_on_tester.py --step init
+    ```
 
 ## Alignment
 
@@ -189,7 +204,7 @@
     python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
     ```
 
-- ASIC link capture and emulator link capture alignment
+### ASIC link capture and emulator link capture alignment
   ```
   source scripts/lcEmulatorAlignment.sh 
   ```
@@ -202,6 +217,12 @@
     ```
     python testing/eTx.py --compare --sleep 1 --nlinks 13
     ```
+  - To check blocks:
+    ```
+    python testing/check_block.py --check -B from-IO
+    python testing/check_block.py --check -B lc-ASIC
+    python testing/check_block.py -B latency
+    ````
 
 ## Quick setup (if FPGA is set up)
 ```
@@ -349,4 +370,10 @@ Note that it does not configure IO and it can be used when power cycle the ASIC 
    - To read, e.g:
    ```
    python testing/fast_command.py --fc chipsync --read
+   ```
+
+## ITA Testing
+   - Defaults:
+   ```
+   python testing/i2c.py --yaml configs/ITA/ITA_defaults.yaml --i2c ASIC,emulator --write --quiet
    ```

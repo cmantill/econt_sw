@@ -180,7 +180,7 @@ def modify_latency():
             for l in range(output_nlinks):
                 if lat[lc][l]==-1:
                     lat[lc][l] = i
-            print(i,lat,lc,ref)
+            # print(i,lat,lc,ref)
             lat[lc],fbx0[lc],daq_data = find_latency(lat[lc],lc,bx0=ref)
             if -1 not in lat[lc].values():
                 logger.info('Found BX0 for %s: %s, %s',lc,lat[lc],fbx0[lc])
@@ -198,7 +198,7 @@ def modify_latency():
     # find latency for emulator
     repeat_ASIC  = find_bx0('lc-emulator',latency,found_bx0,all_data,found_bx0['lc-ASIC'])
     if repeat_ASIC:
-        print(found_bx0['lc-emulator'],latency['lc-emulator'])
+        # print(found_bx0['lc-emulator'],latency['lc-emulator'])
         find_bx0('lc-ASIC',latency,found_bx0,all_data,found_bx0['lc-emulator'])
 
     # read values of latency 
