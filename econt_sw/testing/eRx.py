@@ -157,7 +157,7 @@ def get_HDR_MM_CNTR(previous=None):
 
     agreement = (counts==previous) & ~(counts==65535)
     if agreement.all():
-        logger.info(f'Good counters {counts}')
+        logger.info(f'Good hdr_mm_counters, not increasing: {counts}')
     else:
         increase=np.argwhere((counts>previous) | (counts==65535)).flatten()
         logger.error(f'Increase in channels {increase}: {counts-previous}')
@@ -353,7 +353,7 @@ if __name__=='__main__':
 
     parser.add_argument('-N',dest='N',default=1,type=int,help='Number of iterations to run')
     parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
-    parser.add_argument('--tag',dest='tag',default="test",type=str,help="Tag to save hdr mm cntr histogram")
+    parser.add_argument('--tag',dest='tag',default="",type=str,help="Tag to save hdr mm cntr histogram")
     parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
     parser.add_argument('--bx', dest='bx',default=4,type=int, help='BX to take snapshot in')
     parser.add_argument('--delay', dest='delay',default=None,type=int, help='Emulator delay setting for link alignment')
