@@ -6,8 +6,8 @@ python testing/eRx.py --tv --dtype PRBS28
 
 python testing/i2c.py --yaml configs/align.yaml --write --quiet
 python testing/i2c.py --yaml configs/align.yaml --i2c emulator --write --quiet
-python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --quiet
-python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 0,$SNAPSHOT --i2c emulator --quiet
+python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 1,$SNAPSHOT --quiet
+python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 1,$SNAPSHOT --i2c emulator --quiet
 
 python testing/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
 
