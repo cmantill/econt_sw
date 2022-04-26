@@ -131,22 +131,25 @@ def event_daq(idir="",dtype="",
         tv.configure(dtype,idir)
 
         # modify slow control from that idir unless told so
-        if idir!="" and not i2ckeep:
-            yamlFile = f"{idir}/{yamlname}.yaml"
-            logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
-            x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
+        if idir!="":
+            if not i2ckeep:
+                yamlFile = f"{idir}/{yamlname}.yaml"
+                logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
+                x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
 
             # read nlinks from here
+            num_links = None
             try:
-                nlinks = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-                print(nlinks)
+                num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
             except:
                 try:
-                    nlinks = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-                    print(nlinks)
+                    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+                    num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
                 except:
                     logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
-    print(nlinks)
+            if num_links:
+                nlinks = num_links
+                logger.info(f'Changing number of links to {nlinks}')
     if nocompare:
         return
 
@@ -156,6 +159,7 @@ def event_daq(idir="",dtype="",
     check_align('lc-ASIC')
 
     # send compare command
+    logger.info('Number of links to compare %i'%nlinks)
     data = compare_lc(trigger=trigger,nlinks=nlinks,nwords=nwords,
                       csv=True,phex=False,odir=odir,fname="sc",
                       sleepTime=sleepTime,log=False)
