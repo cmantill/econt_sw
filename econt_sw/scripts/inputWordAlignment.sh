@@ -1,14 +1,12 @@
-SNAPSHOT="${1:-4}"
+SNAPSHOT="${1:-3}"
 EMULATOR_DELAY="${2:-3}"
+SELECT="${2:-32}"
 
 echo "Starting word alignment"
 python testing/eRx.py --tv --dtype PRBS28
+python testing/eRx.py --lrAlign --bx $SNAPSHOT --bcr 0 --delay $EMULATOR_DELAY
 
-python testing/i2c.py --yaml configs/align.yaml --write --quiet
-python testing/i2c.py --yaml configs/align.yaml --i2c emulator --write --quiet
-python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 1,$SNAPSHOT --quiet
-python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value 1,$SNAPSHOT --i2c emulator --quiet
+#python testing/eRx.py --override --select $SELECT
 
-python testing/align_on_tester.py --step lr-roct --delay $EMULATOR_DELAY --bxlr 3500
-python testing/eRx.py --alignment --verbose
+python testing/eRx.py --checkAlign --verbose
 python testing/eRx.py --logging -N 1 --sleep 2 
