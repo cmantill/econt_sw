@@ -78,12 +78,15 @@ def lr_econt():
     time.sleep(0.1)
     fc.get_counter("link_reset_econt")
 
-def find_latency(latency,lcapture,bx0=None,savecap=True):
+def find_latency(latency,lcapture,bx0=None,savecap=True,verbose=False):
     """
     Find with that latency we see the BX0 word.
     It captures on link reset econt so capture block needs to set acquire to that.
     If `bx0[l]` is set, then check that that position at which BX0 word is found, is the same as bx0.
     """
+
+    if not verbose:
+        logger.setLevel('ERROR')
     
     # record the new latency for each elink
     new_latency = {}
@@ -94,18 +97,20 @@ def find_latency(latency,lcapture,bx0=None,savecap=True):
     lc.set_latency([lcapture],latency)
     
     # set acquire
-    lc.configure_acquire([lcapture],"linkreset_ECONt")
-    
-    # read latency
-    lc.read_latency([lcapture])
-    
+    lc.configure_acquire([lcapture],"linkreset_ECONt",verbose=verbose)
+
     # capture on link reset econt
-    lc.do_capture([lcapture],verbose=True)
+    lc.do_capture([lcapture],verbose=verbose)
     fc.request("link_reset_econt")
-    fc.get_counter("link_reset_econt")
+    
+    if verbose:
+        # get counter
+        fc.get_counter("link_reset_econt")
+        # read latency
+        lc.read_latency([lcapture])
     
     # get captured data
-    data = lc.get_captured_data([lcapture])[lcapture]
+    data = lc.get_captured_data([lcapture],verbose=verbose)[lcapture]
     if savecap:
         tv.save_testvector("%s-align-findlatency.csv"%lcapture, data)
         
@@ -114,6 +119,7 @@ def find_latency(latency,lcapture,bx0=None,savecap=True):
     BX0_rows,BX0_cols = (data == BX0_word).nonzero()
     logger.info('BX0 sync word found on columns %s',BX0_cols)
     logger.info('BX0 sync word found on rows %s',BX0_rows)
+
     bx0_error = False
     try:
         assert len(BX0_rows) > 0
@@ -140,24 +146,25 @@ def find_latency(latency,lcapture,bx0=None,savecap=True):
             assert BX0_rows[row_index] == BX0_rows[row_link_0]
             if bx0:
                 assert BX0_rows[row_index] == bx0[row_index]
-            logger.info('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
+            logger.debug('Latency %i: %s found BX0 word at %d',latency[l],lcapture,BX0_rows[row_index])
             new_latency[l] = latency[l]
             found_BX0[l] = BX0_rows[row_index]
         except AssertionError:
             if bx0:
                 if BX0_rows[row_index] > bx0[row_index]:
-                    logger.warning('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
+                    logger.debug('BX0 sync word for link %i found at %i, after reference bx0: %i'%(l,BX0_rows[row_index],bx0[row_index]))
                     new_latency[l] = latency[l]
                     found_BX0[l] = BX0_rows[row_index]
                 else:
-                    logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
+                    logger.debug('BX0 sync word not found for link %i at (pos of link 0): %i or (pos of where bx0 was found for ASIC): %i'%(l,BX0_rows[row_link_0],bx0[row_index]))
                     new_latency[l] = -1
             else:
-                logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
+                if verbose:
+                    logger.warning('BX0 sync word not found for link %i at (pos of link 0): %i'%(l,BX0_rows[row_link_0]))
                 new_latency[l] = -1
     return new_latency,found_BX0,data
             
-def modify_latency():
+def modify_latency(verbose=False):
     """Automatically adjust the latency so that ASIC and emulator agree after a link reset ROCT"""
     # re-configure fc
     fc.configure_fc()
@@ -181,7 +188,7 @@ def modify_latency():
                 if lat[lc][l]==-1:
                     lat[lc][l] = i
             # print(i,lat,lc,ref)
-            lat[lc],fbx0[lc],daq_data = find_latency(lat[lc],lc,bx0=ref)
+            lat[lc],fbx0[lc],daq_data = find_latency(lat[lc],lc,bx0=ref,verbose=verbose)
             if -1 not in lat[lc].values():
                 logger.info('Found BX0 for %s: %s, %s',lc,lat[lc],fbx0[lc])
                 all_data[lc] = daq_data
@@ -230,6 +237,8 @@ if __name__ == "__main__":
     parser.add_argument('--delay', type=int, default=None, help='delay data for emulator on tester')
     parser.add_argument('--bxlr', type=int, default=3540, help='When to send link reset roct')
     parser.add_argument('--lat',  type=int, default=-1, help='Fifo latency')
+    parser.add_argument('--verbose', action='store_true', default=False, help='verbose')
+
     args = parser.parse_args()
 
     logger = logging.getLogger('align:step:%s'%args.step)
@@ -258,7 +267,7 @@ if __name__ == "__main__":
         lc.manual_align(['lc-ASIC'])
 
     elif args.step == 'latency':
-        modify_latency()
+        modify_latency(args.verbose)
 
     elif args.step == 'mlatency':
         set_latency(lcapture='lc-emulator',latency=args.lat)

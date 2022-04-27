@@ -12,10 +12,17 @@ from utils.fast_command import FastCommands
 """
 Send/Read fast commands
 """
+fc_requests = [
+    "link_reset_roct",
+    "link_reset_econt",
+    "orbit_count_reset",
+    "chipsync",
+    "count_rst", # reset counters                                                                                                                                                            
+]
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description='Fast commands')
-    parser.add_argument('--fc', type=str, required=True,
+    parser.add_argument('--fc', type=str, required=True, choices=fc_requests,
                         help='fast command')
     parser.add_argument('--read', action='store_true', default=False, help='read')
     args = parser.parse_args()
