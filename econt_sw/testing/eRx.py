@@ -92,7 +92,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
 
     # shift the snapshot by select bits, and look for 9ccccccc at the end
     goodSnapshot = (((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc).all()
-
+    
     goodASIC = goodStatus & goodSelect & goodSnapshot
     if ASIC_only: 
         goodEmulator=True
@@ -102,7 +102,10 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
     if not (goodASIC) and verbose:
         logger.error('Bad ASIC alignment')
         if not goodSelect: logger.error('select not in [32,64] range')
-        elif not goodSnapshot: logger.error('no training pattern in snapshot')
+        elif not goodSnapshot:
+            logger.error('no training pattern in snapshot')
+            if verbose:
+                print(((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc)
         else: 
             logger.error('status!=3')
             readStatus('ASIC')
