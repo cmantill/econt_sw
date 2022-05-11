@@ -50,8 +50,14 @@ class FastCommands:
             self.dev.dispatch()
 
     def set_bx(self,fc,bx):
+        print(fc,bx)
         self.dev.getNode(self.name+".bx_"+fc).write(bx)
         self.dev.dispatch()
+
+    def get_bx(self,fc):
+        r=self.dev.getNode(self.name+".bx_"+fc).read()
+        self.dev.dispatch()
+        return r
 
     def request(self,fc,verbose=False):
         """
