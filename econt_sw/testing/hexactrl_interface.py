@@ -53,6 +53,10 @@ class hexactrl_interface():
         err_count = self.sc.read_counters(True)
         return err_count
 
+    def get_fifo_occupancy(self):
+        occupancies = self.lc.get_fifo_occupancy()
+        return occupancies
+
     def reset_counters(self):
         self.sc.latch_counters()
         self.sc.reset_counters()

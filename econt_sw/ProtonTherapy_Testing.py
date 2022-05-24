@@ -104,11 +104,13 @@ if __name__=="__main__":
     with open(f'logs/Initial_I2C_{timestamp}.log','w') as _file:
         _file.write(pprint.pformat(initial_Reg_Status))
 
+    logging.info(f'Configuring stream compare')
     hexactrl=hexactrl_interface()
     hexactrl.empty_fifo()
     hexactrl.configure(True,64,64,nlinks=13)
 
     logging.info(f'Starting stream compare (CTRL-C to stop and do capture and I2C compare)')
+    hexactrl.start_daq()
 
     try:
         while True:
