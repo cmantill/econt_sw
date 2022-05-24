@@ -1,0 +1,93 @@
+ECON-T:
+ RW:
+  MISC_ALL:
+   registers:
+    misc_rw_0:
+     params:
+      run:
+       param_value: 0x1
+
+  ALIGNER_ALL:
+   registers:
+    match_mask_val:
+     value: 0x0
+    match_pattern_val:
+     value: 0xaccccccc9ccccccc
+    orbsyn_cnt_load_val:
+     value: 0x0
+
+
+  FCTRL_ALL:
+   registers:
+    config:
+     params:
+      EdgeSel_T1:
+       param_value: 0
+
+  MFC_MUX_SELECT:
+   registers:
+    mux_select_*:
+     value: [ 3,  2,   1,  0,  7,  6,  5,  4,
+              11, 10,  9,  8, 15, 14, 13, 12,
+              19, 18, 17, 16, 23, 22, 21, 20,
+              27, 26, 25, 24, 31, 30, 29, 28,
+              35, 34, 33, 32, 39, 38, 37, 36,
+              43, 42, 41, 40, 47, 46, 45, 44]
+
+  ALGO_DROPLSB:
+   registers:
+    drop_lsb:
+     value: 1
+
+  PLL_ALL:
+   registers:
+    pll_bytes_1to0:
+     params:
+      enableSer:
+       param_value: 1
+    pll_bytes_8to5:
+     params:
+      fromMemToLJCDR_CONFIG_P_FF_CDR:
+       param_value: 6
+    pll_bytes_12to9:
+     params:
+      fromMemToLJCDR_PLL_R_CONFIG_WL:
+       param_value: 2
+      fromMemToLJCDR_CONFIG_I_PLL_WL:
+       param_value: 9
+      fromMemToLJCDR_CONFIG_P_PLL_WL:
+       param_value: 9
+      fromMemToLJCDR_CONFIG_P_FF_CDR_WL:
+       param_value: 6
+      fromMemToLJCDR_CONFIG_I_FLL_WL:
+       param_value: 5
+    pll_bytes_17to13:
+     params:
+      fromMemToLJCDR_CBOvcoCapSelect:
+       param_value: 27
+      fromMemToLJCDR_PLL_R_CONFIG:
+       param_value: 2
+      fromMemToLJCDR_CONFIG_I_PLL:
+       param_value: 9
+      fromMemToLJCDR_CONFIG_P_PLL:
+       param_value: 9
+    pll_bytes_21to18:
+     params:
+      fromMemToLJCDR_enableCapBankOverride:
+       param_value: 1
+      fromMemToLJCDR_lfLockThrCounter:
+       param_value: 3
+      fromMemToLJCDR_lfReLockThrCounter:
+       param_value: 3
+      fromMemToLJCDR_lfUnLockThrCounter:
+       param_value: 3
+    pll_bytes_24to22:
+     params:
+      toclkgen_disDES:
+       param_value: 1
+    pll_bytes_26to25:
+     params:
+      ref_clk_sel:
+       param_value: 1
+
+
