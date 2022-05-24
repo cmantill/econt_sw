@@ -1,4 +1,4 @@
-#!/usr/bin/python3  
+#!/usr/bin/python3
 import os
 import sys
 sys.path.append( 'testing' )
@@ -83,7 +83,7 @@ def check_prbs(args,channels,allch):
             tv.configure(dtype="PRBS28")
         else:
             tv.configure(dtype="PRBS32")
-    
+
     # clear counters
     clear_counters(args)
 
@@ -91,7 +91,7 @@ def check_prbs(args,channels,allch):
     enable_prbschk(args.i2c,args.prbs,channels,allch)
     logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
     logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
-    
+
     # print counters
     print_error_and_counters(args,channels)
 
@@ -108,7 +108,7 @@ def scan_prbs(args,channels,allch,verbose=True):
 
     err_counts = []
     call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c=args.i2c)
-    for sel in range(0,16):
+    for sel in range(0,15):
         # clear counters and hold
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
 
@@ -165,12 +165,18 @@ def scan_prbs(args,channels,allch,verbose=True):
 
     counts_window = np.array(counts_window)
     # print(counts_window)
-    counts_window[ err_counts[:-1]>0 ] += 255*3
+    counts_window[ err_counts>0 ] += 255*3
     # print('thr ',counts_window)
     best_setting=np.array(counts_window).argmin(axis=0)
     if verbose:
         logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
         # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
+
+    y=(err_counts[2:-2]+err_counts[1:-3]+err_counts[3:-1]+err_counts[4:] + err_counts[:-4])
+    y[ err_counts[2:-2]>0 ] += 2555
+    x=y.argmin(axis=0)+2
+    if verbose:
+        logger.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
 
     return err_counts, best_setting
 
