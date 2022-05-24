@@ -48,6 +48,15 @@ class hexactrl_interface():
         self.sc.configure_compare(nlinks=self.nlinks,trigger=True)
         return "ready"
 
+    def get_daq_counters(self):
+        self.sc.latch_counters()
+        err_count = self.sc.read_counters(True)
+        return err_count
+
+    def reset_counters(self):
+        self.sc.latch_counters()
+        self.sc.reset_counters()
+
     def stop_daq(self,timestamp="0",odir="tmp/",irow=28,frow=32,capture=True):
         """ Latch comparison counters"""
         self.sc.latch_counters()
