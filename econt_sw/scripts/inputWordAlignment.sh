@@ -1,5 +1,5 @@
-SNAPSHOT="${1:-4}"
-EMULATOR_DELAY="${2:-4}"
+SNAPSHOT="${1:-3}"
+EMULATOR_DELAY="${2:-3}"
 SELECT="${2:-32}"
 
 echo "Starting word alignment"
