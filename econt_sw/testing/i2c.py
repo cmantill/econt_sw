@@ -34,6 +34,14 @@ formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+def compare_asic_emulator():
+    server={"ASIC": 5554, "emulator": 5555}
+    outputs = {}
+    for key in server.keys():
+        socket = i2cController('localhost', str(server[key]))
+        outputs[key] = socket.read_config()
+    print(outputs)
+    
 def call_i2c(args_name=None,
              args_rw=None,
              args_block=None,
@@ -246,6 +254,7 @@ if __name__ == "__main__":
     parser.add_argument('--yaml', type=str, default=None, help="YAML file of registers to read from")
     parser.add_argument('--write', default=False, action='store_true', help='write registers when using yaml file, rather than just read')
     parser.add_argument('--compare', default=False, action='store_true', help='do comparison of read to values in yaml file')
+    parser.add_argument('--compare_asicemu', default=False, action='store_true', help='do comparison of read to values in yaml file')
     parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
     parser.add_argument('--info', default=False, action='store_true', help="Print a description of the register matching pattern in --name argument")
     parser.add_argument('--ip', type=str, default='localhost', help="IP address of server (default localhost)")
@@ -254,6 +263,10 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
+    if args.compare_asicemu:
+        compare_asic_emulator()
+        exit()
+        
     ### adds capability to simply print the list of accessible registers.
     ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
     if args.listRegisters:

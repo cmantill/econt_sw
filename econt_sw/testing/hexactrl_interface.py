@@ -48,14 +48,27 @@ class hexactrl_interface():
         self.sc.configure_compare(nlinks=self.nlinks,trigger=True)
         return "ready"
 
-    def stop_daq(self,timestamp="0",odir="tmp/",irow=28,frow=32):
+    def get_daq_counters(self):
+        self.sc.latch_counters()
+        err_count = self.sc.read_counters(True)
+        return err_count
+
+    def get_fifo_occupancy(self):
+        occupancies = self.lc.get_fifo_occupancy()
+        return occupancies
+
+    def reset_counters(self):
+        self.sc.latch_counters()
+        self.sc.reset_counters()
+
+    def stop_daq(self,timestamp="0",odir="tmp/",irow=28,frow=32,capture=True):
         """ Latch comparison counters"""
         self.sc.latch_counters()
         self.sc.configure_compare(nlinks=self.nlinks,trigger=False)
         err_count = self.sc.read_counters(True)
         os.system(f'mkdir -p {odir}')
         daq_data = None
-        if err_count>0:
+        if err_count>0 and capture:
             first_rows = {}
             data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
             data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']

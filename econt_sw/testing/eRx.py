@@ -12,7 +12,7 @@ from utils.test_vectors import TestVectors
 import logging
 logger = logging.getLogger("eRx")
 logger.setLevel(logging.INFO)
-    
+
 def readSnapshot(i2c='ASIC',return_status=False):
     """
     Read registers that tell us about word alignment
@@ -30,9 +30,12 @@ def readStatus(i2c='ASIC',verbose=True):
         if verbose:
             logger.info(f"status {param} "+" ".join(map(str,pararray)))
 
-def i2cSnapshot(bx=4):
+def i2cSnapshot(bx=None):
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='1,1,[0]*12,0')
-    call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot,ALIGNER_snapshot_arm',args_value=f'{bx},1')
+    if not bx is None:
+        call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot,ALIGNER_snapshot_arm',args_value=f'{bx},1')
+    else:
+        call_i2c(args_name='ALIGNER_snapshot_arm',args_value=f'1')
     snapshots,status,select=readSnapshot()
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
     return snapshots, status, select
@@ -43,7 +46,7 @@ def overrideSelect(select_ASIC):
     select_values = ','.join('{}'.format(*k) for k in enumerate(select_ASIC))
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
 
-def linkResetAlignment(snapshotBX=4, orbsyncVal=0, override=True, check=True, verbose=False, delay=None):
+def linkResetAlignment(snapshotBX=None, orbsyncVal=0, override=True, check=True, verbose=False, delay=None, match_pattern='0xaccccccc9ccccccc'):
     """
     Performs automatic alignment sequence.
     Sets minimum i2c settings required for alignment, then issues a link_reset_roct fast command
@@ -52,9 +55,14 @@ def linkResetAlignment(snapshotBX=4, orbsyncVal=0, override=True, check=True, ve
     call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
              args_value='0', args_i2c='ASIC,emulator')
-    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_orbsyn_cnt_snapshot,ALIGNER_orbsyn_cnt_load_val,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
-             args_value=f'0,1,1,{snapshotBX},{orbsyncVal},0x9cccccccaccccccc,0',
-             args_i2c='ASIC,emulator')
+    if snapshotBX is None:
+        call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+                 args_value=f'0,1,1,{match_pattern},0',
+                 args_i2c='ASIC,emulator')
+    else:
+        call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_orbsyn_cnt_snapshot,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+                 args_value=f'0,1,1,{snapshotBX},{match_pattern},0',
+                 args_i2c='ASIC,emulator')
 
     if not delay is None:
         from utils.asic_signals import ASICSignals
@@ -65,9 +73,9 @@ def linkResetAlignment(snapshotBX=4, orbsyncVal=0, override=True, check=True, ve
     fc.configure_fc()
     fc.set_bx("link_reset_roct",3500)
     fc.request('link_reset_roct')
-    
+
     if check:
-        status,select_ASIC=checkWordAlignment(verbose=verbose,ASIC_only=False)
+        status,select_ASIC=checkWordAlignment(verbose=verbose,ASIC_only=False,match_pattern=match_pattern)
 
         if status==False:
             checkWordAlignment(verbose=True,ASIC_only=False)
@@ -75,11 +83,11 @@ def linkResetAlignment(snapshotBX=4, orbsyncVal=0, override=True, check=True, ve
             print('Good Alignment')
             if override:
                 overrideSelect(select_ASIC)
-                
-def checkWordAlignment(verbose=True, ASIC_only=False):
+
+def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""
     snapshots_ASIC, status_ASIC, select_ASIC=readSnapshot('ASIC', True)
-    
+
     if not ASIC_only: snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
 
     #readStatus('ASIC',verbose)
@@ -90,23 +98,23 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
     #if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
     if ASIC_only: goodSelect=True
 
-    # shift the snapshot by select bits, and look for 9ccccccc at the end
-    goodSnapshot = (((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc).all()
-    
-    goodASIC = goodStatus & goodSelect & goodSnapshot
-    if ASIC_only: 
+    # shift the snapshot by select bits (minus 32), and look for match patterm at the end
+    goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
+
+    goodASIC = goodStatus & goodSelect #& goodSnapshot
+    if ASIC_only:
         goodEmulator=True
     else:
-        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==0xacccccccacccccccacccccccaccccccc9cccccccaccccccc).all()
+        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
 
     if not (goodASIC) and verbose:
         logger.error('Bad ASIC alignment')
         if not goodSelect: logger.error('select not in [32,64] range')
-        elif not goodSnapshot:
-            logger.error('no training pattern in snapshot')
-            if verbose:
-                print(((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc)
-        else: 
+        # elif not goodSnapshot:
+        #     logger.error('no training pattern in snapshot')
+        #     if verbose:
+        #         print(((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc)
+        else:
             logger.error('status!=3')
             readStatus('ASIC')
 
@@ -116,7 +124,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
         if verbose:
             logger.info('Good ASIC alignment')
             for i in range(12):
-                logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i])) 
+                logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
 
     if not ASIC_only:
         if not goodEmulator and verbose:
@@ -130,10 +138,10 @@ def checkWordAlignment(verbose=True, ASIC_only=False):
                     logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
     return (goodStatus & goodSelect & goodEmulator),select_ASIC
 
-def checkSnapshots(compare=True, verbose=False, bx=4):
+def checkSnapshots(compare=True, verbose=False, bx=None):
     """Manually take a snapshot in BX bx"""
     snapshots,status,select=i2cSnapshot(bx)
-    
+
     if verbose:
         output=''
         for i in range(12):
@@ -280,7 +288,7 @@ def eRxEnableTests(patterns=None, verbose=False):
 def continuousSnapshotCheck(verbose=False, bx=4):
     """Manually take a snapshot in BX bx"""
     snapshots,status,select=i2cSnapshot(bx)
-    
+
 
     """
     fc = FastCommands()
@@ -339,7 +347,7 @@ if __name__=='__main__':
     - To log hdr mm cntrs over a period of time: 
       python testing/eRx.py --logging --sleep 120 -N 10
     - To take a snapshot manually at one bx
-      python testing/eRx.py --snapshot --bx 4 
+      python testing/eRx.py --snapshot --bx 4
     - To check word alignment
       python testing/eRx.py --checkAlign --verbose
     - To align automatically and override alignment
@@ -372,15 +380,16 @@ if __name__=='__main__':
     parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
     parser.add_argument('--tag',dest='tag',default="",type=str,help="Tag to save hdr mm cntr histogram")
     parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
-    parser.add_argument('--bx', dest='bx',default=4,type=int, help='BX to take snapshot in')
+    parser.add_argument('--bx', dest='bx',default=None,type=int, help='BX to take snapshot in')
     parser.add_argument('--bcr', dest='bcr',default=0,type=int, help='BX to send BCR')
     parser.add_argument('--delay', dest='delay',default=None,type=int, help='Emulator delay setting for link alignment')
+    parser.add_argument('--matchPattern',dest='matchPattern',default="0xaccccccc9ccccccc",type=str,help="Alignment match pattern")
     parser.add_argument('--dtype', type=str, default="", help='dytpe (PRBS32,PRBS,PRBS28,debug,zeros)')
     parser.add_argument('--idir',dest="idir",type=str, default="", help='test vector directory')
     parser.add_argument('--fname',dest="fname",type=str, default="../testInput.csv", help='test vector filename')
     parser.add_argument('--tv-name', dest="tv_name", type=str, default="testvectors", help='test vector names')
     parser.add_argument('--select',dest="select", default=32, help="select value used to override in all input channels")
-    
+
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
 
     args = parser.parse_args()
@@ -407,9 +416,9 @@ if __name__=='__main__':
     elif args.override:
         select_ASIC = [args.select]*12
         overrideSelect(select_ASIC)
-        
+
     elif args.linkResetAlignment:
-        linkResetAlignment(snapshotBX=args.bx,orbsyncVal=args.bcr,override=args.override,verbose=args.verbose, delay=args.delay)
+        linkResetAlignment(snapshotBX=args.bx,orbsyncVal=args.bcr,override=args.override,verbose=args.verbose, delay=args.delay, match_pattern=args.matchPattern)
 
     elif args.getHdrMM:
         x=get_HDR_MM_CNTR()

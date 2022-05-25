@@ -108,12 +108,13 @@ I = i2c_lowlevel()
 I.SOFTR = 0xA
 I.checkstatus()
 
-I.set_timing(AXI_clk_freq_in_MHz=100, SCL_freq_in_kHz=1000)
+I.set_timing(AXI_clk_freq_in_MHz=160, SCL_freq_in_kHz=1000)
 I.checkstatus()
 
-I.write(address=0x27, data=[0x55, 0xab, 0x7f])
+I.write(address=0x20, data=[0x55, 0xab, 0x7f])
 I.checkstatus()
 
 with byteprint():
-    print(I.read(address=0x27, Nwords=14))
+    print(I.read(address=0x20, Nwords=14))
+
 I.checkstatus()
