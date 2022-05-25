@@ -140,6 +140,33 @@ ECON-SW
     sudo ln -s /opt/hexactrl/uHAL_xml address_table
     ```    
 
+- **RPM instructions**:
+  
+  Install RPM with:
+  ```
+  sudo rpm -i somefile.rpm
+  ```
+
+  Do this for `fw-loader` and the `econ-t-tester2` RPM. They can be found here: https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/rpms/
+
+  Then, 
+
+  ```
+  sudo fw-loader load econ-t-tester2  && sudo chmod a+rw /dev/i2c-* /dev/uio*
+  ```
+  
+  Check with `fw-loader list`.
+
+  Alternatively, with internet connection, can edit `/etc/yum.repos.d/HGCAL.repo`:
+  ```
+  [HGCAL-firmware]
+  name=HGCAL firmware RPM repository
+  baseurl=https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/
+  enabled=1
+  gpgcheck=0
+  ```
+  Then, `sudo yum check-update`. 
+
 ### ZYNQ ECON-T testers:
 To fix the IP address one can change the setup on `/etc/dhcp/dhcpd.conf` on the desktop that manages the dchp server.
 See more instructions on hexactrl_setup.md
