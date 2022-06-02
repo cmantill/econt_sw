@@ -1,0 +1,66 @@
+ECON-T:
+ RW:
+  FMTBUF_ALL:
+   registers:
+    tx_sync_word:
+     value: 0b00100100010
+    buff_t1:
+     value: 144
+    buff_t2:
+     value: 500
+    buff_t3:
+     value: 0
+    config:
+     params:
+      eporttx_numen:
+       # Number of output ports enabled
+       param_value: 6
+      use_sum:
+       param_value: 0
+      stc_type:
+       param_value: 0
+
+  MFC_MUX_SELECT:
+   registers:
+    mux_select_*:
+     value: [ 3,  2,  1,  0,  7,  6,  5,  4,
+             11, 10,  9,  8, 15, 14, 13, 12,
+             19, 18, 17, 16, 23, 22, 21, 20,
+             27, 26, 25, 24, 31, 30, 29, 28,
+             35, 34, 33, 32, 39, 38, 37, 36,
+             43, 42, 41, 40, 47, 46, 45, 44]
+
+  MFC_CAL_VAL:
+   registers:
+    cal_*:
+     value: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
+
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       param_value: 0
+      density:
+       # 1: high density
+       param_value: 1
+
+  ALGO_THRESHOLD_VAL:
+   registers:
+    threshold_val_*:
+     value: [47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47]
+
+  ALGO_DROPLSB:
+   registers:
+    drop_lsb:
+     value: 3

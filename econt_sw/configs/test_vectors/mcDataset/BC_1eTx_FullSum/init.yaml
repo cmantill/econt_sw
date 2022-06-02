@@ -1,0 +1,91 @@
+i2c:
+ emulator_addr: 1
+daq:
+ elinks_out:
+  - { name : 'link0', polarity: 1, idcode: 0 }
+  - { name : 'link1', polarity: 1, idcode: 1 }
+  - { name : 'link2', polarity: 1, idcode: 2 }
+  - { name : 'link3', polarity: 1, idcode: 3 }
+  - { name : 'link4', polarity: 1, idcode: 4 }
+  - { name : 'link5', polarity: 1, idcode: 5 }
+  - { name : 'link6', polarity: 1, idcode: 6 }
+  - { name : 'link7', polarity: 1, idcode: 7 }
+  - { name : 'link8', polarity: 1, idcode: 8 }
+  - { name : 'link9', polarity: 1, idcode: 9 }
+  - { name : 'link10', polarity: 1, idcode: 10 }
+  - { name : 'link11', polarity: 1, idcode: 11 }
+  - { name : 'link12', polarity: 1, idcode: 12 }
+ zmq_push_port: '8888'
+ delay_scan_port: '8888'
+ verbose: 1
+global:
+ data_push_port: '8888'
+ serverIP: localhost
+ output_directory: data
+ECON-T:
+ RW:
+  FMTBUF_ALL:
+   registers:
+    tx_sync_word:
+     value: 0b00100100010
+    buff_t1:
+     value: 338 # default for eRx = 13
+    buff_t2:
+     value: 314 # default for eRx = 13
+    buff_t3:
+     value: 25 # default for eRx = 13
+    config:
+     params:
+      eporttx_numen:
+       # Number of output ports enabled
+       param_value: 1
+      use_sum:
+       param_value: 1
+      stc_type:
+       param_value: 0
+
+  MFC_MUX_SELECT:
+   registers:
+    mux_select_*:
+     value: [ 3,  2,  1,  0,  7,  6,  5,  4,
+             11, 10,  9,  8, 15, 14, 13, 12,
+             19, 18, 17, 16, 23, 22, 21, 20,
+             27, 26, 25, 24, 31, 30, 29, 28,
+             35, 34, 33, 32, 39, 38, 37, 36,
+             43, 42, 41, 40, 47, 46, 45, 44]
+
+  MFC_CAL_VAL:
+   registers:
+    cal_*:
+     value: [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048,
+             2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
+
+  MFC_ALGORITHM_SEL_DENSITY:
+   registers:
+    algo:
+     params:
+      select:
+       # 0: threshold sum, 1: Super Trigger Cell, 2: Best Choice (disabled), 3: repeater, 4: Autoencoder (Disabled)
+       param_value: 2
+      density:
+       # 1: high density
+       param_value: 1
+
+  ALGO_THRESHOLD_VAL:
+   registers:
+    threshold_val_*:
+     value: [47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47,
+             47, 47, 47, 47, 47, 47, 47, 47]
+
+  ALGO_DROPLSB:
+   registers:
+    drop_lsb:
+     value: 3
