@@ -9,7 +9,7 @@ logging.basicConfig()
 class LinkCapture:
     """Class to handle multiple link captures (lcs) over uhal. Always needs the link-capture name."""
 
-    def __init__(self):
+    def __init__(self,logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
@@ -47,7 +47,7 @@ class LinkCapture:
             'linkreset_ROCd': 'link_reset_rocd',
         }
         self.logger = logging.getLogger('utils:lc')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logLevelLogger)
         
     def reset(self,lcaptures,syncword=""):
         """Reset lcs and sync word"""

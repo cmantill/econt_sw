@@ -6,18 +6,19 @@ from .uhal_config import names,set_logLevel
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils:sc')
-logger.setLevel(logging.INFO)
 
 class StreamCompare():
     """Class to handle stream compare via uhal"""
-    def __init__(self,logLevel=""):
+    def __init__(self,logLevel="",logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.sc = names['stream_compare']
+
+        self.logger = logging.getLogger('utils:sc')
+        self.logger.setLevel(logLevelLogger)
         
     def set_trigger(self,trigger=False):
         """
@@ -60,7 +61,7 @@ class StreamCompare():
         err_count = self.dev.getNode(self.sc+".err_count").read()
         self.dev.dispatch()
         if verbose:
-            logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
+            self.logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
         return err_count
 
     def reset_log_counters(self,stime=0.01):
