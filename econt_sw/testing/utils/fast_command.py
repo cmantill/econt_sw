@@ -4,13 +4,11 @@ from .uhal_config import names,set_logLevel
 
 import logging
 logging.basicConfig()
-logger = logging.getLogger('utils:fc')
-logger.setLevel(logging.INFO)
 
 class FastCommands:
     """Class to handle sending fast command signals over uhal"""
 
-    def __init__(self,logLevel=""):
+    def __init__(self,logLevel="",logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
@@ -18,6 +16,9 @@ class FastCommands:
         self.dev = self.man.getDevice("mylittlememory")
         self.name = names['fc']
         self.name_recv = names['fc-recv']
+        
+        self.logger = logging.getLogger('utils:fc')
+        self.logger.setLevel(logLevelLogger)
 
     def fc_stream(self,value=1):
         self.dev.getNode(self.name+".command.enable_fast_ctrl_stream").write(value);
@@ -33,7 +34,7 @@ class FastCommands:
             orb_sync = self.dev.getNode(self.name+".command.enable_orbit_sync").read()
             glob_l1a = self.dev.getNode(self.name+".command.global_l1a_enable").read()
             self.dev.dispatch()
-            logger.info('fc stream %i orb_sync %i glob_l1a %i '%(fc_stream,orb_sync,glob_l1a))
+            self.logger.info('fc stream %i orb_sync %i glob_l1a %i '%(fc_stream,orb_sync,glob_l1a))
         else:
             self.dev.getNode(self.name+".command.enable_fast_ctrl_stream").write(0x1);
             self.dev.getNode(self.name+".command.enable_orbit_sync").write(0x1);
@@ -44,7 +45,7 @@ class FastCommands:
         if read:
             r =  self.dev.getNode(self.name+".command.global_l1a_enable").read()
             self.dev.dispatch()
-            logger.info('glob_l1a %i '%r)
+            self.logger.info('glob_l1a %i '%r)
         else:
             self.dev.getNode(self.name+".command.global_l1a_enable").write(1);
             self.dev.dispatch()
@@ -67,19 +68,19 @@ class FastCommands:
         self.dev.getNode(self.name+".request."+fc).write(1);
         self.dev.dispatch()
         if verbose:
-            logger.info(f'request {fc}')
+            self.logger.info(f'request {fc}')
 
     def get_counter(self,fc,verbose=True):
         counter = self.dev.getNode(self.name_recv+".counters."+fc).read()
         self.dev.dispatch()
         if verbose:
-            logger.info('%s counter %i'%(fc,int(counter)))
+            self.logger.info('%s counter %i'%(fc,int(counter)))
         return int(counter)
         
     def read_command_delay(self):
         d = self.dev.getNode(self.name+".command_delay").read();
         self.dev.dispatch()
-        logger.info('command_delay %i'%int(d))
+        self.logger.info('command_delay %i'%int(d))
 
     def set_command_delay(self):
         self.dev.getNode(self.name+".command_delay").write(1);
@@ -102,4 +103,4 @@ class FastCommands:
         time.sleep(0.001)
         l1a_counter = self.dev.getNode(self.name_recv+".counters.l1a").read()
         self.dev.dispatch()
-        logger.debug('L1A counter %i'%(int(l1a_counter)))
+        self.logger.debug('L1A counter %i'%(int(l1a_counter)))

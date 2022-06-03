@@ -7,9 +7,11 @@ from .uhal_config import *
 import logging
 logging.basicConfig()
 
+# logging level
+# 0: info, 10:debug
 class TestVectors():
     """ Class to handle test vectors """
-    def __init__(self,tv='testvectors',logLevel=""):
+    def __init__(self,tv='testvectors',logLevel="",logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
@@ -19,7 +21,7 @@ class TestVectors():
         self.name_st = names[tv]['stream']
         self.name_bram = names[tv]['bram']
         self.logger = logging.getLogger(f'utils:{tv}')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logLevelLogger)
         self.tv = tv
         if tv=='testvectors':
             self.nlinks = input_nlinks
