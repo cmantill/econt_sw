@@ -1,3 +1,6 @@
 [submodule "ECONT_Emulator"]
 	path = ECONT_Emulator
 	url = git@github.com:cmantill/ECONT_Emulator.git
+[submodule "econt_sw/configs/test_vectors"]
+	path = econt_sw/configs/test_vectors
+	url = git@github.com:cmantill/econt_test-vectors.git
