@@ -38,10 +38,11 @@ def configure_bypass(idir,algo,base_latency=13):
     print('Number of links to compare ',num_links)
     data = compare_lc(True,num_links,nwords=4095)
 
-    for lcapture,data_lc in data.items():
-        for i,row in enumerate(tv.fixed_hex(data_lc,6)[:40]):
-            print(f'{lcapture} {i}: '+",".join(map(str,list(row))))
-            print('.'*50)
+    if data is not None:
+        for lcapture,data_lc in data.items():
+            for i,row in enumerate(tv.fixed_hex(data_lc,6)[:40]):
+                print(f'{lcapture} {i}: '+",".join(map(str,list(row))))
+                print('.'*50)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -65,6 +66,7 @@ if __name__=='__main__':
         if not set_input:
 	    # configure input
             tv = TestVectors()
+            tv.set_bypass(1)
             tv.configure("",dirname,"../testInput.csv")
             set_input = True
         
