@@ -51,7 +51,7 @@ class FastCommands:
             self.dev.dispatch()
 
     def set_bx(self,fc,bx):
-        print(fc,bx)
+        self.logger.debug(f'{fc}: {bx}')
         self.dev.getNode(self.name+".bx_"+fc).write(bx)
         self.dev.dispatch()
 

@@ -100,7 +100,7 @@ class TestVectors():
             testvectors_settings["idle_word_BX0"] = 0x90000000
 
         if verbose:
-            self.logger.info('Test vector settings %s'%testvectors_settings)
+            self.logger.debug('Test vector settings %s'%testvectors_settings)
 
         for l in range( self.nlinks ):
             for key,value in testvectors_settings.items():

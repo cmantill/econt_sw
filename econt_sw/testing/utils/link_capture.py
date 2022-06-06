@@ -94,7 +94,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_resetb").write(0)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").write(latency[l]);
             self.dev.dispatch()
-            self.logger.debug(f'Written latencies in {lcapture}: %s',latency)
+            self.logger.info(f'Written latencies in {lcapture}: %s',latency)
 
     def read_latency(self,lcaptures):
         """Read latency for multiple lcs"""
@@ -104,7 +104,7 @@ class LinkCapture:
                 lat = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").read();
                 self.dev.dispatch()
                 read_latency[l] = int(lat)
-            self.logger.debug(f'Read latencies in {lcapture}: %s',read_latency)
+            self.logger.info(f'Read latencies in {lcapture}: %s',read_latency)
 
     def manual_align(self,lcaptures,links=None,align_position=None):
         """Manual alignment for given links (if align position is given)"""
@@ -194,7 +194,7 @@ class LinkCapture:
         self.logger.debug("Set acquire to 1 for %s",lcaptures)
 
     def do_continous_capture(self,lcaptures):
-        self.logger.info("Configure continous acquire")
+        self.logger.debug("Configure continous acquire")
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire").write(1)
@@ -207,7 +207,7 @@ class LinkCapture:
             for l in range(self.nlinks[lcapture]):
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(0)
             self.dev.dispatch()
-            self.logger.info("Stop continous acquire for %s"%lcapture)
+            self.logger.debug("Stop continous acquire for %s"%lcapture)
 
     def get_fifo_occupancy(self,lcaptures):
         for lcapture in lcaptures:
@@ -254,8 +254,8 @@ class LinkCapture:
 
             # make sure that all links have the same number of words
             try:
-                assert(fifo_occupancy == fifo_occupancies[0])
-                self.logger.debug('fifo occupancies ',fifo_occupancies[0],fifo_occupancy)
+                assert(int(fifo_occupancy) == fifo_occupancies[0])
+                self.logger.debug('fifo occupancies %i %i'%(fifo_occupancies[0],int(fifo_occupancy)))
             except:            
                 self.logger.error('not same fifo occ for link %i or nwords %i'%(l,nwords),fifo_occupancies)
                 continue
@@ -305,7 +305,7 @@ class LinkCapture:
             error_counter = np.array(error_counter)
             try:
                 assert np.all(is_aligned==1)
-                self.logger.debug('%s: all links are aligned!'%lcapture)
+                self.logger.info('%s: all links are aligned!'%lcapture)
             except AssertionError:
                 # assert np.all(aligned_counter==128)
                 # assert np.all(error_counter==0)

@@ -13,12 +13,15 @@ from utils.test_vectors import TestVectors
 from utils.stream_compare import StreamCompare
 from utils.asic_signals import ASICSignals
 
-fc = FastCommands()
-lc = LinkCapture()
-tv = TestVectors()
+fc = FastCommands(logLevelLogger=30)
+lc = LinkCapture(logLevelLogger=30)
+tv = TestVectors(logLevelLogger=30)
 bypass = TestVectors('bypass')
 sc = StreamCompare()
 signals = ASICSignals()
+
+logger = logging.getLogger('align')
+logger.setLevel('INFO')
 
 def init():
     """
@@ -109,6 +112,8 @@ def find_latency(latency,lcapture,bx0=None,savecap=True,verbose=False):
         # read latency
         lc.read_latency([lcapture])
     
+    time.sleep(0.1)
+
     # get captured data
     data = lc.get_captured_data([lcapture],verbose=verbose)[lcapture]
     if savecap:
@@ -240,9 +245,6 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true', default=False, help='verbose')
 
     args = parser.parse_args()
-
-    logger = logging.getLogger('align:step:%s'%args.step)
-    logger.setLevel('INFO')
     
     if args.step == "init":
         init()

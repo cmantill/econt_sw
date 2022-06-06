@@ -42,9 +42,9 @@ def i2cSnapshot(bx=None):
 
 def overrideSelect(select_ASIC):
     print('Overriding select settings with ',select_ASIC)
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
-    select_values = ','.join('{}'.format(*k) for k in enumerate(select_ASIC))
+    select_values = ','.join([f'{s}' for s in select_ASIC])
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
+    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
 
 def linkResetAlignment(snapshotBX=None, orbsyncVal=0, override=True, check=True, verbose=False, delay=None, match_pattern='0xaccccccc9ccccccc'):
     """
@@ -81,6 +81,7 @@ def linkResetAlignment(snapshotBX=None, orbsyncVal=0, override=True, check=True,
             checkWordAlignment(verbose=True,ASIC_only=False)
         else:
             print('Good Alignment')
+            print(select_ASIC)
             if override:
                 overrideSelect(select_ASIC)
 
@@ -204,7 +205,7 @@ def statusLogging(sleepTime=120, N=30, snapshot=False, tag=""):
         x=get_HDR_MM_CNTR(x)
         hdr_mm_counters.append(list(x))
 
-    if args.tag!="":
+    if tag!="":
         import csv
         with open(f"hdr_mm_cntr_{tag}.csv", 'w') as f:
             writer = csv.writer(f, delimiter=',')

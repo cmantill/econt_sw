@@ -8,12 +8,11 @@ from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 
-fc = FastCommands()
-lc = LinkCapture()
-tv = TestVectors()
-bypass = TestVectors('bypass')
-fromio = IOBlock('from')
-toio = IOBlock('to')
+fc = FastCommands(logLevelLogger=30)
+lc = LinkCapture(logLevelLogger=30)
+tv = TestVectors(logLevelLogger=30)
+from_io = IOBlock('from')
+to_io = IOBlock('to')
 
 # phase settings found for boards
 phase_by_board = {
@@ -41,15 +40,14 @@ def startup(write=True):
     call_i2c(args_yaml="configs/startup.yaml",args_i2c='ASIC,emulator',args_write=write)
 
 def set_runbit(value=1):
-    call_i2c(args_name="MISC_run",args_value=value,args_i2c='ASIC')
+    call_i2c(args_name="MISC_run",args_value=f'{value}',args_i2c='ASIC')
 
 def read_status():
     x = call_i2c(args_name="FCTRL_locked,PUSM_state",args_i2c='ASIC')
+    logger.info('FC status_locked: ',x['ASIC']['RO']['FCTRL_ALL']['status_locked'])
+    logger.info('PUSM status: ',x['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state'])
 
 def set_fpga():
-    import os
-    os.system('source env.sh')
-
     fc.configure_fc()
     fc.set_bx("link_reset_roct",3500)
     fc.set_bx("link_reset_rocd",3501)
@@ -57,11 +55,10 @@ def set_fpga():
     fc.set_bx("link_reset_econd",3503)
 
     tv.configure("PRBS28")
+    tv.set_bypass(1)
 
-    bypass.set_bypass(1)
-
-    toio.configure_IO(invert=True)
-    fromio.configure_IO(invert=True)    
+    to_io.configure_IO(invert=True)
+    from_io.configure_IO(invert=True)    
     
 def word_align(bx,emulator_delay,bcr=0,verbose=True):
     set_fpga()
@@ -72,18 +69,19 @@ def word_align(bx,emulator_delay,bcr=0,verbose=True):
 
 def output_align():
     # set algo to threshold
-    call_i2c(args_name="MFC_ALGORITHM_SEL_DENSITY_algo_select,ALGO_threshold_val_[0-47],FMTBUF_eporttx_numen,FMTBUF_tx_sync_word".
+    call_i2c(args_name="MFC_ALGORITHM_SEL_DENSITY_algo_select,ALGO_threshold_val_[0-47],FMTBUF_eporttx_numen,FMTBUF_tx_sync_word",
              args_value="0,[0x3fffff]*48,13,0x122",
              args_i2c="ASIC,emulator")
 
-    toio.configure_IO(invert=True)
-    fromio.configure_IO(invert=True)
+    to_io.configure_IO(invert=True)
+    from_io.configure_IO(invert=True)
     from_io.reset_counters()
     align = from_io.check_IO(verbose=False)
     if align:
         from_io.manual_IO()
 
-    # reset lc                                                                                                                                                                                                                                            
+    import time
+    # reset lc
     lc.reset(['lc-input','lc-ASIC','lc-emulator'])
     # configure acquire
     lc.configure_acquire(['lc-ASIC','lc-emulator'],"linkreset_ECONt")
@@ -101,8 +99,8 @@ def output_align():
         exit()
     
     # need to improve latency finding
-    from align_on tester import modify_latency
-    modify_latency(False)
+    from align_on_tester import modify_latency
+    modify_latency(verbose=False)
     
     # do compare (improve)
     from eTx import compare_lc
