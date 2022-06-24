@@ -46,97 +46,81 @@ def overrideSelect(select_ASIC):
     select_values = ','.join('{}'.format(*k) for k in enumerate(select_ASIC))
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
 
-def linkResetAlignment(snapshotBX=None, orbsyncVal=0, override=True, check=True, verbose=False, delay=None, match_pattern='0xaccccccc9ccccccc'):
+def setAlignment(snapshotBX=None, delay=None):
+    if snapshotBX:
+        call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
+
+    if delay:
+        from utils.asic_signals import ASICSignals
+        signals=ASICSignals()
+        signals.set_delay(delay)
+
+    fc.request('link_reset_roct')
+    
+def linkResetAlignment(orbsyncVal=0, override=True, check=True, verbose=False, match_pattern='0xaccccccc9ccccccc'):
     """
     Performs automatic alignment sequence.
     Sets minimum i2c settings required for alignment, then issues a link_reset_roct fast command
     """
 
+    # configure auto alignment
     call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
              args_value='0', args_i2c='ASIC,emulator')
-    if snapshotBX is None:
-        call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
-                 args_value=f'0,1,1,{match_pattern},0',
-                 args_i2c='ASIC,emulator')
-    else:
-        call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm,ALIGNER_orbsyn_cnt_snapshot,ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
-                 args_value=f'0,1,1,{snapshotBX},{match_pattern},0',
-                 args_i2c='ASIC,emulator')
+    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
+             args_value=f'0,1,1',args_i2c='ASIC,emulator')
+    call_i2c(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+             args_value=f'{match_pattern},0',
+             args_i2c='ASIC,emulator')
 
-    if not delay is None:
-        from utils.asic_signals import ASICSignals
-        signals=ASICSignals()
-        signals.set_delay(delay)
-
+    # configure link reset roct
     fc=FastCommands()
     fc.configure_fc()
     fc.set_bx("link_reset_roct",3500)
-    fc.request('link_reset_roct')
 
-    if check:
-        status,select_ASIC=checkWordAlignment(verbose=verbose,ASIC_only=False,match_pattern=match_pattern)
+    # loop over snapshot BX
+    goodASIC = False
+    snapshotBX = -1
+    while not goodASIC:
+        snapshotBX += 1
+        setAlignment(snapshotBX,delay=0)
+        goodASIC = checkWordAlignment()
+    
+    # if check:
+    #     status,select_ASIC=checkWordAlignment(verbose=verbose,ASIC_only=False,match_pattern=match_pattern)
 
-        if status==False:
-            checkWordAlignment(verbose=True,ASIC_only=False)
-        else:
-            print('Good Alignment')
-            if override:
-                overrideSelect(select_ASIC)
+    #     if status==False:
+    #         checkWordAlignment(verbose=True,ASIC_only=False)
+    #     else:
+    #         print('Good Alignment')
+    #         if override:
+    #             overrideSelect(select_ASIC)
 
 def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""
-    snapshots_ASIC, status_ASIC, select_ASIC=readSnapshot('ASIC', True)
 
-    if not ASIC_only: snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
-
-    #readStatus('ASIC',verbose)
-
+    # check ASIC
+    snapshots_ASIC, status_ASIC, select_ASIC = readSnapshot('ASIC', True)
     goodStatus=((status_ASIC&3)==3).all()
     goodSelect=(select_ASIC<=64).all() & (select_ASIC>=32).all()
-
-    #if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
-    if ASIC_only: goodSelect=True
-
-    # shift the snapshot by select bits (minus 32), and look for match patterm at the end
-    goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
-
-    goodASIC = goodStatus & goodSelect #& goodSnapshot
-    if ASIC_only:
-        goodEmulator=True
-    else:
+    goodASIC = goodStatus & goodSelect
+    
+    if not ASIC_only:
+        snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
         goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
+        
+    # if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
+    # if ASIC_only: goodSelect=True
 
-    if not (goodASIC) and verbose:
+    # shift the snapshot by select bits (minus 32), and look for match pattern at the end
+    # goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
+
+    if not goodASIC:
         logger.error('Bad ASIC alignment')
-        if not goodSelect: logger.error('select not in [32,64] range')
-        # elif not goodSnapshot:
-        #     logger.error('no training pattern in snapshot')
-        #     if verbose:
-        #         print(((snapshots_ASIC >> select_ASIC) & 0xffffffff) == 0x9ccccccc)
-        else:
-            logger.error('status!=3')
-            readStatus('ASIC')
-
         for i in range(12):
             logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
-    else:
-        if verbose:
-            logger.info('Good ASIC alignment')
-            for i in range(12):
-                logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
 
-    if not ASIC_only:
-        if not goodEmulator and verbose:
-            logger.error('Bad emulator alignment')
-            for i in range(12):
-                logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
-        else:
-            if verbose:
-                logger.info('Good emulator alignment')
-                for i in range(12):
-                    logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
-    return (goodStatus & goodSelect & goodEmulator),select_ASIC
+    return goodASIC
 
 def checkSnapshots(compare=True, verbose=False, bx=None):
     """Manually take a snapshot in BX bx"""
