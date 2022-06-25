@@ -18,17 +18,19 @@ latency_dict = {
 }
 
 def configure_bypass(idir,algo,base_latency=13):
+    """
     # configure output
     tv = TestVectors('bypass')
     tv.set_bypass(0)
     tv.configure("",idir,"testOutput.csv")
-    
+    """
     # configure i2c
     call_i2c(args_name='MISC_run',args_value='0')
     yamlFile = f"{idir}/init.yaml"
     x = call_i2c(args_yaml=yamlFile, args_i2c="ASIC", args_write=True)    
     call_i2c(args_name='MISC_run',args_value='1')
     
+    """
     # set latency
     lc = LinkCapture()
     lc.set_latency(["lc-emulator"],[base_latency+latency_dict[algo]]*13)
@@ -43,6 +45,7 @@ def configure_bypass(idir,algo,base_latency=13):
             for i,row in enumerate(tv.fixed_hex(data_lc,6)[:40]):
                 print(f'{lcapture} {i}: '+",".join(map(str,list(row))))
                 print('.'*50)
+    """
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
@@ -52,8 +55,33 @@ if __name__=='__main__':
     args = parser.parse_args()    
     
     ps=psControl(host="192.168.0.50")
-    v,i=ps.Read_Power(48)
+    p,v,i = ps.Read_Power(48)
+    print(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
+    power = {}
+    thresholds = list(range(0,1000,10))
+    thresholds.append(1000)
+    thresholds.append(5000)
+    thresholds.append(10000)
+    thresholds.append(50000)
+    thresholds.append(100000)
+    thresholds.append(500000)
+    thresholds.append(1000000)
+    thresholds.append(4194303)
+    for threshold in thresholds:
+        call_i2c(args_name='ALGO_threshold_val_[0-47]',args_value='%i'%threshold)
+        p,v,i = ps.Read_Power(48)
+        print(threshold,v,i)
+        power[threshold] = float(i)*float(v)
+
+    import pickle
+    with open('varythreshold_netx2.pkl','wb') as f:
+        pickle.dump(power,f)
+
+    for key,val in power.items():
+        print(key,f'{float(val):.4f}')
+
+    """
     set_input = False
     for idir in glob.glob(f"{args.dataset}/*/testOutput.csv"):
         dirname = os.path.dirname(idir)
@@ -70,8 +98,9 @@ if __name__=='__main__':
             tv.configure("",dirname,"../testInput.csv")
             set_input = True
         
-        configure_bypass(dirname,algo,args.latency)
-        v,i=ps.Read_Power(48)
-        print(v,i)
-        
+        # configure_bypass(dirname,algo,args.latency)
+        print(idir)
+        print('48 ',ps.Read_Power(48))
+        print('50 ',ps.Read_Power(48))
+    """
     

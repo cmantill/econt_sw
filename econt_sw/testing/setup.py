@@ -24,8 +24,8 @@ if __name__ == "__main__":
     parse_init.set_defaults(action=init_action)
 
     parse_input = subparsers.add_parser('input',help='Align input words')
-    parse_input.add_argument('--bx', dest='bx',default=None,type=int, help='BX to take snapshot in')
-    parse_input.add_argument('--delay', dest='delay',default=None,type=int, help='Emulator delay setting for link alignment')
+    parse_input.add_argument('--bx', dest='bx',required=True,type=int, help='BX to take snapshot in')
+    parse_input.add_argument('--delay', dest='delay',required=True,type=int, help='Emulator delay setting for link alignment')
     parse_input.set_defaults(action=input_action)
 
     parse_output = subparsers.add_parser('output',help='Align output words')
@@ -36,4 +36,4 @@ if __name__ == "__main__":
     if 'action' not in args:
         parser.error('Must choose an action to perform!')
 
-    arg.action(args)
+    args.action(args)

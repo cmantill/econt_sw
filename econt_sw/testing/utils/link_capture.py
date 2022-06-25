@@ -11,6 +11,8 @@ class LinkCapture:
 
     def __init__(self,logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
+        set_logLevel("")
+
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.lcs = {
