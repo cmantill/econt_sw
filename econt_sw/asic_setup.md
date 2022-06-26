@@ -27,248 +27,80 @@
 
 - Initialize ASIC:
   ```
-  ./scripts/ASICSetup.sh
+  python testing/setup.py init -b $BOARD
   ```
   -  Some functionalities:
-   * Check all useful registers in ASIC.
-     ```
-     python testing/i2c.py --yaml configs/init.yaml
-     ```
-   * Lock pll manually. This sets `ref_clk_sel, fromMemToLJCDR_enableCapBankOverride, fromMemToLJCDR_CBOvcoCapSelect`.
-     It should change `pll_read_bytes_2to0_lfLocked 0x1` and PUSM state to 8 (`STATE_WAIT_CHNS_LOCK`).
-     ```
-     python testing/i2c.py --name PLL_ref_clk_sel,PLL_enableCapBankOverride,PLL_CBOvcoCapSelect --value 1,1,CAP_SELECT_VALUE
-     ```
-   * Check Power-Up-State-Machine.
-     ```
-     python testing/i2c.py --name PUSM_state
-     ```
-   * Configure IO (with `invert` option selected):
-     ```
-     source env.sh
-     python testing/align_on_tester.py --step configure-IO --invertIO
-     ```
-   * Resets fast commands, sets input clock to 40MHz, sends bit transitions with 28 bit PRBS (in the test vectors block).
-     ```
-     python testing/align_on_tester.py --step init 
-     ```
-     This should change ` misc_ro_0_PUSM_state 0x9` (`STATE_FUNCTIONAL`).
-   * Finally, sets run bit in ASIC:
-     ```
-     python testing/i2c.py --name MISC_run --value 1
-     ```
+   * Sets startup registers on ASIC (including those that lock PLL).
+   * Sets the phase manually depending on $BOARD.
+   * Sets a value of phase of enable.
+   * Sets the run bit to 1.
+   * Reads the Power-Up-State-Machine status.
      
-- Initialize FPGA:
+- Initialize FPGA and do input word alignment:
   ```
-  ./scripts/fpgaIOsetup.sh
+  python testing/setup.py input
   ```
   - Some functionalities:
   * Configure IO (with `invert` option selected):
-    ```
-    source env.sh
-    python testing/align_on_tester.py --step configure-IO --invertIO
-    ```
   * Resets fast commands, sets input clock to 40MHz, sends bit transitions with 28 bit PRBS (in the test vectors block).
-    ```
-    python testing/align_on_tester.py --step init
-    ```
+  * Configures ALIGNER for automatic alignment.
+  * Loops over possible values of ASIC `snapshot_bx` and sends a link-reset-ROCT until training pattern is found for the ASIC.
+  * Loops over possible values of `delay` and sends a link-reset-ROCT until training pattern is found in the correct spot for the emulator.
 
-## Alignment
-
-### Word and phase alignment
-  Most used configuration:
+- Align the output links:
   ```
-  source scripts/inputWordAlignment.sh 3 3 BESTPHASE
+  python testing/setup.py output
   ```
-
-  -  For board 3 (48):
+- Align the output links using bypass (RPT alignment dataset):
   ```
-  source scripts/inputWordAlignment.sh 3 3 6,13,7,14,14,0,7,8,7,7,7,8
-
-  BESTPHASE (PRBS w best setting, thr 500) = 6,13,7,14,14,0,7,8,7,7,7,8
-  BESTPHASE (PRBS w min errors) = 7,6,0,7,7,0,0,0,7,0,0,0
-  BESTPHASE (scan hdr_mm_cntr) = 7,6,7,7,7,8,7,8,8,8,8,8
-  ```
-
-  - For board 2 (45)
-  ```
-  BESTPHASE (PRBS w best setting, thr 500) =
-  BESTPHASE (PRBS w min errors) = 
-  BESTPHASE (scan hdr_mm_cntr) = 7,7,8,8,8,9,8,9,8,9,8,9
+  python testing/setup.py bypass
   ```
   
-  - To keep the same trackMode use BESTPHASE=0.
- 
-  - Set up the alignment registers. Make sure they are set for both ASIC and emulator
-    ```
-    python testing/i2c.py --yaml configs/align.yaml --write --i2c ASIC,emulator
-    ```
-  - Manually configure phase using `phaseSelect` and `trackMode=0`. You can use the values of `phaseSelect` found in the hdr_mm_cntr or prbs_chk_err_cnt scan per channel.
-    ```
-    python testing/i2c.py --name EPRXGRP_TOP_trackMode --value 0
-    python testing/i2c.py --name CH_EPRXGRP_[0-11]_phaseSelect --value $PHASESELECT
-    ```  
-  Once you are confident on phase-alignment:
-  - Send link reset ROC-T at a given BX BXLR. And set the DELAY for the emulator.
-    ```
-    python testing/align_on_tester.py --step lr-roct --delay DELAY --bxlr BXLR
-    ```
-  - Read the snapshot,select registers on the ASIC:
-    ```
-    python testing/i2c.py --yaml configs/align_read.yaml
-    ```
-
-    For the `ASIC` to be word-aligned:
-    * The `9cccccccaccccccc` matching pattern needs to appear in the snapshot
-    * `select` can take values of [0x20,0x3f] (inclusive).
-    * `status` needs to be 0x3
-
-  - If the `9cccccccaccccccc` matching pattern is not appearing in the snapshot, try changing:
-    ```
-    python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X
-    python testing/align_on_tester.py --step lr-roct
-    python testing/i2c.py --yaml configs/align_read.yaml
-    ```
-
-  - Once the ASIC is aligned and you have found the values for `orbsyn_cnt_snapshot` and `orbsyn_cnt_load_val`, set the same for the emulator (by default the same).
-    You can use `delay` to find the delay of getting data to the ASIC
-    ```
-    python testing/i2c.py --name ALIGNER_orbsyn_cnt_load_val,ALIGNER_orbsyn_cnt_snapshot --value X,X --i2c emulator
-    python testing/align_on_tester.py --step lr-roct --delay X --bxlr 3500 
-    python testing/i2c.py --yaml configs/align_read.yaml --i2c emulator
-    ```
-  
-    For the `emulator` to be word-aligned:
-    - Make sure that the last words of the snapshot are: `9cccccccaccccccc` (7 c's!).
-    - `select` must be `0x20`.
-    - `status` will be `0x2`.
-
-  - You can check the alignment by using:
-    ```
-    python testing/eRx.py --alignment --verbose
-    ```
-
+### More useful
   - You can log in hdr mis-match counters (should be estable with good phase alignment), with:
     ```
     python testing/eRx.py --logging -N 1 --sleep 2
     ```
-
-### IO alignment
-  ```
-  source scripts/ioAlignment.sh 
-  ```
-
-  - Set to threshold sum with maximum threshold value and send zero-data.
-    The threshold sum is already configured by default in `configs/align.yaml`.
+  - To send zero-data:
     ```
-    python testing/i2c.py --name MFC_ALGORITHM_SEL_DENSITY_algo_select --value 0 --i2c ASIC,emulator 
-    python testing/i2c.py --name ALGO_threshold_val_[0-47] --value 4194303 --i2c ASIC,emulator 
-    ```
-    Then, configure IO and send zero-data:
-    ```
-    python testing/align_on_tester.py --step configure-IO --invertIO
-    # send zero-data
     python testing/eRx.py --tv --dtype zeros
     ```
-    To check alignment:
+  - To check alignment:
     ```
     python testing/check_block.py --check --block from-IO
+    python testing/check_block.py --check --block lc-ASIC
+    python testing/check_block.py --check -B from-IO
+    python testing/check_block.py --check -B lc-ASIC
+    python testing/check_block.py -B latency
     ```
-    To print eye width and registers:
+  - To print eye width and registers:
     ```
     python testing/check_block.py --block from-IO
-    ```
-    Once automatic alignment works, one can set to manual delay mode:
-    ```
-    python testing/align_on_tester.py --step manual-IO    
-    ```
-
-### ASIC Link capture alignment
-  ```
-  source scripts/lcAlignment.sh
-  ```
-
-  - Set the sync word and send a link reset econ-t
-    ```
-    python testing/i2c.py --name FMTBUF_tx_sync_word --value 0x122
-    python testing/align_on_tester.py --step lr-econt
-    ```
-  - You can check if lc-ASIC is aligned using:
-    ```
-    python testing/check_block.py --check --block lc-ASIC
-    ```
-    Note: With `Dec3` and `Dec9` versions of firmware we do not expect lc-ASIC to have status aligned
-
-    * To capture data with a link reset ROCT
-    ```
-    python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
-    ```
-
-### ASIC link capture and emulator link capture alignment
-  ```
-  source scripts/lcEmulatorAlignment.sh 
-  ```
-  - To modify the latency. This finds the latency for each elink in the link capture such that the BX0 appears in the same spot.
-    It does it first for the ASIC, then for the emulator, both should find the BX0 word at the same row.
-    ```
-    python testing/align_on_tester.py --step latency
     ```
   - To check the number of words that agree.
     ```
     python testing/eTx.py --compare --sleep 1 --nlinks 13
     ```
-  - To check blocks:
+  - With an output produced by elink outputs:
     ```
-    python testing/check_block.py --check -B from-IO
-    python testing/check_block.py --check -B lc-ASIC
-    python testing/check_block.py -B latency
+    python testing/eRx.py --tv --dtype ((PRBS,PRBS32,PRBS28,zeros)
+    ```
+  - With input test vectors in `idir`:
+    ```
+    python testing/eRx.py --tv --idir $IDIR
+    ```
+  - To check `hdr_mm_cntr`:
+    ```
+    python testing/eRx.py --hdrMM
+    ```
+  - To manually take a snapshot at a fixed BX:
+    ```
+    python testing/eRx.py --snapshot --bx 4 
+    ```
+  - To do PRBS scan:
+    ```
+    python testing/eRx.py --prbs --sleep 1
     ````
-
-## Quick setup (if FPGA is set up)
-```
-source scripts/quickASICSetup.sh $BOARD
-```
-where $BOARD = 2 (45), 3(48)
-
-(Assumes that FC stream, BCR are enabled)
-- Locks FC by configuring when FC clock locks to data
-- Locks PLL by configuring PLL VCR capacitor value
-- Fixed-mode phase alignment with known "best" settings from PRBS scan
-- Manual word alignment with known `sel` value
-- Sets threshold algorithm with high thresholds, and zero IDLE word
-- Sets run bit to 1
-- Reads PUSM state
-
-Note that it does not configure IO and it can be used when power cycle the ASIC or do a hard reset but leave the FPGA configuration untouched.
-
-## ERX and Input data
-   ### To modify the input test vectors
-   - With an output produced by elink outputs:
-   ```
-   python testing/eRx.py --tv --dtype ((PRBS,PRBS32,PRBS28,zeros)
-   ```
-   - With input test vectors in `idir`:
-   ```
-   python testing/eRx.py --tv --idir $IDIR
-   ```
-
-   ### Phase alignment
-   - To log `hdr_mm_cntr`:
-   ```
-   python testing/eRx.py --logging --sleep 120 -N 10
-   ```
-   - To check `hdr_mm_cntr`:
-   ```
-   python testing/eRx.py --hdrMM
-   ```
-   - To manually take a snapshot at a fixed BX:
-   ```
-   python testing/eRx.py --snapshot --bx 4 
-   ```
-   - To do PRBS scan:
-   ```
-   python testing/eRx.py --prbs --sleep 1
-   ````
 
    ### Inversion
    - Test inverting ERX from IO block and with i2c registers:
