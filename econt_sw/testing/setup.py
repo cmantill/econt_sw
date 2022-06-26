@@ -13,6 +13,9 @@ def input_action(args):
 def output_action(args):
     output_align()
 
+def bypass_action(args):
+    bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(f'python testing/setup.py ',
@@ -24,12 +27,15 @@ if __name__ == "__main__":
     parse_init.set_defaults(action=init_action)
 
     parse_input = subparsers.add_parser('input',help='Align input words')
-    parse_input.add_argument('--bx', dest='bx',required=True,type=int, help='BX to take snapshot in')
-    parse_input.add_argument('--delay', dest='delay',required=True,type=int, help='Emulator delay setting for link alignment')
+    parse_input.add_argument('--bx', dest='bx',default=None,type=int, help='BX to take snapshot in')
+    parse_input.add_argument('--delay', dest='delay',default=None,type=int, help='Emulator delay setting for link alignment')
     parse_input.set_defaults(action=input_action)
 
     parse_output = subparsers.add_parser('output',help='Align output words')
     parse_output.set_defaults(action=output_action)
+
+    parse_bypass = subparsers.add_parser('bypass',help='Align bypass words')
+    parse_bypass.set_defaults(action=bypass_action)
 
     args = parser.parse_args()
 

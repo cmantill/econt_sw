@@ -240,6 +240,7 @@ class LinkCapture:
 
     def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
         """Get captured data"""
+        time.sleep(1)
         captured_data = {}
         for lcapture in lcaptures:
             # wait some time until acquisition finishes 

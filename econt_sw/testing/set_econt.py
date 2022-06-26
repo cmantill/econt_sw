@@ -11,8 +11,17 @@ from utils.test_vectors import TestVectors
 fc = FastCommands(logLevelLogger=30)
 lc = LinkCapture(logLevelLogger=30)
 tv = TestVectors(logLevelLogger=30)
+tv_bypass = TestVectors('bypass',logLevelLogger=30) 
 from_io = IOBlock('from')
 to_io = IOBlock('to')
+
+latency_dict = {
+    "RPT": 0,
+    "TS": 0,
+    "STC": 0,
+    "BC": 1,
+    "AE": 2,
+}
 
 # phase settings found for boards
 phase_by_board = {
@@ -24,7 +33,7 @@ phase_by_board = {
     10: "7,7,7,7,7,7,7,7,7,7,7,7",
     11: "7,6,8,8,8,9,8,9,7,8,8,8",
     12: "7,7,7,7,7,7,7,7,7,7,7,7",
-    13: "7,7,7,7,7,7,7,7,7,7,7,7",
+    13: "8,8,8,8,8,8,8,8,8,8,8,8",
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
 }
 def set_phase(board):
@@ -60,7 +69,7 @@ def set_fpga():
     to_io.configure_IO(invert=True)
     from_io.configure_IO(invert=True)    
     
-def word_align(bx,emulator_delay,bcr=0,verbose=True):
+def word_align(bx,emulator_delay,bcr=0,verbose=False):
     set_fpga()
 
     import eRx
@@ -94,14 +103,35 @@ def output_align():
     align = lc.check_links(['lc-ASIC'])
     if not align:
         logger.warning('lc-ASIC not aligned')
-        # capture (improve)
         #python testing/eTx.py --capture --lc lc-ASIC --mode linkreset_ECONt --capture --csv
         exit()
     
-    # need to improve latency finding
-    from align_on_tester import modify_latency
-    modify_latency(verbose=False)
+    # find latency
+    from latency import align
+    logger.info('Align latency')
+    align()
     
     # do compare (improve)
     from eTx import compare_lc
     data = compare_lc()
+
+def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1):
+    # configure alignment inputs
+    tv.configure("",idir,fname="testInput.csv")
+
+    # configure RPT output via bypass
+    rpt_dir = f"{idir}/RPT"
+    tv_bypass.set_bypass(0)
+    tv_bypass.configure("",rpt_dir,fname="testOutput.csv")  
+
+    # configure RPT(13eTx) i2c for ASIC
+    logger.info(f"Configure ASIC w. {rpt_dir}/init.yaml")
+    set_runbit(0)
+    call_i2c(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC", args_write=True)
+    set_runbit(1)
+
+    # then modify latency until we find pattern
+    from latency import align
+    align(BX0_word=0xffffffff,
+          neTx=10,
+          start_ASIC=start_ASIC,start_emulator=start_emulator)

@@ -124,11 +124,19 @@ def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9
     # goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
 
     if goodASIC or verbose:
+        logger.info('ASIC')
         for i in range(12):
             logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
     if not ASIC_only and (goodEmulator or verbose):
+        logger.info('Emulator')
         for i in range(12):
             logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
+
+    if goodASIC:
+        logger.info('Good ASIC alignment')
+    if goodEmulator:
+        logger.info('Good emulator alignment')
+
     return goodASIC,goodEmulator
 
 def checkSnapshots(compare=True, verbose=False, bx=None):
@@ -411,7 +419,7 @@ if __name__=='__main__':
         overrideSelect(select_ASIC)
 
     elif args.linkResetAlignment:
-        linkResetAlignment(orbsyncVal=args.bcr,override=args.override,verbose=args.verbose,match_pattern=args.matchPattern)
+        linkResetAlignment(snapshotBX=args.bx,delay=args.delay,orbsyncVal=args.bcr,override=args.override,verbose=args.verbose,match_pattern=args.matchPattern)
 
     elif args.getHdrMM:
         x=get_HDR_MM_CNTR()
