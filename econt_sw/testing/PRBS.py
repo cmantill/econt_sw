@@ -95,53 +95,56 @@ def check_prbs(args,channels,allch):
     # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(args,channels,allch,verbose=True):
+def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True):
     """Scan phaseSelect and read PRBS errors"""
 
     # reset things for PRBS
-    call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=args.i2c)
-    if args.prbs==28:
+    call_i2c(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=i2c)
+    if prbs==28:
         tv.configure(dtype="PRBS28")
     else:
         # switch off the headers
         tv.configure(dtype="PRBS32")
 
     err_counts = []
-    call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c=args.i2c)
+    call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c=i2c)
     for sel in range(0,15):
         # clear counters and hold
-        call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=args.i2c)
+        call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=i2c)
 
         # change phaseSelect
-        logger.debug(f'PhaseSelect: {sel}')
+        if verbose:
+            logger.debug(f'PhaseSelect: {sel}')
         if allch:
-            call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{sel}',args_i2c=args.i2c)
+            call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{sel}',args_i2c=i2c)
         else:
             for channel in channels:
-                call_i2c(args_name=f'CH_EPRXGRP_{channel}_phaseSelect',args_value=f'{sel}',args_i2c=args.i2c)
+                call_i2c(args_name=f'CH_EPRXGRP_{channel}_phaseSelect',args_value=f'{sel}',args_i2c=i2c)
 
         # enable prbs chk
-        enable_prbschk(args.i2c,args.prbs,channels,allch)
+        enable_prbschk(i2c,prbs,channels,allch)
         # now count again
-        call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=args.i2c)
+        call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=i2c)
         # wait for a time
-        time.sleep(args.sleepTime)
+        time.sleep(sleepTime)
         # disable prbs check
         if allch:
-            call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='0',args_i2c=args.i2c)
+            call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='0',args_i2c=i2c)
         else:
             for channel in channels:
-                call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=args.i2c)
+                call_i2c(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
         # record counts
-        outputs_aligner = call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_err_cnt',args_i2c=args.i2c)[args.i2c]['RO']
+        outputs_aligner = call_i2c(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_err_cnt',args_i2c=i2c)[i2c]['RO']
         prbs_chk_err_cnt = [outputs_aligner[f'CH_ALIGNER_{channel}INPUT_ALL']['prbs_chk_err_cnt'] for channel in range(12)]
         # prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
         err_counts.append(prbs_chk_err_cnt)#list(prbs_chk_err_cnt.values()))
         
-        logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
+        if verbose:
+            logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
 
     err_counts = np.array(err_counts).astype(int)
-    logger.info(f'Error Array:\n{repr(err_counts)}')
+    if verbose:
+        logger.info(f'Error Array:\n{repr(err_counts)}')
     
     counts_window = []
     for i in range(15):
@@ -157,7 +160,7 @@ def scan_prbs(args,channels,allch,verbose=True):
         logger.info(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     if verbose:
-        with open("prbs_counters_scan_%is.csv"%args.sleepTime, 'w') as f:
+        with open("prbs_counters_scan_%is.csv"%sleepTime, 'w') as f:
             writer = csv.writer(f, delimiter=',')
             writer.writerow([f'CH_{ch}' for ch in channels])
             for j in range(len(err_counts)):
@@ -216,5 +219,4 @@ if __name__ == "__main__":
     if args.check:
         check_prbs(args,channels,allch)
     else:
-        scan_prbs(args,channels,allch)
-
+        scan_prbs(args.prbs,args.i2c,args.sleepTime,channels,allch,verbose=True)

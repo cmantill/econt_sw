@@ -100,13 +100,16 @@ class LinkCapture:
 
     def read_latency(self,lcaptures):
         """Read latency for multiple lcs"""
+        latencies = {}
         for lcapture in lcaptures:
-            read_latency = {}
+            read_latency = []
             for l in range(output_nlinks):
                 lat = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").read();
                 self.dev.dispatch()
-                read_latency[l] = int(lat)
+                read_latency.append(int(lat))
+            latencies[lcapture] = read_latency
             self.logger.info(f'Read latencies in {lcapture}: %s',read_latency)
+        return latencies
 
     def manual_align(self,lcaptures,links=None,align_position=None):
         """Manual alignment for given links (if align position is given)"""
@@ -269,7 +272,8 @@ class LinkCapture:
                 #fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link%i"%l+".fifo_occupancy").read()
                 #self.dev.dispatch()
                 if int(fifo_occupancy)>0:
-                    self.logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
+                    if verbose:
+                        self.logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
                     data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
                     self.dev.dispatch()
                     daq_data.append([int(d) for d in data])

@@ -8,13 +8,18 @@ def init_action(args):
     read_status()
 
 def input_action(args):
+    set_fpga()
     word_align(args.bx,args.delay)
 
 def output_action(args):
+    io_align()
     output_align()
 
 def bypass_action(args):
-    bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+    if args.align:
+        bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+    if args.compare:
+        bypass_compare(args.idir)
 
 if __name__ == "__main__":
     import argparse
@@ -34,7 +39,10 @@ if __name__ == "__main__":
     parse_output = subparsers.add_parser('output',help='Align output words')
     parse_output.set_defaults(action=output_action)
 
-    parse_bypass = subparsers.add_parser('bypass',help='Align bypass words')
+    parse_bypass = subparsers.add_parser('bypass',help='Use bypass words')
+    parse_bypass.add_argument('--align',action='store_true',help='Align')
+    parse_bypass.add_argument('--compare',action='store_true',help='Compare ASIC and emulator w directory')
+    parse_bypass.add_argument('--idir',dest="idir",default="",type=str,  help='IDIR w inputs and outputs')
     parse_bypass.set_defaults(action=bypass_action)
 
     args = parser.parse_args()

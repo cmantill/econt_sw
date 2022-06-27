@@ -13,14 +13,14 @@ def find_BX0(lcapture,BX0_word=0xf922f922,BX0_position=None):
     """
     Finds the BX0s for each eTx
     """
-    lc.configure_acquire([lcapture],"linkreset_ECONt",verbose=True)
+    lc.configure_acquire([lcapture],"linkreset_ECONt",verbose=False)
     lc.do_capture([lcapture],verbose=False)
     fc.request("link_reset_econt")
     data = lc.get_captured_data([lcapture],verbose=False)[lcapture]
     
     BX0_rows,BX0_cols = (data == BX0_word).nonzero()
     # print(lcapture)
-    # print(BX0_rows)
+    ## print(BX0_rows)
 
     try:
         assert (len(BX0_rows) > 0) & np.any(BX0_cols==0)
@@ -40,7 +40,11 @@ def match_BX0(latency_values,BX0_rows,BX0_position=None,neTx=13):
     """
     match = BX0_rows[:neTx] == BX0_rows[0]
     if BX0_position:
-        match_pos = (BX0_rows[:neTx] == BX0_position) | (BX0_rows[neTx:] == BX0_position)
+        match_pos = (BX0_rows[:neTx] == BX0_position)
+        try:
+            match_pos = match_pos | (BX0_rows[neTx:] == BX0_position)
+        except:
+            logger.info('BXO pos not found in last nlinks')
         match = match & match_pos
     return match
 

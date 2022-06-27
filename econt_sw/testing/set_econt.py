@@ -1,7 +1,9 @@
-from i2c import call_i2c
 import logging
 logging.basicConfig()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('setecont')
+logger.setLevel('DEBUG')
+
+from i2c import call_i2c
 
 from utils.io import IOBlock
 from utils.fast_command import FastCommands
@@ -16,11 +18,11 @@ from_io = IOBlock('from')
 to_io = IOBlock('to')
 
 latency_dict = {
-    "RPT": 0,
-    "TS": 0,
-    "STC": 0,
-    "BC": 1,
-    "AE": 2,
+    3: 0, # repeater
+    0: 0, # threshold
+    1: 0, # STC
+    2: 3, # BC
+    4: 2, # AE
 }
 
 # phase settings found for boards
@@ -53,8 +55,8 @@ def set_runbit(value=1):
 
 def read_status():
     x = call_i2c(args_name="FCTRL_locked,PUSM_state",args_i2c='ASIC')
-    logger.info('FC status_locked: ',x['ASIC']['RO']['FCTRL_ALL']['status_locked'])
-    logger.info('PUSM status: ',x['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state'])
+    logger.info('FC status_locked: %i'%x['ASIC']['RO']['FCTRL_ALL']['status_locked'])
+    logger.info('PUSM status: %i'%x['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state'])
 
 def set_fpga():
     fc.configure_fc()
@@ -70,18 +72,15 @@ def set_fpga():
     from_io.configure_IO(invert=True)    
     
 def word_align(bx,emulator_delay,bcr=0,verbose=False):
-    set_fpga()
-
     import eRx
     eRx.linkResetAlignment(snapshotBX=bx,orbsyncVal=bcr,verbose=verbose,delay=emulator_delay,match_pattern="0xaccccccc9ccccccc")
     eRx.statusLogging(sleepTime=2,N=1)
 
-def output_align():
-    # set algo to threshold
+def io_align():
+    tv.set_bypass(1)
     call_i2c(args_name="MFC_ALGORITHM_SEL_DENSITY_algo_select,ALGO_threshold_val_[0-47],FMTBUF_eporttx_numen,FMTBUF_tx_sync_word",
              args_value="0,[0x3fffff]*48,13,0x122",
              args_i2c="ASIC,emulator")
-
     to_io.configure_IO(invert=True)
     from_io.configure_IO(invert=True)
     from_io.reset_counters()
@@ -89,6 +88,7 @@ def output_align():
     if align:
         from_io.manual_IO()
 
+def output_align():
     import time
     # reset lc
     lc.reset(['lc-input','lc-ASIC','lc-emulator'])
@@ -127,11 +127,52 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
     # configure RPT(13eTx) i2c for ASIC
     logger.info(f"Configure ASIC w. {rpt_dir}/init.yaml")
     set_runbit(0)
-    call_i2c(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC", args_write=True)
+    call_i2c(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC,emulator", args_write=True)
     set_runbit(1)
+    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+    num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+    logger.info(f"Num links {num_links}")
 
     # then modify latency until we find pattern
     from latency import align
     align(BX0_word=0xffffffff,
           neTx=10,
           start_ASIC=start_ASIC,start_emulator=start_emulator)
+
+def bypass_compare(idir):
+    # configure inputs
+    tv.configure("",idir,fname="../testInput.csv")
+
+    # configure outputs
+    tv_bypass.set_bypass(0)
+    tv_bypass.configure("",idir,fname="testOutput.csv")
+
+    set_runbit(0)
+
+    # configure i2c for ASIC
+    logger.info(f"Configure ASIC w. {idir}/init.yaml")
+    call_i2c(args_yaml=f"{idir}/init.yaml", args_i2c="ASIC", args_write=True)
+
+    # read nlinks
+    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+    num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+    x=call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_write=False)
+    algo = x['ASIC']['RW']['MFC_ALGORITHM_SEL_DENSITY']['algo_select']
+    logger.info(f"Num links {num_links} and algo {algo}")
+
+    # modify latency
+    latencies = lc.read_latency(['lc-ASIC','lc-emulator'])
+    logger.info("Latencies asic %s"%latencies['lc-ASIC'])
+    logger.info("Latencies emu %s"%latencies['lc-emulator'])
+    new_latencies = [(lat + latency_dict[algo]) for lat in latencies['lc-emulator']]
+    logger.info("New Latencies %s"%new_latencies)
+    lc.set_latency(['lc-emulator'],new_latencies)
+    set_runbit(1)
+
+    # compare words
+    from eTx import compare_lc
+    data = compare_lc(nlinks=num_links)
+
+    # set back latency
+    lc.set_latency(['lc-emulator'],latencies['lc-emulator'])
+
