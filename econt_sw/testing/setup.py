@@ -28,7 +28,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='Choose which action to perform.')
 
     parse_init = subparsers.add_parser('init',help='Set initial configuration of ASIC')
-    parse_init.add_argument('--board','-b', required=True, choices=list(phase_by_board.keys()), type=int, help='Board number')
+    parse_init.add_argument('--board','-b', required=True, type=int, help='Board number')
     parse_init.set_defaults(action=init_action)
 
     parse_input = subparsers.add_parser('input',help='Align input words')
