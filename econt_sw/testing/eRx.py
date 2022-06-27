@@ -10,8 +10,6 @@ from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 
 import logging
-logger = logging.getLogger("eRx")
-logger.setLevel(logging.INFO)
 
 def readSnapshot(i2c='ASIC',return_status=False):
     """
@@ -28,7 +26,7 @@ def readStatus(i2c='ASIC',verbose=True):
     for param in ['prbs_chk_err','orbsyn_fc_err','orbsyn_arr_err','orbsyn_hdr_err','align_seu_err','hdr_mm_err','snapshot_dv','pattern_match']:
         pararray = [x[f'CH_ALIGNER_{i}INPUT_ALL'][f'status_{param}'] for i in range(12)]
         if verbose:
-            logger.info(f"status {param} "+" ".join(map(str,pararray)))
+            logging.info(f"status {param} "+" ".join(map(str,pararray)))
 
 def i2cSnapshot(bx=None):
     call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='1,1,[0]*12,0')
@@ -101,7 +99,7 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
         goodASIC,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
         
     if goodASIC and goodEmulator:
-        logger.info('Good alignment')
+        logging.info('Good alignment')
 
 def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""
@@ -124,18 +122,18 @@ def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9
     # goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
 
     if goodASIC or verbose:
-        logger.info('ASIC')
+        logging.info('ASIC')
         for i in range(12):
-            logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
+            logging.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
     if not ASIC_only and (goodEmulator or verbose):
-        logger.info('Emulator')
+        logging.info('Emulator')
         for i in range(12):
-            logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
+            logging.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
 
     if goodASIC:
-        logger.info('Good ASIC alignment')
+        logging.info('Good ASIC alignment')
     if goodEmulator:
-        logger.info('Good emulator alignment')
+        logging.info('Good emulator alignment')
 
     return goodASIC,goodEmulator
 
@@ -146,11 +144,11 @@ def checkSnapshots(compare=True, verbose=False, bx=None):
     if verbose:
         output=''
         for i in range(12):
-            logger.info('  CH {:02n}: {:048x}'.format(i,snapshots[i]))
+            logging.info('  CH {:02n}: {:048x}'.format(i,snapshots[i]))
 
     if compare:
         if len(np.unique(snapshots))==1:
-            logger.info(f'All snapshots match : {hex(snapshots[0])}')
+            logging.info(f'All snapshots match : {hex(snapshots[0])}')
             return True
         else:
             shift = select-select.min()
@@ -166,10 +164,10 @@ def checkSnapshots(compare=True, verbose=False, bx=None):
                     badSnapshots.append(i)
 
             if len(badSnapshots)==0:
-                logger.info(f'After shifting to accomodate select values, all snapshots match: {vote:048x}')
+                logging.info(f'After shifting to accomodate select values, all snapshots match: {vote:048x}')
             else:
                 errors={i: hex(snapshots[i]) for i in badSnapshots}
-                logger.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
+                logging.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors}')
             return False
 
 def get_HDR_MM_CNTR(previous=None):
@@ -181,12 +179,12 @@ def get_HDR_MM_CNTR(previous=None):
 
     agreement = (counts==previous) & ~(counts==65535)
     if agreement.all():
-        logger.info(f'Good hdr_mm_counters, not increasing: {counts}')
+        logging.info(f'Good hdr_mm_counters, not increasing: {counts}')
     else:
         increase=np.argwhere((counts>previous) | (counts==65535)).flatten()
-        logger.error(f'Increase in channels {increase}: {counts-previous}')
-        logger.error(f'          previous values {previous}')
-        logger.error(f'          current values {counts}')
+        logging.error(f'Increase in channels {increase}: {counts-previous}')
+        logging.error(f'          previous values {previous}')
+        logging.error(f'          current values {counts}')
     return counts
 
 def statusLogging(sleepTime=120, N=30, snapshot=False, tag=""):
@@ -306,12 +304,12 @@ def continuousSnapshotCheck(verbose=False, bx=4):
             snapshots,status,select=i2cSnapshot(bx)
 
             if len(np.unique(snapshots))==1:
-                logger.info(f'All snapshots match : {hex(snapshots[0])}')
+                logging.info(f'All snapshots match : {hex(snapshots[0])}')
             else:
                 """
                 data = lc.get_captured_data(["lc-input"],511,False)
                 datahex = tv.fixed_hex(data["lc-input"],8)
-                for n in datahex: logger.info(','.join(n))
+                for n in datahex: logging.info(','.join(n))
                 """
 
                 shift = select-select.min()
@@ -327,12 +325,12 @@ def continuousSnapshotCheck(verbose=False, bx=4):
                         badSnapshots.append(i)
 
                 if len(badSnapshots)==0:
-                    logger.info(f'After shifting to accomodate select values, all snapshots match: {hex(vote)}')
+                    logging.info(f'After shifting to accomodate select values, all snapshots match: {hex(vote)}')
                 else:
                     errors={i: hex(snapshots[i]) for i in badSnapshots}
-                    logger.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors.keys()}')
+                    logging.error(f'Vote of snapshots is {hex(vote)}, errors in snapshots : {errors.keys()}')
                     for k,v in errors.items():
-                        logger.error(f'    eRx {k:02n} : {int(v,16):048x}')
+                        logging.error(f'    eRx {k:02n} : {int(v,16):048x}')
     except KeyboardInterrupt:
         pass
 
@@ -360,9 +358,6 @@ if __name__=='__main__':
     - For continuous snapshots
       python testing/eRx.py --contSnapshot
     """
-    # ch = logging.StreamHandler()
-    # ch.setLevel(logging.INFO)
-    # logger.addHandler(ch)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--tv', dest='configureTV',default=False, action='store_true')
@@ -395,6 +390,14 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
+    logger = logging.getLogger("eRx")
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
     if args.configureTV:
         from utils.test_vectors import TestVectors
         tv = TestVectors(args.tv_name)
@@ -412,7 +415,7 @@ if __name__=='__main__':
 
     elif args.checkWordAlignment:
         status,_=checkWordAlignment(verbose=args.verbose,ASIC_only=args.checkOnlyASIC)
-        logger.info('Good Alignment' if status else 'Bad Alignment')
+        logging.info('Good Alignment' if status else 'Bad Alignment')
 
     elif args.override:
         select_ASIC = [args.select]*12
@@ -423,7 +426,7 @@ if __name__=='__main__':
 
     elif args.getHdrMM:
         x=get_HDR_MM_CNTR()
-        logger.info(f'hdr_mm_cntr '+" ".join(map(str,list(x))))
+        logging.info(f'hdr_mm_cntr '+" ".join(map(str,list(x))))
 
     elif args.prbsPhaseScan:
         from PRBS import scan_prbs

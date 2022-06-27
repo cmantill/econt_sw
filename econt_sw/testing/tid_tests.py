@@ -37,7 +37,9 @@ def scan_PLL(odir,goodValue=27):
     with open(f'{odir}/pll_vcocapselect_scan.pkl','wb') as f:
         pickle.dump(states,f)
         
-def TID_check(board,odir,voltages):
+def TID_check(board,odir,voltage):
+    logging.info(f"TID tests with voltage {voltage} and output directory {odir}")
+
     # Read all i2c settings
     dump_i2c('Initial')
 
@@ -55,48 +57,45 @@ def TID_check(board,odir,voltages):
     ]
     os.system(f'mkdir -p {odir}')
     
-    for voltage in voltages:
-        # Set voltage and log power
-        logging.info(f"Setting voltage {voltage}")
-
-        # Initialize
-        startup()
-
-        # PLL VCO Cap select scan and set value back
-        scan_PLL(odir,goodValue=27)
-
-        # PRBS phase scan
-        logging.info(f"Scan phase w PRBS err counters")
-        err_counts, best_setting = scan_prbs(32,'ASIC',1,range(0,12),True,False)
-        logging.debug("Error counts %s"%err_counts)
-        with open(f'{odir}/prbs_scan.pkl', 'wb') as f:
-            pickle.dump(err_counts,f)
-
-        # Other init steps
-        set_phase(board) # set phase w board settings
-        set_phase_of_enable(0)
-        set_runbit()
-        read_status()
-        dump_i2c('After configuration')
-
-        # Input word alignment
-        set_fpga()
-        word_align(bx=None,emulator_delay=None)
-
-        # Output alignment
-        io_align()
-        output_align()
-
-        # Bypass alignment
-        bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+    # Initialize
+    startup()
+    
+    # PLL VCO Cap select scan and set value back
+    scan_PLL(odir,goodValue=27)
+    
+    # PRBS phase scan
+    logging.info(f"Scan phase w PRBS err counters")
+    err_counts, best_setting = scan_prbs(32,'ASIC',1,range(0,12),True,False)
+    logging.debug("Error counts %s"%err_counts)
+    with open(f'{odir}/prbs_scan.pkl', 'wb') as f:
+        pickle.dump(err_counts,f)
         
-        # Compare for various configurations
-        for idir in dirs:
-            bypass_compare(idir)
-
-        # Scan IO delay
-        delay_scan(odir,io='from')
-        
+    # Other init steps
+    set_phase(board) # set phase w board settings
+    set_phase_of_enable(0)
+    set_runbit()
+    read_status()
+    dump_i2c('After configuration')
+    
+    # Input word alignment
+    set_fpga()
+    word_align(bx=None,emulator_delay=None)
+    
+    # Output alignment
+    io_align()
+    output_align()
+    
+    # Bypass alignment
+    bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+    
+    # Compare for various configurations
+    for idir in dirs:
+        bypass_compare(idir)
+    
+    # Scan IO delay
+    delay_scan(odir,io='from')
+    io_align()
+    
     # Soft reset
     logging.info(f"Soft reset")
     resets.send_reset(reset='soft',i2c='ASIC')
@@ -113,22 +112,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--board','-b', default=12, type=int, help='Board number')
     parser.add_argument('--odir', type=str, default='test', help='output dir')
+    parser.add_argument('--voltage', type=float, default=1.2, help='voltage')
     parser.add_argument('--logName', default='logFile.log', help='log name')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)-6s %(message)s',
-                        datefmt='%m-%d-%y %H:%M:%S',
+                        datefmt='%H:%M:%S',
                         filename=args.logName,
                         filemode='a')
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-6s %(message)s')
+    formatter = logging.Formatter('%(asctime)s %(levelname)-6s %(message)s',datefmt='%H:%M:%S')
     console.setFormatter(formatter)
     logging.getLogger().addHandler(console)
 
-    # voltages = [1.08,1.2,1.32]
-    voltages = [1.2]
-
-    TID_check(args.board,args.odir,voltages)
+    TID_check(args.board,args.odir,args.voltage)
