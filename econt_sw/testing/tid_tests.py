@@ -83,9 +83,6 @@ def TID_check(board,odir,voltages):
         set_fpga()
         word_align(bx=None,emulator_delay=None)
 
-        # Scan IO delay and print
-        delay_scan(odir,io='from')
-
         # Output alignment
         io_align()
         output_align()
@@ -96,6 +93,9 @@ def TID_check(board,odir,voltages):
         # Compare for various configurations
         for idir in dirs:
             bypass_compare(idir)
+
+        # Scan IO delay
+        delay_scan(odir,io='from')
         
     # Soft reset
     logging.info(f"Soft reset")
