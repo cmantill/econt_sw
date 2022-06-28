@@ -10,6 +10,8 @@ import csv
 import time
 
 import logging
+logger = logging.getLogger("prbs")
+logger.setLevel(logging.INFO)
 
 from utils.test_vectors import TestVectors
 tv = TestVectors(logLevelLogger=30)
@@ -84,13 +86,13 @@ def check_prbs(args,channels,allch):
 
     # enable prbs chk
     enable_prbschk(args.i2c,args.prbs,channels,allch)
-    logging.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
-    logging.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
+    logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
+    logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
 
     # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./'):
+def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./',tag=""):
     """Scan phaseSelect and read PRBS errors"""
 
     # reset things for PRBS
@@ -108,7 +110,7 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./'):
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=i2c)
 
         # change phaseSelect
-        logging.debug(f'PhaseSelect: {sel}')
+        logger.debug(f'PhaseSelect: {sel}')
         if allch:
             call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{sel}',args_i2c=i2c)
         else:
@@ -133,24 +135,25 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./'):
         # prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
         err_counts.append(prbs_chk_err_cnt)#list(prbs_chk_err_cnt.values()))
         
-        logging.debug(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
+        logger.debug(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
 
     err_counts = np.array(err_counts).astype(int)
-    logging.info(f'Error Array:\n{repr(err_counts)}')
+    logger.info(f'Error Array:\n{repr(err_counts)}')
     
     counts_window = []
     for i in range(15):
         # add counts over 3 setting window, summing i, i+1, and i-1 (mod 15)  
         counts_window.append( err_counts[i] + err_counts[(i-1)%15] + err_counts[(i+1)%15])
 
-    logging.debug('Error Counts over 3 setting window:')
-    logging.debug(" ".join(map(str,range(len(counts_window))))+" \n")
+    logger.debug('Error Counts over 3 setting window:')
+    logger.debug(" ".join(map(str,range(len(counts_window))))+" \n")
     for c in counts_window:
-        logging.debug(" ".join(map(str,c)))
-    logging.debug('Minimum Arg:')
-    logging.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
+        logger.debug(" ".join(map(str,c)))
+    logger.debug('Minimum Arg:')
+    logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
-    with open(f"{odir}/prbs_counters_scan_%is.csv"%sleepTime, 'w') as f:
+    tag = f"{sleepTime}s{tag}"
+    with open(f"{odir}/prbs_counters_scan_%s.csv"%tag, 'w') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([f'CH_{ch}' for ch in channels])
         for j in range(len(err_counts)):
@@ -162,14 +165,15 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./'):
     # print('thr ',counts_window)
     best_setting=np.array(counts_window).argmin(axis=0)
     if verbose:
-        logging.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
-        # logging.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
+        logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
+        # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
     y=(err_counts[2:-2]+err_counts[1:-3]+err_counts[3:-1]+err_counts[4:] + err_counts[:-4])
     y[ err_counts[2:-2]>0 ] += 2555
     x=y.argmin(axis=0)+2
+    best_setting=x
     if verbose:
-        logging.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
+        logger.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
 
     return err_counts, best_setting
 

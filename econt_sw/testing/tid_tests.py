@@ -62,8 +62,8 @@ def TID_check(board,odir,voltage,tag=''):
     
     # PRBS phase scan
     logging.info(f"Scan phase w PRBS err counters")
-    err_counts, best_setting = scan_prbs(32,'ASIC',0.05,range(0,12),True,False)
-        
+    err_counts, best_setting = scan_prbs(32,'ASIC',0.05,range(0,12),True,verbose=False,odir=odir,tag=tag)
+
     logging.info(f"Best phase settings found to be {str(best_setting)}")
     # Other init steps
     set_phase(best_setting=','.join([str(i) for i in best_setting]))
