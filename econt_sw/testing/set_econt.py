@@ -37,10 +37,14 @@ phase_by_board = {
     13: "8,8,8,8,8,8,8,8,8,8,8,8",
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
 }
-def set_phase(board):
-    logging.debug(f'Set fixed phase {phase_by_board[board]} for board {board}')
+def set_phase(board=None,best_setting=None):
     call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
-    call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phase_by_board[board]}',args_i2c='ASIC')
+    phasesetting = best_setting
+    if board is not None:
+        phasesetting = phase_by_board[board]
+    if phasesetting is not None:
+        logging.debug(f'Set fixed phase {phasesetting}')
+        call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phasesetting}',args_i2c='ASIC')
 
 def set_phase_of_enable(phase=0):
     logger.debug(f'Set phase of enable {phase}')

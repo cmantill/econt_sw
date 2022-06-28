@@ -64,8 +64,9 @@ def TID_check(board,odir,voltage,tag=''):
     logging.info(f"Scan phase w PRBS err counters")
     err_counts, best_setting = scan_prbs(32,'ASIC',0.05,range(0,12),True,False)
         
+    logging.info(f"Best phase settings found to be {str(best_setting)}")
     # Other init steps
-    set_phase(board) # set phase w board settings
+    set_phase(best_setting=','.join([str(i) for i in best_setting]))
     set_phase_of_enable(0)
     set_runbit()
     read_status()
@@ -85,7 +86,8 @@ def TID_check(board,odir,voltage,tag=''):
     # Compare for various configurations
     for idir in dirs:
         bypass_compare(idir)
-        
+
+    logging.info('Starting delay scan')
     # Scan IO delay
     err_counts = delay_scan(odir,ioType='from',tag=tag)
     logging.debug("Error counts form IO delay scan: %s"%err_counts)   
@@ -114,22 +116,29 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.tag is None:
-        _tag=''
+        _tag='_{args.voltage}V'
     else:
-        _tag=f"_{args.tag}"
+        _tag=f"_{args.voltage}V_{args.tag}"
 
     os.system(f'mkdir -p {args.odir}')
 
     logName=f"{args.odir}/logFile{_tag}.log"
     voltage_str = f"Voltage {args.voltage}"
     import logging
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s - {_voltage} - %(levelname)-6s %(message)s'.format(_voltage=voltage_str),
                         datefmt='%m-%d-%y %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(logName),
-                            logging.StreamHandler()
-                        ]
-                    )
+                        filename=logName,
+                        filemode='a')
+                    #     handlers=[
+                    #         logging.FileHandler(logName),
+                    #         logging.StreamHandler()
+                    #     ]
+                    # )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    _f='%(asctime)s - {_voltage} - %(levelname)-6s %(message)s'.format(_voltage=voltage_str)
+    console.setFormatter(logging.Formatter(_f))
+    logging.getLogger().addHandler(console)
 
     TID_check(args.board,args.odir,args.voltage,_tag)
