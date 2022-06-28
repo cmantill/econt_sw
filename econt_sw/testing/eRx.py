@@ -10,6 +10,7 @@ from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 
 import logging
+logger = logging.getLogger("eRx")
 
 def readSnapshot(i2c='ASIC',return_status=False):
     """
@@ -45,10 +46,10 @@ def overrideSelect(select_ASIC):
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
 
 def setAlignment(snapshotBX=None, delay=None):
-    if snapshotBX:
+    if snapshotBX is not None:
         call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
 
-    if delay:
+    if delay is not None:
         from utils.asic_signals import ASICSignals
         signals=ASICSignals()
         signals.set_delay(delay)
@@ -83,6 +84,7 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
         for snapshotBX in [3,4,5,2,1,0,6,7,8,9]:
             setAlignment(snapshotBX,delay=0)
             goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
+            print(snapshotBX, goodASIC)
             if goodASIC:
                 break
         if not goodASIC:
@@ -128,18 +130,18 @@ def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9
     # goodSnapshot = (((snapshots_ASIC >> (select_ASIC-32)) & 0xffffffffffffffff) == int(match_pattern,16)).all()
 
     if goodASIC or verbose:
-        logging.info('ASIC')
+        logger.info('ASIC')
         for i in range(12):
-            logging.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
+            logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_ASIC[i],select_ASIC[i], snapshots_ASIC[i]))
     if not ASIC_only and (goodEmulator or verbose):
-        logging.info('Emulator')
+        logger.info('Emulator')
         for i in range(12):
-            logging.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
+            logger.info('eRx {:02n}:  status {:01n} / select {:03n} / snapshot {:048x}'.format(i,status_Emulator[i],select_Emulator[i], snapshots_Emulator[i]))
 
     if goodASIC:
-        logging.info('Good ASIC alignment')
+        logger.info('Good ASIC alignment')
     if goodEmulator:
-        logging.info('Good emulator alignment')
+        logger.info('Good emulator alignment')
 
     return goodASIC,goodEmulator
 
@@ -379,7 +381,7 @@ if __name__=='__main__':
     parser.add_argument('--enableTest', dest='enableTests',default=False, action='store_true')
 
     parser.add_argument('-N',dest='N',default=1,type=int,help='Number of iterations to run')
-    parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
+    parser.add_argument('--sleep',dest='sleepTime',default=1,type=float,help='Time to wait between logging iterations')
     parser.add_argument('--tag',dest='tag',default="",type=str,help="Tag to save hdr mm cntr histogram")
     parser.add_argument('--threshold', dest='threshold',default=0,type=int, help='Threshold of number of allowed errors')
     parser.add_argument('--bx', dest='bx',default=None,type=int, help='BX to take snapshot in')
@@ -396,8 +398,9 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
+    logging.basicConfig()
     logger = logging.getLogger("eRx")
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
