@@ -1,10 +1,5 @@
 import argparse
 
-import logging
-logging.basicConfig()
-logger = logging.getLogger('i2c-addr')
-logger.setLevel(logging.INFO)
-
 from utils.asic_signals import ASICSignals
 
 """
@@ -17,6 +12,11 @@ if __name__ == "__main__":
     parser.add_argument('--addr', type=int, default=0, help="address")
     parser.add_argument('--i2c',  type=str, choices=['ASIC', 'emulator'], help="key of i2c address to set")
     args = parser.parse_args()
+
+    import logging
+    logging.basicConfig()
+    logger = logging.getLogger('i2c-addr')
+    logger.setLevel(logging.INFO
     
     signals = ASICSignals()
     

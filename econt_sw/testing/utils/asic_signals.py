@@ -3,9 +3,6 @@ from time import sleep
 from utils.uhal_config import set_logLevel,names
 
 import logging
-logging.basicConfig()
-logger = logging.getLogger('utils:ASIC')
-logger.setLevel(logging.INFO)
 
 class ASICSignals:
     """
@@ -20,6 +17,7 @@ class ASICSignals:
         self.name = "ASIC-IO-I2C-I2C-fudge-0"
         self.name_delay = names['delay']
         self.name_clock = "housekeeping-AXI-mux-0"
+        self.logger = logging.getLogger('utils:ASIC')
 
     def send_reset(self, reset='soft',i2c='ASIC', hold=False, release=False, sleepTime=0.5):
         """Send reset signal to device (either ASIC or emulator), either soft or hard reset
@@ -31,7 +29,7 @@ class ASICSignals:
             # soft reset: same as hard reset but leaves i2c programmed
             reset_string = "ECONT_%s_SOFT_RESETB"%i2c
         else:
-            logger.Error('No reset signal provided')
+            self.logger.Error('No reset signal provided')
 
         if hold:
             self.dev.getNode(self.name + ".resets." + reset_string).write(0)
@@ -63,7 +61,7 @@ class ASICSignals:
             # soft reset: same as hard reset but leaves i2c programmed
             reset_string = "ECONT_%s_SOFT_RESETB"%i2c
         else:
-            logger.Error('No reset signal provided')
+            self.logger.Error('No reset signal provided')
 
         resetStatus = self.dev.getNode(self.name + ".resets." + reset_string).read()
         self.dev.dispatch()
@@ -72,7 +70,7 @@ class ASICSignals:
         return resetStatus
 
     def set_i2caddr(self,i2c,addr):
-        logger.info("Writing to ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address "%i2c,addr)
+        self.logger.info("Writing to ASIC-IO-I2C-I2C-fudge-0.ECONT_%s_I2C_address "%i2c,addr)
         self.dev.getNode(self.name + ".ECONT_%s_I2C_address"%i2c).write(addr)
         self.dev.dispatch()
         

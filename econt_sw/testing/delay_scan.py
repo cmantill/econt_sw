@@ -1,10 +1,10 @@
 import time
 import argparse
 
-import logging
-logging.basicConfig()
-logger = logging.getLogger("delayScan")
-logger.setLevel('INFO')
+#import logging
+#logging.basicConfig()
+#logger = logging.getLogger("delayScan")
+#logger.setLevel('INFO')
     
 from utils.io import IOBlock
 
@@ -15,15 +15,15 @@ Usage:
    python testing/delay_scan.py --io from
 """
 
-def delay_scan(odir,io='from'):
-    io = IOBlock(io,'IO')
+def delay_scan(odir,ioType='from',tag=''):
+    io = IOBlock(ioType,'IO')
     io.configure_IO(invert=True)
     bitcounts,errorcounts = io.delay_scan(verbose=False)
 
     import os
     os.system(f'mkdir -p {odir}')
     import pickle
-    with open(f'{odir}/{io}_io_delayscan.pkl','wb') as f:
+    with open(f'{odir}/{ioType}_io_delayscan{tag}.pkl','wb') as f:
         pickle.dump(errorcounts,f)
 
     from set_econt import io_align

@@ -3,7 +3,6 @@ import uhal
 from .uhal_config import set_logLevel
 
 import logging
-logging.basicConfig()
 logger = logging.getLogger('utils:pll_lock')
 logger.setLevel(logging.INFO)
 from time import sleep

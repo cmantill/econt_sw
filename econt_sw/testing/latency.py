@@ -1,13 +1,13 @@
 import numpy as np
+
 import logging
-logging.basicConfig()
 logger = logging.getLogger('latency')
-logger.setLevel('DEBUG')
+logger.setLevel('INFO')
 
 from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
-lc = LinkCapture(logLevelLogger=30)
-fc = FastCommands(logLevelLogger=30)
+lc = LinkCapture()
+fc = FastCommands()
 
 def find_BX0(lcapture,BX0_word=0xf922f922,BX0_position=None):
     """
@@ -44,16 +44,17 @@ def match_BX0(latency_values,BX0_rows,BX0_position=None,neTx=13):
         try:
             match_pos = match_pos | (BX0_rows[neTx:] == BX0_position)
         except:
-            logger.info('BXO pos not found in last nlinks')
+            logger.debug('BXO pos not found in last nlinks')
         match = match & match_pos
     return match
 
 def scan_latency(lcapture,BX0_word=0xf922f922,neTx=13,
-                 BX0_position=None,val=0):
-    logger.info(f'Scan latency for {lcapture} for nlinks {neTx} with starting value {val}')
+                 BX0_position=None,val=0,verbose=False):
+    if verbose:
+        logger.info(f'Scan latency for {lcapture} for nlinks {neTx} with starting value {val}')
     foundBX0 = False
     latency = np.array([val] * lc.nlinks[lcapture])
-    while not foundBX0:
+    for val in range(30):
         latency = replace_latency(latency,val)
         lc.set_latency([lcapture],latency)
         BX0_rows = find_BX0(lcapture,BX0_word,BX0_position=BX0_position)
@@ -62,24 +63,29 @@ def scan_latency(lcapture,BX0_word=0xf922f922,neTx=13,
         latency[:neTx][~match] = -1
         if np.any(~match):
             latency[neTx:] = -1
-        val += 1
+        if foundBX0:
+            break
     return latency,BX0_rows[0]
 
 def align(BX0_word=0xf922f922,
           neTx=13,
           start_ASIC=0,start_emulator=0,
+          verbose=False,
           latency_ASIC=None,latency_emulator=None):
 
     if latency_ASIC is not None:
         lc.set_latency(['lc-ASIC'],latency_ASIC)
     else:
-        latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,val=start_ASIC,neTx=neTx)
-        logger.info('Found latency for ASIC %s'%latency_ASIC)
-        logger.info('Found BX0 word for ASIC %i'%BX0_ASIC)
+        latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,val=start_ASIC,neTx=neTx,verbose=verbose)
+        if verbose:
+            logger.info('Found latency for ASIC %s'%latency_ASIC)
+            logger.info('Found BX0 word for ASIC %i'%BX0_ASIC)
     
     if latency_emulator is not None:
         lc.set_latency(['lc-emulator'],latency_emulator)
     else:
-        latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,BX0_position=BX0_ASIC,val=start_emulator,neTx=neTx)
-        logger.info('Found latency for emulator %s '%latency_emulator)
-        logger.info('Found BX0 word for emulator %i '%BX0_emulator)
+        latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,
+                                                     BX0_position=BX0_ASIC,val=start_emulator,neTx=neTx,verbose=verbose)
+        if verbose:
+            logger.info('Found latency for emulator %s '%latency_emulator)
+            logger.info('Found BX0 word for emulator %i '%BX0_emulator)

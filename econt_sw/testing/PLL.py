@@ -20,11 +20,13 @@ def scanCapSelect(verbose=False):
     for i in allowedCapSelectVals:
         call_i2c('PLL_*CapSelect',args_value=str(i))
         sleep(0.1)
-        y=call_i2c('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
+        status = call_i2c(args_name='PLL_lfLocked,PUSM_state')
+        pusm_state = status['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
+        pll_locked = status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_2to0_lfLocked']
         if verbose:
-            print(f'{i:03d} {i:09b} {y} {" <<<" if y==9 else ""}')
+            logger.info(f'{i:03d} {i:09b} {pusm_state} {pll_locked}{" <<<" if pusm_state==9 else ""}')
 
-        if y==9:
+        if pusm_state==9:
             goodVals.append(i)
     return goodVals
 

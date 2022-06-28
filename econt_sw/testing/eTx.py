@@ -102,9 +102,9 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
     # log counters
     if log:
         while err_count <=0:
-            err_count = sc.reset_log_counters(stime=sleepTime)
+            err_count = sc.reset_log_counters(sleepTime,verbose)
     else:
-        err_count = sc.reset_log_counters(stime=sleepTime)
+        err_count = sc.reset_log_counters(sleepTime,verbose)
 
     # read data if error count > 0
     # trigger will capture 32 words prior to a mismatch identified by stream_compare
@@ -116,7 +116,7 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
     # reset fc
     fc.configure_fc()
 
-    return data
+    return data,err_count
 
 def event_daq(idir="",dtype="",
               i2ckeep=False,i2ckeys='ASIC,emulator',
@@ -160,7 +160,7 @@ def event_daq(idir="",dtype="",
 
     # send compare command
     logger.info('Number of links to compare %i'%nlinks)
-    data = compare_lc(trigger=trigger,nlinks=nlinks,nwords=nwords,
+    data,_ = compare_lc(trigger=trigger,nlinks=nlinks,nwords=nwords,
                       csv=True,phex=False,odir=odir,fname="sc",
                       sleepTime=sleepTime,log=False)
 
@@ -344,7 +344,7 @@ if __name__=='__main__':
                 logger.error('MISMATCH')
 
     elif args.compare:
-        data = compare_lc(trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,
+        data,_ = compare_lc(trigger=args.trigger,nlinks=args.nlinks,nwords=args.nwords,
                           csv=args.csv,phex=args.phex,odir=args.odir,fname=args.fname,
                           sleepTime=float(args.sleepTime),log=args.log)
     elif args.daq:

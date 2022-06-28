@@ -38,7 +38,7 @@ def configure_bypass(idir,algo,base_latency=13):
     # compare output
     num_links = call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     print('Number of links to compare ',num_links)
-    data = compare_lc(True,num_links,nwords=4095)
+    data,_ = compare_lc(True,num_links,nwords=4095)
 
     if data is not None:
         for lcapture,data_lc in data.items():

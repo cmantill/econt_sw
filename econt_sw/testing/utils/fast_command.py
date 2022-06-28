@@ -3,12 +3,11 @@ import uhal
 from .uhal_config import names,set_logLevel
 
 import logging
-logging.basicConfig()
 
 class FastCommands:
     """Class to handle sending fast command signals over uhal"""
 
-    def __init__(self,logLevel="",logLevelLogger=10):
+    def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
@@ -18,7 +17,6 @@ class FastCommands:
         self.name_recv = names['fc-recv']
         
         self.logger = logging.getLogger('utils:fc')
-        self.logger.setLevel(logLevelLogger)
 
     def fc_stream(self,value=1):
         self.dev.getNode(self.name+".command.enable_fast_ctrl_stream").write(value);

@@ -1,12 +1,5 @@
 import argparse
-
-import logging
-logging.basicConfig()
-logger = logging.getLogger('fc')
-logger.setLevel('INFO')
-
 from time import sleep
-
 from utils.fast_command import FastCommands
 
 """
@@ -29,6 +22,12 @@ if __name__ == "__main__":
     parser.add_argument('--getCounter', action='store_true', default=False, help='find BX a FC is being issued')
     parser.add_argument('--setBX', default=None, type=int,  help='set BX a FC is being issued')
     args = parser.parse_args()
+
+    import logging
+    logging.basicConfig()
+    logger = logging.getLogger('fc')
+    logger.setLevel('INFO')
+
 
     fc=FastCommands()
     fc_requests = ["link_reset_roct","link_reset_econt",

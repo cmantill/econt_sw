@@ -2,7 +2,6 @@ import argparse
 from time import sleep
 
 import logging
-logging.basicConfig()
 logger = logging.getLogger('reset')
 
 from utils.asic_signals import ASICSignals
@@ -25,6 +24,8 @@ if __name__ == "__main__":
     parser.add_argument('--read', type=bool, default=False, help='read reset')
 
     args = parser.parse_args()
+
+    logging.basicConfig()
     
     resets = ASICSignals()
     

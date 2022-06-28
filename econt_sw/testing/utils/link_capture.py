@@ -4,12 +4,11 @@ import time
 from .uhal_config import *
 
 import logging
-logging.basicConfig()
 
 class LinkCapture:
     """Class to handle multiple link captures (lcs) over uhal. Always needs the link-capture name."""
 
-    def __init__(self,logLevelLogger=10):
+    def __init__(self):
         """Initialization class to setup connection manager and device"""
         set_logLevel("")
 
@@ -49,7 +48,6 @@ class LinkCapture:
             'linkreset_ROCd': 'link_reset_rocd',
         }
         self.logger = logging.getLogger('utils:lc')
-        self.logger.setLevel(logLevelLogger)
         
     def reset(self,lcaptures,syncword=""):
         """Reset lcs and sync word"""
@@ -96,7 +94,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_resetb").write(0)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").write(latency[l]);
             self.dev.dispatch()
-            self.logger.info(f'Written latencies in {lcapture}: %s',latency)
+            self.logger.debug(f'Written latencies in {lcapture}: %s',latency)
 
     def read_latency(self,lcaptures):
         """Read latency for multiple lcs"""
@@ -108,7 +106,7 @@ class LinkCapture:
                 self.dev.dispatch()
                 read_latency.append(int(lat))
             latencies[lcapture] = read_latency
-            self.logger.info(f'Read latencies in {lcapture}: %s',read_latency)
+            self.logger.debug(f'Read latencies in {lcapture}: %s',read_latency)
         return latencies
 
     def manual_align(self,lcaptures,links=None,align_position=None):
@@ -137,7 +135,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_align").write(1);
                 self.dev.dispatch()
                 
-    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0,verbose=True):
+    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0,verbose=False):
         """Set link captures to acquire with the same mode"""
         """
         mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
@@ -312,7 +310,7 @@ class LinkCapture:
             error_counter = np.array(error_counter)
             try:
                 assert np.all(is_aligned==1)
-                self.logger.info('%s: all links are aligned!'%lcapture)
+                self.logger.info('Links %s are aligned'%lcapture)
             except AssertionError:
                 # assert np.all(aligned_counter==128)
                 # assert np.all(error_counter==0)

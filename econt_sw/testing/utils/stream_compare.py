@@ -5,7 +5,6 @@ import uhal
 from .uhal_config import names,set_logLevel
 
 import logging
-logging.basicConfig()
 
 class StreamCompare():
     """Class to handle stream compare via uhal"""
@@ -18,7 +17,7 @@ class StreamCompare():
         self.sc = names['stream_compare']
 
         self.logger = logging.getLogger('utils:sc')
-        self.logger.setLevel(logLevelLogger)
+        # self.logger.setLevel(logLevelLogger)
         
     def set_trigger(self,trigger=False):
         """
@@ -61,10 +60,10 @@ class StreamCompare():
         err_count = self.dev.getNode(self.sc+".err_count").read()
         self.dev.dispatch()
         if verbose:
-            self.logger.info('Stream compare, word count %i, error count %i'%(word_count,err_count))
+            self.logger.info('Word count %i, error count %i'%(word_count,err_count))
         return err_count
 
-    def reset_log_counters(self,stime=0.01):
+    def reset_log_counters(self,stime=0.01,verbose=True):
         """
         Reset counters, wait for a time, latch them again.
         Log word and error count.
@@ -74,5 +73,5 @@ class StreamCompare():
         self.reset_counters()
         time.sleep(stime)
         self.latch_counters()
-        err_count = self.read_counters(True)
+        err_count = self.read_counters(verbose)
         return err_count

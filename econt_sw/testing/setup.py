@@ -1,4 +1,4 @@
-from set_econt import *
+from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,io_align,output_align,bypass_align,bypass_compare
 
 def init_action(args):
     startup()
@@ -25,10 +25,10 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(f'python testing/setup.py ',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--board','-b', required=True, type=int, help='Board number')
     subparsers = parser.add_subparsers(help='Choose which action to perform.')
 
     parse_init = subparsers.add_parser('init',help='Set initial configuration of ASIC')
-    parse_init.add_argument('--board','-b', required=True, choices=list(phase_by_board.keys()), type=int, help='Board number')
     parse_init.set_defaults(action=init_action)
 
     parse_input = subparsers.add_parser('input',help='Align input words')
@@ -48,6 +48,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if 'action' not in args:
-        parser.error('Must choose an action to perform!')
-
-    args.action(args)
+        init_action(args.board)
+        input_action()
+        output_action()
+        bypass_action(True)
+    else:        
+        args.action(args)

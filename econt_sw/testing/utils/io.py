@@ -4,7 +4,6 @@ from .uhal_config import *
 import time
 
 import logging
-logging.basicConfig()
 logger = logging.getLogger('utils:IO')
 logger.setLevel(logging.INFO)
 
@@ -72,8 +71,7 @@ class IOBlock:
             delay_out = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out").read()
             delay_out_N = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out_N").read()
             self.dev.dispatch()
-            if verbose:
-                logger.info("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
+            logger.debug("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
             delay_P[link] = int(delay_out)
             delay_N[link] = int(delay_out_N)
         return delay_P,delay_N
@@ -110,8 +108,7 @@ class IOBlock:
             # set delays
             delay = 0 if delay<0 else delay
             delay = 503 if delay>503 else delay # 503+8=511
-            if verbose:
-                logger.info(f"Set delay to {delay}")
+            logger.debug(f"Set delay to {delay}")
 
             self.set_delay([delay]*self.nlinks)
 
@@ -165,7 +162,7 @@ class IOBlock:
                 bit_counter = self.dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
                 self.dev.dispatch()
                 if verbose or error_counter>0:
-                    logger.info("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(self.io,l,bit_tr,delay_ready,error_counter,bit_counter))
+                    logger.debug("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(self.io,l,bit_tr,delay_ready,error_counter,bit_counter))
                 if delay_ready == 1:
                     break
             IO_delayready.append(delay_ready)
@@ -176,7 +173,7 @@ class IOBlock:
                 is_aligned = False
 
         if is_aligned:
-            logger.info("Links %s-IO are aligned"%self.io)
+            logger.debug("Links %s-IO are aligned"%self.io)
         else:
-            logger.info("Links %s-IO are not aligned"%self.io)
+            logger.warning("Links %s-IO are not aligned"%self.io)
         return is_aligned

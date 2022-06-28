@@ -10,14 +10,9 @@ import csv
 import time
 
 import logging
-logger = logging.getLogger("prbs")
-logger.setLevel(logging.INFO)
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.INFO)
-# logger.addHandler(ch)
 
 from utils.test_vectors import TestVectors
-tv = TestVectors()
+tv = TestVectors(logLevelLogger=30)
 
 def clear_counters(args):
     """Clear MISC_rw counters"""
@@ -89,13 +84,13 @@ def check_prbs(args,channels,allch):
 
     # enable prbs chk
     enable_prbschk(args.i2c,args.prbs,channels,allch)
-    logger.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
-    logger.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
+    logging.info('CHANNEL: hdr_mm_err prbs_chk_err raw_error_prbs_chk_err')
+    logging.info('CHANNEL: orbsyn_hdr_err_cnt orbsyn_arr_err_cnt orbsyn_fc_err_cnt prbs_chk_err_cnt')
 
     # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True):
+def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./'):
     """Scan phaseSelect and read PRBS errors"""
 
     # reset things for PRBS
@@ -113,8 +108,7 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True):
         call_i2c(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=i2c)
 
         # change phaseSelect
-        if verbose:
-            logger.debug(f'PhaseSelect: {sel}')
+        logging.debug(f'PhaseSelect: {sel}')
         if allch:
             call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{sel}',args_i2c=i2c)
         else:
@@ -139,32 +133,28 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True):
         # prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
         err_counts.append(prbs_chk_err_cnt)#list(prbs_chk_err_cnt.values()))
         
-        if verbose:
-            logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
+        logging.debug(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
 
     err_counts = np.array(err_counts).astype(int)
-    if verbose:
-        logger.info(f'Error Array:\n{repr(err_counts)}')
+    logging.info(f'Error Array:\n{repr(err_counts)}')
     
     counts_window = []
     for i in range(15):
         # add counts over 3 setting window, summing i, i+1, and i-1 (mod 15)  
         counts_window.append( err_counts[i] + err_counts[(i-1)%15] + err_counts[(i+1)%15])
 
-    if verbose:
-        logger.info('Error Counts over 3 setting window:')
-        logger.info(" ".join(map(str,range(len(counts_window))))+" \n")
-        for c in counts_window:
-            logger.info(" ".join(map(str,c)))
-        logger.info('Minimum Arg:')
-        logger.info(" ".join(map(str,np.argmin(err_counts,axis=0))))
+    logging.debug('Error Counts over 3 setting window:')
+    logging.debug(" ".join(map(str,range(len(counts_window))))+" \n")
+    for c in counts_window:
+        logging.debug(" ".join(map(str,c)))
+    logging.debug('Minimum Arg:')
+    logging.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
-    if verbose:
-        with open("prbs_counters_scan_%is.csv"%sleepTime, 'w') as f:
-            writer = csv.writer(f, delimiter=',')
-            writer.writerow([f'CH_{ch}' for ch in channels])
-            for j in range(len(err_counts)):
-                writer.writerow([int(err_counts[j][ch]) for ch in channels])
+    with open(f"{odir}/prbs_counters_scan_%is.csv"%sleepTime, 'w') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow([f'CH_{ch}' for ch in channels])
+        for j in range(len(err_counts)):
+            writer.writerow([int(err_counts[j][ch]) for ch in channels])
 
     counts_window = np.array(counts_window)
     # print(counts_window)
@@ -172,14 +162,14 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True):
     # print('thr ',counts_window)
     best_setting=np.array(counts_window).argmin(axis=0)
     if verbose:
-        logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
-        # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
+        logging.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
+        # logging.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
     y=(err_counts[2:-2]+err_counts[1:-3]+err_counts[3:-1]+err_counts[4:] + err_counts[:-4])
     y[ err_counts[2:-2]>0 ] += 2555
     x=y.argmin(axis=0)+2
     if verbose:
-        logger.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
+        logging.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
 
     return err_counts, best_setting
 

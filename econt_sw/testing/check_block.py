@@ -1,20 +1,15 @@
 import time
 import argparse
 
-import logging
-logging.basicConfig()
-logger = logging.getLogger('check')
-logger.setLevel('INFO')
-
 from utils.io import IOBlock
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 
-from_io = IOBlock('from')
-to_io = IOBlock('to')
-lc = LinkCapture()
-tv = TestVectors()
-bypass = TestVectors('bypass')
+from_io = IOBlock('from',logLevelLogger=30)
+to_io = IOBlock('to',logLevelLogger=30)
+lc = LinkCapture(logLevelLogger=30)
+tv = TestVectors(logLevelLogger=30)
+bypass = TestVectors('bypass',logLevelLogger=30)
 
 """
 Check alignment on different blocks
@@ -60,6 +55,11 @@ if __name__ == "__main__":
     parser.add_argument('-B', '--block', dest='block', required=True)
     args = parser.parse_args()
             
+    import logging
+    logging.basicConfig()
+    logger = logging.getLogger('check')
+    logger.setLevel('INFO')
+
     if args.check:
         check_align(args.block)
     else:

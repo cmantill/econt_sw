@@ -5,10 +5,10 @@ from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 
-fc = FastCommands(logLevelLogger=30)
-lc = LinkCapture(logLevelLogger=30)
-tv = TestVectors(logLevelLogger=30)
-tv_bypass = TestVectors('bypass',logLevelLogger=30) 
+fc = FastCommands()
+lc = LinkCapture()
+tv = TestVectors()
+tv_bypass = TestVectors('bypass')
 from_io = IOBlock('from')
 to_io = IOBlock('to')
 
@@ -23,14 +23,9 @@ latency_dict = {
 import logging
 logger = logging.getLogger("set-econt")
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
 # phase settings found for boards
-iphase_by_board = {
+phase_by_board = {
     2: "6,6,7,7,7,8,7,8,7,8,7,8",
     3: "7,6,8,7,0,8,8,0,8,8,9,8",
     7: "5,4,5,5,6,6,6,6,5,6,6,6",
@@ -38,17 +33,17 @@ iphase_by_board = {
     9: "7,7,7,7,7,7,7,7,7,7,7,7",
     10: "7,7,7,7,7,7,7,7,7,7,7,7",
     11: "7,6,8,8,8,9,8,9,7,8,8,8",
-    12: "7,7,7,7,7,7,7,7,7,7,7,7",
+    12: "8,8,9,9,9,10,9,10,9,9,9,10",
     13: "8,8,8,8,8,8,8,8,8,8,8,8",
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
 }
 def set_phase(board):
-    logger.info(f'Set fixed phase {phase_by_board[board]} for board {board}')
+    logging.debug(f'Set fixed phase {phase_by_board[board]} for board {board}')
     call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
     call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phase_by_board[board]}',args_i2c='ASIC')
 
 def set_phase_of_enable(phase=0):
-    logger.info(f'Set phase of enable {phase}')
+    logger.debug(f'Set phase of enable {phase}')
     call_i2c(args_name="PLL_phase_of_enable_1G28",args_value=phase,args_i2c='ASIC')
 
 def startup(write=True):
@@ -92,17 +87,15 @@ def io_align():
     if align:
         from_io.manual_IO()
 
-def output_align():
+def output_align(verbose=False):
     import time
     # reset lc
     lc.reset(['lc-input','lc-ASIC','lc-emulator'])
     # configure acquire
     lc.configure_acquire(['lc-ASIC','lc-emulator'],"linkreset_ECONt")
     # send link reset econt
-    fc.get_counter("link_reset_econt")
     fc.request("link_reset_econt")
     time.sleep(0.1)
-    fc.get_counter("link_reset_econt")
     # check
     align = lc.check_links(['lc-ASIC'])
     if not align:
@@ -111,12 +104,15 @@ def output_align():
     
     # find latency
     from latency import align
-    logging.info('Align latency')
-    align()
+    align(verbose=False)
     
     # do compare (improve)
     from eTx import compare_lc
-    data = compare_lc()
+    data,err_count = compare_lc(verbose=False)
+    if err_count>0:
+        logging.warning(f'eTx error count after alignment: {err_count}')
+    else:
+        logging.info('Links are aligned between ASIC and emulator')
 
 def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1):
     # configure alignment inputs
@@ -128,13 +124,13 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
     tv_bypass.configure("",rpt_dir,fname="testOutput.csv")  
 
     # configure RPT(13eTx) i2c for ASIC
-    logging.info(f"Configure ASIC w. {rpt_dir}/init.yaml")
+    logging.debug(f"Configure ASIC w. {rpt_dir}/init.yaml")
     set_runbit(0)
     call_i2c(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC,emulator", args_write=True)
     set_runbit(1)
     x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    logging.info(f"Num links {num_links}")
+    logging.debug(f"Num links {num_links}")
 
     # then modify latency until we find pattern
     from latency import align
@@ -144,16 +140,16 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
 
 def bypass_compare(idir):
     # configure inputs
-    tv.configure("",idir,fname="../testInput.csv")
+    tv.configure("",idir,fname="../testInput.csv",verbose=False)
 
     # configure outputs
     tv_bypass.set_bypass(0)
-    tv_bypass.configure("",idir,fname="testOutput.csv")
+    tv_bypass.configure("",idir,fname="testOutput.csv",verbose=False)
 
     set_runbit(0)
 
     # configure i2c for ASIC
-    logging.info(f"Configure ASIC w. {idir}/init.yaml")
+    logging.debug(f"Configure ASIC w. {idir}/init.yaml")
     call_i2c(args_yaml=f"{idir}/init.yaml", args_i2c="ASIC", args_write=True)
 
     # read nlinks
@@ -161,20 +157,24 @@ def bypass_compare(idir):
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     x=call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_write=False)
     algo = x['ASIC']['RW']['MFC_ALGORITHM_SEL_DENSITY']['algo_select']
-    logging.info(f"Num links {num_links} and algo {algo}")
+    logging.debug(f"Num links {num_links} and algo {algo}")
 
     # modify latency
     latencies = lc.read_latency(['lc-ASIC','lc-emulator'])
-    logging.info("Latencies asic %s"%latencies['lc-ASIC'])
-    logging.info("Latencies emu %s"%latencies['lc-emulator'])
+    logging.debug("Latencies asic %s"%latencies['lc-ASIC'])
+    logging.debug("Latencies emu %s"%latencies['lc-emulator'])
     new_latencies = [(lat + latency_dict[algo]) for lat in latencies['lc-emulator']]
-    logging.info("New Latencies %s"%new_latencies)
+    logging.debug("New Latencies %s"%new_latencies)
     lc.set_latency(['lc-emulator'],new_latencies)
     set_runbit(1)
 
     # compare words
     from eTx import compare_lc
-    data = compare_lc(nlinks=num_links)
+    data,err_counts = compare_lc(nlinks=num_links,verbose=False)
+    if err_counts:
+        logging.warning(f'eTx error count after bypass comparison: {err_count}')
+    else:
+        logging.info(f'eTx error count: {0}, for {idir} configuration')
 
     # set back latency
     lc.set_latency(['lc-emulator'],latencies['lc-emulator'])

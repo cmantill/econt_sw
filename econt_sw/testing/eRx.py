@@ -80,26 +80,32 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
     if snapshotBX is None:
         # loop over snapshot BX
         goodASIC = False
-        snapshotBX = -1
-        while not goodASIC:
-            snapshotBX += 1
+        for snapshotBX in [3,4,5,2,1,0,6,7,8,9]:
             setAlignment(snapshotBX,delay=0)
             goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
-    
+            if goodASIC:
+                break
+        if not goodASIC:
+            logging.error('Unable to find good snapshot bx')
+            exit()
+
         # then, keep the same snapshot BX and loop over values of delay
         goodEmulator = False
-        delay = 0
-        while not goodEmulator:
+        for delay in [snapshotBX+1, snapshotBX, snapshotBX-1, snapshotBX+2, snapshotBX-2]:
             setAlignment(delay=delay)
             _,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
-            delay += 1
+            if goodEmulator:
+                break
+        if not goodEmulator:
+            logging.error('Unable to find good delay setting')
+            exit()
     else:
         # just set the parameters and check alignment
         setAlignment(snapshotBX,delay)
         goodASIC,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
         
     if goodASIC and goodEmulator:
-        logging.info('Good alignment')
+        logging.info('Good input word alignment, delay %i and snapshotBX %i'%(delay-1,snapshotBX))
 
 def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""
@@ -196,8 +202,8 @@ def statusLogging(sleepTime=120, N=30, snapshot=False, tag=""):
 
     for i in range(N):
         sleep(sleepTime)
-        print('-'*40)
-        print(datetime.datetime.now())
+        # print('-'*40)
+        # print(datetime.datetime.now())
         if snapshot:
             checkSnapshots()
         x=get_HDR_MM_CNTR(x)
@@ -399,7 +405,6 @@ if __name__=='__main__':
     logger.addHandler(ch)
 
     if args.configureTV:
-        from utils.test_vectors import TestVectors
         tv = TestVectors(args.tv_name)
         if args.tv_name=="bypass":
             tv.set_bypass(0)
@@ -432,7 +437,7 @@ if __name__=='__main__':
         from PRBS import scan_prbs
         args.i2c='ASIC'
         args.prbs=32
-        err_counts, best_setting = scan_prbs(args,range(0,12),True)
+        err_counts, best_setting = scan_prbs(args.prbs,args.i2c,args.sleepTime,range(0,12),True)
 
     elif args.enableTests:
         eRxEnableTests(verbose=args.verbose)
