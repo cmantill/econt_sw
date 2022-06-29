@@ -142,7 +142,7 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
           neTx=10,
           start_ASIC=start_ASIC,start_emulator=start_emulator)
 
-def bypass_compare(idir):
+def bypass_compare(idir,odir):
     # configure inputs
     tv.configure("",idir,fname="../testInput.csv",verbose=False)
 
@@ -173,10 +173,11 @@ def bypass_compare(idir):
     set_runbit(1)
 
     # compare words
+    tag = idir.split("/")[-1]
     from eTx import compare_lc
-    data,err_counts = compare_lc(nlinks=num_links,verbose=False)
+    data,err_counts = compare_lc(nlinks=num_links,verbose=False,trigger=True,csv=True,odir=odir,fname=f"compare_{tag}")
     if err_counts:
-        logging.warning(f'eTx error count after bypass comparison: {err_count}')
+        logging.warning(f'eTx error count after bypass comparison: {err_counts}')
     else:
         logging.info(f'eTx error count: {0}, for {idir} configuration')
 

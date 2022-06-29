@@ -19,7 +19,7 @@ def bypass_action(args):
     if args.align:
         bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
     if args.compare:
-        bypass_compare(args.idir)
+        bypass_compare(args.idir,"./")
 
 if __name__ == "__main__":
     import argparse
@@ -46,6 +46,9 @@ if __name__ == "__main__":
     parse_bypass.set_defaults(action=bypass_action)
 
     args = parser.parse_args()
+
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
 
     if 'action' not in args:
         init_action(args.board)
