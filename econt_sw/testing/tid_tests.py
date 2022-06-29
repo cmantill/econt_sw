@@ -85,7 +85,7 @@ def TID_check(board,odir,voltage,tag=''):
     
     # Compare for various configurations
     for idir in dirs:
-        bypass_compare(idir)
+        bypass_compare(idir,odir)
 
     logging.info('Starting delay scan')
     # Scan IO delay

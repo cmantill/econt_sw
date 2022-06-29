@@ -398,14 +398,14 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    logger.basicConfig()
-    logger = logger.getLogger("eRx")
-    logger.setLevel(logger.DEBUG)
-    ch = logger.StreamHandler()
-    ch.setLevel(logger.INFO)
-    formatter = logger.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    # logging.basicConfig()
+    # logger = logger.getLogger("eRx")
+    # logger.setLevel(logger.DEBUG)
+    # ch = logger.StreamHandler()
+    # ch.setLevel(logger.INFO)
+    # formatter = logger.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+    # ch.setFormatter(formatter)
+    # logger.addHandler(ch)
 
     if args.configureTV:
         tv = TestVectors(args.tv_name)

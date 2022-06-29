@@ -259,18 +259,10 @@ def bypass_compare(idir,odir):
 
     # compare words
     tag = idir.split("/")[-1]
-    nwords = 4095
-    lcaptures = ['lc-ASIC','lc-emulator']
-    fc.configure_fc()
-    lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
-    lc.do_capture(lcaptures)
-    sc.configure_compare(num_links,trigger=True)
-    err_counts = sc.reset_log_counters(0.01)
-    if err_counts>0:
+    from eTx import compare_lc
+    data,err_counts = compare_lc(nlinks=num_links,verbose=False,trigger=True,csv=True,odir=odir,fname=f"compare_{tag}")
+    if err_counts:
         logging.warning(f'eTx error count after bypass comparison: {err_counts}')
-        data = lc.get_captured_data(lcaptures,nwords)
-        for lcapture in data.keys():
-            tv.save_testvector(f"{odir}/{lcapture}_compare_{tag}.csv",data[lcapture])
     else:
         logging.info(f'eTx error count: {0}, for {idir} configuration')
 
