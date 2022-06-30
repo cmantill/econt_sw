@@ -96,9 +96,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.tag is None:
-        _tag='_{args.voltage}V'
+        _tag='_{args.voltage}V_{args.board}board'
     else:
-        _tag=f"_{args.voltage}V_{args.tag}"
+        _tag=f"_{args.voltage}V_{args.tag}_{args.board}board"
 
     os.system(f'mkdir -p {args.odir}')
 
