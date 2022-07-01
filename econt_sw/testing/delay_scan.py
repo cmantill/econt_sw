@@ -23,7 +23,7 @@ def delay_scan(odir,ioType='from',tag=''):
     import os
     os.system(f'mkdir -p {odir}')
     import pickle
-    with open(f'{odir}/{ioType}_io_delayscan{tag}.pkl','wb') as f:
+    with open(f'{odir}/{ioType}_io_delayscan{tag}.csv','wb') as f:
         pickle.dump(errorcounts,f)
 
     from set_econt import io_align

@@ -41,7 +41,7 @@ def i2cSnapshot(bx=None):
     return snapshots, status, select
 
 def overrideSelect(select_ASIC):
-    print('Overriding select settings with ',select_ASIC)
+    logger.info('Overriding select settings with ',select_ASIC)
     select_values = ','.join([f'{s}' for s in select_ASIC])
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
     call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
@@ -82,10 +82,9 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
     if snapshotBX is None:
         # loop over snapshot BX
         goodASIC = False
-        for snapshotBX in [3,4,5,2,1,0,6,7,8,9]:
+        for snapshotBX in [2,3,4,5,1,0,6,7,8,9]:
             setAlignment(snapshotBX,delay=0)
             goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
-            print(snapshotBX, goodASIC)
             if goodASIC:
                 break
         if not goodASIC:
@@ -108,7 +107,7 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
         goodASIC,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
         
     if goodASIC and goodEmulator:
-        logger.info('Good input word alignment, delay %i and snapshotBX %i'%(delay-1,snapshotBX))
+        logger.info(f'Good input word alignment, snapshotBX {snapshotBX} and delay {delay}')
 
 def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""

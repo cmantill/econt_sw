@@ -1,6 +1,8 @@
 from i2c import call_i2c
 import numpy as np
 from time import sleep
+import csv
+
 import logging
 logger = logging.getLogger("pll")
 logger.setLevel(logging.INFO)
@@ -15,8 +17,9 @@ allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
                                  127, 248, 249, 250, 251, 252, 253, 254, 255, 504, 505, 506, 507,
                                  508, 509, 510, 511])
 
-def scanCapSelect(verbose=False):
+def scanCapSelect(verbose=False, odir='./', tag=''):
     goodVals=[]
+    vals_pusm = {}
     for i in allowedCapSelectVals:
         call_i2c('PLL_*CapSelect',args_value=str(i))
         sleep(0.1)
@@ -28,6 +31,14 @@ def scanCapSelect(verbose=False):
 
         if pusm_state==9:
             goodVals.append(i)
+
+        
+        vals_pusm[i] = pusm_state
+             
+    with open(f'{odir}/pll_capSelect_scan{tag}.csv', 'w') as csvfile:
+        for key in vals_pusm.keys():
+            csvfile.write("%s,%s\n"%(key,vals_pusm[key]))
+
     return goodVals
 
 def get_count():
