@@ -255,7 +255,7 @@ if __name__ == "__main__":
 
         exit()
 
-    i2cClient=I2C_Client(ip=args.ip,forceSocket=True)
+    i2cClient=I2C_Client(ip=args.ip)
 
     outputs =i2cClient.call(args_name=args.name,
                             args_value=args.value,
