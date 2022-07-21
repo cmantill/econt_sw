@@ -3,7 +3,7 @@ import glob
 import os
 
 from PrologixGPIB.TestStand_Controls import psControl
-from i2c import call_i2c
+from i2c import I2C_Client
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
 from utils.stream_compare import StreamCompare
@@ -17,6 +17,8 @@ latency_dict = {
     "AE": 2,
 }
 
+i2cClient=I2C_Client()
+
 def configure_bypass(idir,algo,base_latency=13):
     """
     # configure output
@@ -25,10 +27,10 @@ def configure_bypass(idir,algo,base_latency=13):
     tv.configure("",idir,"testOutput.csv")
     """
     # configure i2c
-    call_i2c(args_name='MISC_run',args_value='0')
+    i2cClient.call(args_name='MISC_run',args_value='0')
     yamlFile = f"{idir}/init.yaml"
-    x = call_i2c(args_yaml=yamlFile, args_i2c="ASIC", args_write=True)    
-    call_i2c(args_name='MISC_run',args_value='1')
+    x = i2cClient.call(args_yaml=yamlFile, args_i2c="ASIC", args_write=True)    
+    i2cClient.call(args_name='MISC_run',args_value='1')
     
     """
     # set latency
@@ -36,7 +38,7 @@ def configure_bypass(idir,algo,base_latency=13):
     lc.set_latency(["lc-emulator"],[base_latency+latency_dict[algo]]*13)
     
     # compare output
-    num_links = call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
+    num_links = i2cClient.call(args_name='FMTBUF_eporttx_numen',args_write=False)['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     print('Number of links to compare ',num_links)
     data,_ = compare_lc(True,num_links,nwords=4095)
 
@@ -69,7 +71,7 @@ if __name__=='__main__':
     thresholds.append(1000000)
     thresholds.append(4194303)
     for threshold in thresholds:
-        call_i2c(args_name='ALGO_threshold_val_[0-47]',args_value='%i'%threshold)
+        i2cClient.call(args_name='ALGO_threshold_val_[0-47]',args_value='%i'%threshold)
         p,v,i = ps.Read_Power(48)
         print(threshold,v,i)
         power[threshold] = float(i)*float(v)

@@ -1,4 +1,4 @@
-from i2c import call_i2c
+from i2c import I2C_Client
 import numpy as np
 import argparse
 import os
@@ -13,42 +13,44 @@ import logging
 logger = logging.getLogger("eRx")
 logger.setLevel(logging.INFO)
 
+i2cClient=I2C_Client(ip='localhost',forceLocal=True)
+
 def readSnapshot(i2c='ASIC',return_status=False):
     """
     Read registers that tell us about word alignment
     """
-    x=call_i2c(args_yaml='configs/align_read.yaml', args_i2c=i2c)[i2c]['RO']
+    x=i2cClient.call(args_yaml='configs/align_read.yaml', args_i2c=i2c)[i2c]['RO']
     snapshots=np.array([x[f'CH_ALIGNER_{i}INPUT_ALL']['snapshot'] + (x[f'CH_ALIGNER_{i}INPUT_ALL']['snapshot2']<<(16*8)) for i in range(12)])
     status=np.array([x[f'CH_ALIGNER_{i}INPUT_ALL']['status'] for i in range(12)])
     select=np.array([x[f'CH_ALIGNER_{i}INPUT_ALL']['select'] for i in range(12)])
     return snapshots, status, select
 
 def readStatus(i2c='ASIC',verbose=True):
-    x=call_i2c(args_yaml='configs/align_read_status.yaml', args_i2c='ASIC')[i2c]['RO']
+    x=i2cClient.call(args_yaml='configs/align_read_status.yaml', args_i2c='ASIC')[i2c]['RO']
     for param in ['prbs_chk_err','orbsyn_fc_err','orbsyn_arr_err','orbsyn_hdr_err','align_seu_err','hdr_mm_err','snapshot_dv','pattern_match']:
         pararray = [x[f'CH_ALIGNER_{i}INPUT_ALL'][f'status_{param}'] for i in range(12)]
         if verbose:
             logger.info(f"status {param} "+" ".join(map(str,pararray)))
 
 def i2cSnapshot(bx=None):
-    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='1,1,[0]*12,0')
+    i2cClient.call(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='1,1,[0]*12,0')
     if not bx is None:
-        call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot,ALIGNER_snapshot_arm',args_value=f'{bx},1')
+        i2cClient.call(args_name='ALIGNER_orbsyn_cnt_snapshot,ALIGNER_snapshot_arm',args_value=f'{bx},1')
     else:
-        call_i2c(args_name='ALIGNER_snapshot_arm',args_value=f'1')
+        i2cClient.call(args_name='ALIGNER_snapshot_arm',args_value=f'1')
     snapshots,status,select=readSnapshot()
-    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
+    i2cClient.call(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,CH_ALIGNER_*_per_ch_align_en,ALIGNER_snapshot_arm', args_value='0,1,[1]*12,0')
     return snapshots, status, select
 
 def overrideSelect(select_ASIC):
     logger.info('Overriding select settings with ',select_ASIC)
     select_values = ','.join([f'{s}' for s in select_ASIC])
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
 
 def setAlignment(snapshotBX=None, delay=None):
     if snapshotBX is not None:
-        call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
+        i2cClient.call(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
 
     if delay is not None:
         from utils.asic_signals import ASICSignals
@@ -63,14 +65,13 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
     Performs automatic alignment sequence.
     Sets minimum i2c settings required for alignment, then issues a link_reset_roct fast command
     """
-
     # configure auto alignment
-    call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
              args_value='0', args_i2c='ASIC,emulator')
-    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
+    i2cClient.call(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
              args_value=f'0,1,1',args_i2c='ASIC,emulator')
-    call_i2c(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+    i2cClient.call(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
              args_value=f'{match_pattern},0',
              args_i2c='ASIC,emulator')
 
@@ -180,7 +181,7 @@ def checkSnapshots(compare=True, verbose=False, bx=None):
 
 def get_HDR_MM_CNTR(previous=None):
     """ Get hdr mm cntr """
-    x=call_i2c(args_name='CH_ALIGNER_*_hdr_mm_cntr')
+    x=i2cClient.call(args_name='CH_ALIGNER_*_hdr_mm_cntr')
     counts=np.array([x['ASIC']['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['hdr_mm_cntr'] for i in range(12)])
     if previous is None:
         return counts
@@ -224,7 +225,7 @@ def eRxEnableTests(patterns=None, verbose=False):
     Check that the ERX_ch_[0-11]_enable register does what is expected
     Loops through a number of patterns, hitting 
     """
-    call_i2c(args_name="ERX_ch_*_enable",args_value="1")
+    i2cClient.call(args_name="ERX_ch_*_enable",args_value="1")
 
     if not patterns is None:
         enablePatterns=patterns
@@ -252,7 +253,7 @@ def eRxEnableTests(patterns=None, verbose=False):
 
     def snapshotCheckofEnabled(enables):
         #set all by i and j to enabled
-        call_i2c(args_name='ERX_ch_[0-11]_enable',args_value=','.join([str(x) for x in enables]))
+        i2cClient.call(args_name='ERX_ch_[0-11]_enable',args_value=','.join([str(x) for x in enables]))
 
         snapshots,status,select=i2cSnapshot()
         snapshotsHex=np.array([f'{s:048x}' for s in snapshots])
@@ -288,7 +289,7 @@ def eRxEnableTests(patterns=None, verbose=False):
             passTest=False
 
     #turn all of them back on
-    call_i2c(args_name="ERX_ch_*_enable",args_value="1")
+    i2cClient.call(args_name="ERX_ch_*_enable",args_value="1")
 
     return passTest
 
@@ -398,12 +399,12 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    # logging.basicConfig()
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
     # logger = logger.getLogger("eRx")
     # logger.setLevel(logger.DEBUG)
-    # ch = logger.StreamHandler()
-    # ch.setLevel(logger.INFO)
-    # formatter = logger.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.INFO)
+    # formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
     # ch.setFormatter(formatter)
     # logger.addHandler(ch)
 

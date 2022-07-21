@@ -1,4 +1,4 @@
-from i2c import call_i2c
+from i2c import I2C_Client
 import numpy as np
 import argparse
 import time
@@ -22,6 +22,7 @@ fc = FastCommands()
 lc = LinkCapture()
 tv = TestVectors()
 sc = StreamCompare()
+i2cClient = I2C_Client()
 
 def verbose_captured_data(data,csv=False,phex=False,odir="./",fname="temp",verbose=False):
     if csv:
@@ -138,7 +139,7 @@ def event_daq(idir="",dtype="",
             if not i2ckeep:
                 yamlFile = f"{idir}/{yamlname}.yaml"
                 logger.info(f"Loading i2c from {yamlFile} for {i2ckeys}")
-                x=call_i2c(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
+                x=i2cClient.call(args_yaml=yamlFile, args_i2c=i2ckeys, args_write=True)
 
             # read nlinks from here
             num_links = None
@@ -146,7 +147,7 @@ def event_daq(idir="",dtype="",
                 num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
             except:
                 try:
-                    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+                    x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_write=False)
                     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
                 except:
                     logger.error(f'Did not find info on config_eporttx_numen, keeping nlinks={nlinks}')
@@ -175,16 +176,16 @@ def event_daq(idir="",dtype="",
             logger.info('.'*50)
 
 def set_PLL_phase_of_enable(phase=0):
-    call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
+    i2cClient.call(args_name='PLL_phase_of_enable_1G28',args_value=f'{phase}')
     
 def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=False):
     # send zeroes with headers
     os.system('python testing/uhal/test_vectors.py --dtype zeros')
     # set idle word to 0s
-    call_i2c(args_name='FMTBUF_tx_sync_word',args_value=f'0')
+    i2cClient.call(args_name='FMTBUF_tx_sync_word',args_value=f'0')
     # set algorithm to threshold with high threshold, and enable all eTx
-    call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select,FMTBUF_eporttx_numen',args_value='0,13')
-    call_i2c(args_name='ALGO_threshold_val_[0-47]',args_value='0x3fffff')
+    i2cClient.call(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select,FMTBUF_eporttx_numen',args_value='0,13')
+    i2cClient.call(args_name='ALGO_threshold_val_[0-47]',args_value='0x3fffff')
 
     scanData = []
     for phase in range(8):
@@ -228,26 +229,26 @@ def scan_PLL_phase_of_enable(bx=40,nwords=100,goodPhase=0,verbose=False):
 def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
     # sending 1's in user_word 0 and 0s in user_word 1-3.
     # to enable pattern set CH_ALIGNER_*_patt_sel and CH_ALIGNER_*_patt_en to 1
-    call_i2c(args_name='CH_ALIGNER_[0-11]_user_word_0,CH_ALIGNER_*_patt_*',args_value='[0xffffffff]*12,[1]*24')
-    # call_i2c(args_name='CH_ALIGNER_[0-11]_user_word_1,CH_ALIGNER_[0-11]_user_word_2,CH_ALIGNER_[0-11]_user_word_3',args_value='[0]*12,[0]*12,[0]*12')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_user_word_0,CH_ALIGNER_*_patt_*',args_value='[0xffffffff]*12,[1]*24')
+    # i2cClient.call(args_name='CH_ALIGNER_[0-11]_user_word_1,CH_ALIGNER_[0-11]_user_word_2,CH_ALIGNER_[0-11]_user_word_3',args_value='[0]*12,[0]*12,[0]*12')
 
     if algo=='repeater':
         # set to repeater algorithm
         print('repeater')
-        call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_value='3')
+        i2cClient.call(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_value='3')
     else:
         # set to threshold algorithm
-        call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_value='0')
+        i2cClient.call(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_value='0')
 
     # manually override select value to 0 (so that you can see the consecutive bits in the output)
-    x=call_i2c(args_name='CH_ALIGNER_[0-11]_select')
+    x=i2cClient.call(args_name='CH_ALIGNER_[0-11]_select')
     selValues=','.join([str(x['ASIC']['RO'][f'CH_ALIGNER_{i}INPUT_ALL']['select']) for i in range(12)])
 
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value='0')
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value='0')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
 
     for i_pll in range(8):
-        call_i2c(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
+        i2cClient.call(args_name='PLL_phase_of_enable_1G28',args_value=f'{i_pll}')
         data = capture(["lc-ASIC"],nwords=nwords,mode="BX",bx=0)
         if verbose:
             verbose_captured_data(data,phex=True)
@@ -272,9 +273,9 @@ def PLL_phaseOfEnable_fixedPatternTest(nwords=40,verbose=False,algo='repeater'):
         if np.array(goodLink).all():
             print('GOOD SETTING')
 
-    call_i2c(args_name='PLL_phase_of_enable_1G28',args_value='0')
-    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=selValues)
-    call_i2c(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
+    i2cClient.call(args_name='PLL_phase_of_enable_1G28',args_value='0')
+    i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=selValues)
+    i2cClient.call(args_name='CH_ALIGNER_*_patt_*',args_value='[0]*24')
     return data
 
 if __name__=='__main__':

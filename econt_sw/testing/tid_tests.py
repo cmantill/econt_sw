@@ -1,6 +1,6 @@
 from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,io_align,output_align,bypass_align,bypass_compare
 from utils.asic_signals import ASICSignals
-from i2c import call_i2c
+from i2c import I2C_Client
 from PRBS import scan_prbs
 from PLL import scanCapSelect
 from delay_scan import delay_scan
@@ -8,10 +8,12 @@ from delay_scan import delay_scan
 import argparse,os,pickle,pprint
 import numpy as np
 
+i2cClient=I2C_Client()
+
 def dump_i2c(tag='Initial',odir='logs'):
     logging.info(f"Reading all {tag} i2c settings")
-    rw_status=call_i2c(args_name='RW')['ASIC']['RW']
-    ro_status=call_i2c(args_name='RO')['ASIC']['RO']
+    rw_status=i2cClient.call(args_name='RW')['ASIC']['RW']
+    ro_status=i2cClient.call(args_name='RO')['ASIC']['RO']
 
     with open(f'{odir}/I2C_Status_{tag}.log','w') as _file:
         _file.write(pprint.pformat(rw_status))
@@ -58,7 +60,7 @@ def TID_check(board,odir,voltage,tag=''):
     goodValue = 27
     goodValues = scanCapSelect(verbose=True)
     logging.info(f"Good PLL VCOCapSelect values: %s"%goodValues)
-    call_i2c(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodValue}')
+    i2cClient.call(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodValue}')
     
     # PRBS phase scan
     logging.info(f"Scan phase w PRBS err counters")

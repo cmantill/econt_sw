@@ -1,4 +1,4 @@
-from i2c import call_i2c
+from i2c import I2C_Client
 import numpy as np
 from time import sleep
 import csv
@@ -10,6 +10,7 @@ logger.setLevel(logging.INFO)
 from utils.pll_lock_count import PLLLockCount
 
 pll=PLLLockCount()
+i2cClient = I2C_Client()
 
 allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
                                  13,  14,  15,  24,  25,  26,  27,  28,  29,  30,  31,  56,  57,
@@ -21,9 +22,9 @@ def scanCapSelect(verbose=False, odir='./', tag=''):
     goodVals=[]
     vals_pusm = {}
     for i in allowedCapSelectVals:
-        call_i2c('PLL_*CapSelect',args_value=str(i))
+        i2cClient.call('PLL_*CapSelect',args_value=str(i))
         sleep(0.1)
-        status = call_i2c(args_name='PLL_lfLocked,PUSM_state')
+        status = i2cClient.call(args_name='PLL_lfLocked,PUSM_state')
         pusm_state = status['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
         pll_locked = status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_2to0_lfLocked']
         if verbose:
