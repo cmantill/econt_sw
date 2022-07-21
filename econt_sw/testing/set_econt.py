@@ -1,4 +1,4 @@
-from i2c import call_i2c
+from i2c import I2C_Client
 
 from utils.io import IOBlock
 from utils.fast_command import FastCommands
@@ -11,6 +11,7 @@ tv = TestVectors()
 tv_bypass = TestVectors('bypass')
 from_io = IOBlock('from')
 to_io = IOBlock('to')
+i2cClient = I2C_Client()
 
 latency_dict = {
     3: 0, # repeater
@@ -36,28 +37,29 @@ phase_by_board = {
     12: "8,8,9,9,9,10,9,10,9,9,9,10",
     13: "8,8,8,8,8,8,8,8,8,8,8,8",
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
+    15: "8,8,9,10,10,10,9,10,9,10,10,10",
 }
 def set_phase(board=None,best_setting=None):
-    call_i2c(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
+    i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
     phasesetting = best_setting
     if board is not None:
         phasesetting = phase_by_board[board]
     if phasesetting is not None:
         logging.debug(f'Set fixed phase {phasesetting}')
-        call_i2c(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phasesetting}',args_i2c='ASIC')
+        i2cClient.call(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phasesetting}',args_i2c='ASIC')
 
 def set_phase_of_enable(phase=0):
     logger.debug(f'Set phase of enable {phase}')
-    call_i2c(args_name="PLL_phase_of_enable_1G28",args_value=phase,args_i2c='ASIC')
+    i2cClient.call(args_name="PLL_phase_of_enable_1G28",args_value=phase,args_i2c='ASIC')
 
 def startup(write=True):
-    call_i2c(args_yaml="configs/startup.yaml",args_i2c='ASIC,emulator',args_write=write)
+    i2cClient.call(args_yaml="configs/startup.yaml",args_i2c='ASIC,emulator',args_write=write)
 
 def set_runbit(value=1):
-    call_i2c(args_name="MISC_run",args_value=f'{value}',args_i2c='ASIC')
+    i2cClient.call(args_name="MISC_run",args_value=f'{value}',args_i2c='ASIC')
 
 def read_status():
-    x = call_i2c(args_name="FCTRL_locked,PUSM_state",args_i2c='ASIC')
+    x = i2cClient.call(args_name="FCTRL_locked,PUSM_state",args_i2c='ASIC')
     logging.info('FC status_locked: %i'%x['ASIC']['RO']['FCTRL_ALL']['status_locked'])
     logging.info('PUSM status: %i'%x['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state'])
 
@@ -81,7 +83,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
 
 def io_align():
     tv.set_bypass(1)
-    call_i2c(args_name="MFC_ALGORITHM_SEL_DENSITY_algo_select,ALGO_threshold_val_[0-47],FMTBUF_eporttx_numen,FMTBUF_tx_sync_word",
+    i2cClient.call(args_name="MFC_ALGORITHM_SEL_DENSITY_algo_select,ALGO_threshold_val_[0-47],FMTBUF_eporttx_numen,FMTBUF_tx_sync_word",
              args_value="0,[0x3fffff]*48,13,0x122",
              args_i2c="ASIC,emulator")
     to_io.configure_IO(invert=True)
@@ -130,9 +132,9 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
     # configure RPT(13eTx) i2c for ASIC
     logging.debug(f"Configure ASIC w. {rpt_dir}/init.yaml")
     set_runbit(0)
-    call_i2c(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC,emulator", args_write=True)
+    i2cClient.call(args_yaml=f"{rpt_dir}/init.yaml", args_i2c="ASIC,emulator", args_write=True)
     set_runbit(1)
-    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+    x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_write=False)
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     logging.debug(f"Num links {num_links}")
 
@@ -154,12 +156,12 @@ def bypass_compare(idir,odir):
 
     # configure i2c for ASIC
     logging.debug(f"Configure ASIC w. {idir}/init.yaml")
-    call_i2c(args_yaml=f"{idir}/init.yaml", args_i2c="ASIC", args_write=True)
+    i2cClient.call(args_yaml=f"{idir}/init.yaml", args_i2c="ASIC", args_write=True)
 
     # read nlinks
-    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_write=False)
+    x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_write=False)
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    x=call_i2c(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_write=False)
+    x=i2cClient.call(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_write=False)
     algo = x['ASIC']['RW']['MFC_ALGORITHM_SEL_DENSITY']['algo_select']
     logging.debug(f"Num links {num_links} and algo {algo}")
 
