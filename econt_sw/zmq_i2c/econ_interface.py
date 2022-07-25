@@ -64,7 +64,7 @@ class econ_interface():
 
             # get new values
             writePairs = self.translator.pairs_from_cfg(paramMap,prevCache=self.writeCache,allowed=['RW'])
-            self._logger.info('Loaded custom configuration pairs')
+            self._logger.debug('Loaded custom configuration pairs')
         else:
             # read previous values of addresses in register:address dict
             self.writeCache = self.read_pairs(default_pairs)

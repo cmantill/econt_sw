@@ -120,6 +120,12 @@ class i2cController(zmqController):
         else:
             return self._read_config_socket(fname,key,yamlNode)
 
+    def configure(self,fname="",yamlNode=None):
+        if self._islocal_:
+            return self._configure_local(fname, yamlNode)
+        else:
+            return self._configure_socket(fname, yamlNode)
+
     def _initialize_local(self,fname=None):
         self.board.reset_cache()
         self.board.configure()
@@ -149,6 +155,18 @@ class i2cController(zmqController):
         # recv = self.socket.recv_string()
         # yamlread = yaml.safe_load( recv ) 
         # return( yamlread )
+
+    def _configure_local(self,fname="",yamlNode=None):
+
+        if yamlNode:
+            config=yamlNode
+        elif fname :
+            with open(fname) as fin:
+                config=yaml.safe_load(fin)
+        else:
+            config = self.yamlConfig
+        ans_yaml=self.board.configure(config)
+
 
     def _initialize_socket(self,fname=None):
         self.socket.send_string("initialize")
@@ -189,6 +207,21 @@ class i2cController(zmqController):
         recv = self.socket.recv_string()
         yamlread = yaml.safe_load( recv ) 
         return( yamlread )
+
+    def _configure_socket(self,fname="",yamlNode=None):
+        self.socket.send_string("configure")
+        rep = self.socket.recv_string()
+        if rep.lower().find("ready")<0:
+            return
+        if yamlNode:
+            config=yamlNode
+        elif fname :
+            with open(fname) as fin:
+                config=yaml.safe_load(fin)
+        else:
+            config = self.yamlConfig
+        self.socket.send_string(yaml.dump(config))
+        rep = self.socket.recv_string()
 
 class daqController(zmqController):
     def recv_array(self, flags=0, copy=True, track=False):
