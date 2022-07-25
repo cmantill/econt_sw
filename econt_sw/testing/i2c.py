@@ -179,6 +179,7 @@ if __name__ == "__main__":
     parser.add_argument('--listRegisters', default=False, action='store_true', help="Print a list of all registers, or only registers matching pattern in --name argument if supplied")
     parser.add_argument('--info', default=False, action='store_true', help="Print a description of the register matching pattern in --name argument")
     parser.add_argument('--ip', type=str, default='localhost', help="IP address of server (default localhost)")
+    parser.add_argument('--local', default=False, action='store_true', help="Skip using socket")
     parser.add_argument('--quiet', default=False, action='store_true', help="quiet mode, don't print output")
     
     args = parser.parse_args()
@@ -255,7 +256,7 @@ if __name__ == "__main__":
 
         exit()
 
-    i2cClient=I2C_Client(ip=args.ip)
+    i2cClient=I2C_Client(ip=args.ip,forceLocal=args.local)
 
     outputs =i2cClient.call(args_name=args.name,
                             args_value=args.value,
