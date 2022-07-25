@@ -64,7 +64,7 @@ def econt_check(board,odir,voltage,tag=''):
     
     # Bypass alignment
     logging.info("Bypassing alignment")
-    bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+    bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=12)
 
     # Compare for various configurations
     logging.info("Comparing various configurations")
@@ -78,8 +78,8 @@ def econt_check(board,odir,voltage,tag=''):
 
     # Soft reset
     logging.info(f"Soft reset")
-    resets.send_reset(reset='soft',i2c='ASIC')
-    resets.send_reset(reset='soft',i2c='emulator')
+#    resets.send_reset(reset='soft',i2c='ASIC')
+ #   resets.send_reset(reset='soft',i2c='emulator')
     
     logging.info(f"Finalized test")
 

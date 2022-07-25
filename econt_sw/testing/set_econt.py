@@ -4,13 +4,17 @@ from utils.io import IOBlock
 from utils.fast_command import FastCommands
 from utils.link_capture import LinkCapture
 from utils.test_vectors import TestVectors
+from utils.stream_compare import StreamCompare
+from utils.asic_signals import ASICSignals
 
+signals=ASICSignals()
 fc = FastCommands()
 lc = LinkCapture()
 tv = TestVectors()
 tv_bypass = TestVectors('bypass')
 from_io = IOBlock('from')
 to_io = IOBlock('to')
+sc = StreamCompare()
 
 latency_dict = {
     3: 0, # repeater
@@ -75,9 +79,64 @@ def set_fpga():
     from_io.configure_IO(invert=True)    
     
 def word_align(bx,emulator_delay,bcr=0,verbose=False):
-    import eRx
-    eRx.linkResetAlignment(snapshotBX=bx,orbsyncVal=bcr,verbose=verbose,delay=emulator_delay,match_pattern="0xaccccccc9ccccccc")
-    eRx.statusLogging(sleepTime=2,N=1)
+    from eRx import checkWordAlignment,statusLogging
+
+    verbose=True
+    def setAlignment(snapshotBX=None, delay=None):
+        if snapshotBX is not None:
+            call_i2c(args_name='ALIGNER_orbsyn_cnt_snapshot',args_value=f'{snapshotBX}',args_i2c='ASIC,emulator')
+        if delay is not None:
+            signals.set_delay(delay)
+        fc.request('link_reset_roct')
+
+    match_pattern = "0xaccccccc9ccccccc"
+    snapshotBX=bx
+    delay=emulator_delay
+    orbsyncVal=bcr
+
+    call_i2c(args_name='CH_ALIGNER_[0-11]_per_ch_align_en',args_value='1',args_i2c='ASIC,emulator')
+    call_i2c(args_name='CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_patt_en,CH_ALIGNER_[0-11]_prbs_chk_en',
+             args_value='0', args_i2c='ASIC,emulator')
+    call_i2c(args_name='ALIGNER_i2c_snapshot_en,ALIGNER_snapshot_en,ALIGNER_snapshot_arm',
+             args_value=f'0,1,1',args_i2c='ASIC,emulator')
+    call_i2c(args_name='ALIGNER_match_pattern_val,ALIGNER_match_mask_val',
+             args_value=f'{match_pattern},0',
+             args_i2c='ASIC,emulator')
+
+    fc.configure_fc()
+    fc.set_bx("link_reset_roct",3500)
+
+    if snapshotBX is None:
+        # loop over snapshot BX
+        goodASIC = False
+        for snapshotBX in [2,3,4,5,1,0,6,7,8,9]:
+            print('set snanpshot bx ',snapshotBX)
+            setAlignment(snapshotBX,delay=0)
+            goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
+            if goodASIC:
+                break
+        if not goodASIC:
+            logger.error('Unable to find good snapshot bx')
+            exit()
+
+        goodEmulator = False
+        for delay in [snapshotBX+1, snapshotBX, snapshotBX-1, snapshotBX+2, snapshotBX-2]:
+            setAlignment(delay=delay)
+            _,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
+            if goodEmulator:
+                break
+        if not goodEmulator:
+            logger.error('Unable to find good delay setting')
+            exit()
+    else:
+        # just set the parameters and check alignment
+        setAlignment(snapshotBX,delay)
+        goodASIC,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
+
+    if goodASIC and goodEmulator:
+        logger.info(f'Good input word alignment, snapshotBX {snapshotBX} and delay {delay}')
+
+    statusLogging(sleepTime=2,N=1)
 
 def io_align():
     tv.set_bypass(1)
@@ -101,20 +160,31 @@ def output_align(verbose=False):
     fc.request("link_reset_econt")
     time.sleep(0.1)
     # check
-    align = lc.check_links(['lc-ASIC'])
-    if not align:
+    is_aligned = lc.check_links(['lc-ASIC'])
+    if not is_aligned:
         logging.warning('lc-ASIC not aligned')
         exit()
-    
+
     # find latency
     from latency import align
-    align()
-    
+    is_aligned = align()
+    if is_aligned:
+        logging.info('Latency is aligned')
+
     # do compare (improve)
-    from eTx import compare_lc
-    data,err_count = compare_lc(verbose=False)
-    if err_count>0:
-        logging.warning(f'eTx error count after alignment: {err_count}')
+    nwords = 4095
+    lcaptures = ['lc-ASIC','lc-emulator']
+    fc.configure_fc()
+    lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
+    lc.do_capture(lcaptures)
+    sc.configure_compare(13,trigger=True)
+    err_counts = sc.reset_log_counters(0.01,verbose=False)
+
+    if err_counts>0:
+        logging.warning(f'eTx error count after alignment: {err_counts}')
+        data = lc.get_captured_data(lcaptures,nwords)
+        for lcapture in data.keys():
+            tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
     else:
         logging.info('Links are aligned between ASIC and emulator')
 
@@ -174,10 +244,18 @@ def bypass_compare(idir,odir):
 
     # compare words
     tag = idir.split("/")[-1]
-    from eTx import compare_lc
-    data,err_counts = compare_lc(nlinks=num_links,verbose=False,trigger=True,csv=True,odir=odir,fname=f"compare_{tag}")
-    if err_counts:
+    nwords = 4095
+    lcaptures = ['lc-ASIC','lc-emulator']
+    fc.configure_fc()
+    lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
+    lc.do_capture(lcaptures)
+    sc.configure_compare(num_links,trigger=True)
+    err_counts = sc.reset_log_counters(0.01)
+    if err_counts>0:
         logging.warning(f'eTx error count after bypass comparison: {err_counts}')
+        data = lc.get_captured_data(lcaptures,nwords)
+        for lcapture in data.keys():
+            tv.save_testvector(f"{odir}/{lcapture}_compare_{tag}.csv",data[lcapture])
     else:
         logging.info(f'eTx error count: {0}, for {idir} configuration')
 
