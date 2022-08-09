@@ -227,6 +227,7 @@ def call_i2c(args_name=None,
             # print(f'Unmatched RO {i2c_read}')
         elif not readOnly:
             i2c_sockets[key].configure()
+#            i2c_sockets[key].ping_all_addresses()
             
         if not args_compare:
             # read back i2c 

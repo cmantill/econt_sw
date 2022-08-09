@@ -1,4 +1,4 @@
-from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,io_align,output_align,bypass_align,bypass_compare
+from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,output_align,bypass_align,bypass_compare
 
 def init_action(args):
     startup()
@@ -12,12 +12,11 @@ def input_action(args):
     word_align(args.bx,args.delay)
 
 def output_action(args):
-    io_align()
     output_align()
 
 def bypass_action(args):
     if args.align:
-        bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=1)
+        bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=13)
     if args.compare:
         bypass_compare(args.idir,"./")
 
@@ -46,6 +45,12 @@ if __name__ == "__main__":
     parse_bypass.set_defaults(action=bypass_action)
 
     args = parser.parse_args()
+
+    import logging
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(levelname)-6s %(message)s',
+                        datefmt='%m-%d-%y %H:%M:%S',
+                        )
 
     if 'action' not in args:
         init_action(args.board)

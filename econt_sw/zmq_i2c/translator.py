@@ -16,9 +16,9 @@ def memoize(fn):
 class Translator():
     """ Translate between (human-readable) config and corresponding address/register values. """
 
-    def __init__(self,econ):
+    def __init__(self,econ,fpath="./"):
         self.econ = econ
-        self.paramMap = self.load_param_map("reg_maps/ECON_I2C_params_regmap.yaml")[self.econ]
+        self.paramMap = self.load_param_map(f"{fpath}/reg_maps/ECON_I2C_params_regmap.yaml")[self.econ]
         self.regDict = nested_dict()
         self.nInputChannels = self.paramMap['ninput']
         self.nOutputChannels = self.paramMap['noutput']

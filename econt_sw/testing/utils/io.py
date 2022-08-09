@@ -25,9 +25,13 @@ class IOBlock:
         """Resets counters"""
         # resets the counters (it will clear itself)
         self.dev.getNode(self.name+".global.global_reset_counters").write(0x1)
-        time.sleep(1)
+        time.sleep(0.01)
         # latches counters (saves counter values for all links)
         self.dev.getNode(self.name+".global.global_latch_counters").write(0x1)
+        self.dev.dispatch()
+        for l in range(self.nlinks):
+            self.dev.getNode(self.name+".link"+str(l)+"."+"reg0.reset_counters").write(1)
+            self.dev.getNode(self.name+".link"+str(l)+"."+"reg0.latch_counters").write(1)
         self.dev.dispatch()
 
     def configure_IO(self,invert=False):

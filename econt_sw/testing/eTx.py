@@ -79,12 +79,13 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
                sleepTime=0.01,
                log=False,verbose=False):
     """Compare two link captures"""
+    print('compare-lc')
     lcaptures = ['lc-ASIC','lc-emulator']
     if nlinks==-1:
         nlinks = output_nlinks
 
     if trigger:
-        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing
+        # before using trigger=True it is recommendable to check that the counters are not always increasing
         # otherwise we could get in some weird situations wiht link capture
 
         # reset fc
@@ -97,6 +98,7 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
         lc.do_capture(lcaptures,verbose)
 
     # configure stream compare
+    print('configure sc ',nlinks)
     sc.configure_compare(nlinks,trigger)
 
     # log counters
@@ -106,6 +108,7 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
     else:
         err_count = sc.reset_log_counters(sleepTime,verbose)
 
+    print('err count ',err_count)
     # read data if error count > 0
     # trigger will capture 32 words prior to a mismatch identified by stream_compare
     data = None
