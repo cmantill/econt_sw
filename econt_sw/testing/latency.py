@@ -195,5 +195,4 @@ def align(BX0_word=0xf922f922,
         else:
             logging.debug('Found latency for emulator %s '%latency_emulator)
             logging.info('Found BX0 word for emulator %i '%BX0_emulator)
-
     return True

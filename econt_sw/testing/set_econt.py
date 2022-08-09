@@ -191,8 +191,8 @@ def output_align(verbose=False):
     lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
     lc.do_capture(lcaptures)
     sc.configure_compare(13,trigger=True)
-    err_counts = sc.reset_log_counters(0.01,verbose=False)        
-    
+    err_counts = sc.reset_log_counters(0.01,verbose=False)
+
     if err_counts>0:
         logging.warning(f'eTx error count after alignment: {err_counts}')
         data = lc.get_captured_data(lcaptures,nwords)
