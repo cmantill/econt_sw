@@ -1,6 +1,6 @@
 from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,output_align,bypass_align,bypass_compare
 from utils.asic_signals import ASICSignals
-from i2c import call_i2c
+from i2c import I2C_Client
 from PRBS import scan_prbs
 from PLL import scanCapSelect
 from delay_scan import delay_scan
@@ -10,6 +10,8 @@ import argparse,os,pickle,pprint
 import numpy as np
 import sys,copy
 
+i2cClient=I2C_Client()
+        
 def qc_i2c(i2c_address=0x20):
     sys.path.append( 'zmq_i2c/')
 
@@ -95,7 +97,7 @@ def econt_qc(board,odir,voltage,tag=''):
     goodValues = scanCapSelect(verbose=True, odir=odir,tag=tag)
     logging.info(f"Good PLL VCOCapSelect values: %s"%goodValues)
     logging.debug(f"Setting VCOCapSelect value to {goodValue}")
-    call_i2c(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodValue}')
+    i2cClient.call(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodValue}')
     
     # PRBS phase scan
     logging.info(f"Scan phase w PRBS err counters")
@@ -116,7 +118,7 @@ def econt_qc(board,odir,voltage,tag=''):
     # Scan IO delay scan
     logging.info('from IO delay scan')
     set_runbit(0)
-    call_i2c(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
+    i2cClient.call(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
     set_runbit(1)
     logging.debug(f"Configured ASIC/emulator with all eTx")
     err_counts = delay_scan(odir,ioType='from',tag=tag)
@@ -142,12 +144,12 @@ def econt_qc(board,odir,voltage,tag=''):
     # Test the different track modes and train channels   
     logging.info('Testing track modes')
     for trackmode in range(1, 4):
-        call_i2c(args_name='EPRXGRP_TOP_trackMode', args_value=f'{trackmode}')
+        i2cClient.call(args_name='EPRXGRP_TOP_trackMode', args_value=f'{trackmode}')
         phaseSelect_vals = []
         for trainchannel in range(0, 50):
-            call_i2c(args_name='CH_EPRXGRP_*_trainChannel', args_value='1')
-            call_i2c(args_name='CH_EPRXGRP_*_trainChannel', args_value='0')
-            x = call_i2c(args_name='CH_EPRXGRP_*_status_phaseSelect',args_i2c='ASIC')
+            i2cClient.call(args_name='CH_EPRXGRP_*_trainChannel', args_value='1')
+            i2cClient.call(args_name='CH_EPRXGRP_*_trainChannel', args_value='0')
+            x = i2cClient.call(args_name='CH_EPRXGRP_*_status_phaseSelect',args_i2c='ASIC')
             phaseSelect_vals.append([x['ASIC']['RO'][f'CH_EPRXGRP_{channel}INPUT_ALL']['status_phaseSelect'] for channel in range(0, 12)])
 
         with open(f'{odir}/trackmode{trackmode}_phaseSelect_{board}board.csv', 'w') as csvfile:

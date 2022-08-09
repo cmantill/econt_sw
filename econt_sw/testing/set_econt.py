@@ -145,9 +145,9 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
 
 def output_align(verbose=False):
     tv.set_bypass(1)
-    call_i2c(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
+    i2cClient.call(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
 
-    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
+    x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     logging.debug(f"Num links {num_links_asic} {num_links_emu}")
@@ -186,7 +186,7 @@ def output_align(verbose=False):
     lc_emu_aligned = align()
 
     # do compare
-    x=call_i2c(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
+    x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     logging.debug(f"Num links {num_links_asic} {num_links_emu}")
