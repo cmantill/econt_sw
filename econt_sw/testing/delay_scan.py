@@ -30,9 +30,6 @@ def delay_scan(odir,ioType='from',tag=''):
         writer.writerow([f'CH_{ch}' for ch in errorcounts.keys()])
         for j in range(len(errorcounts[0])):
             writer.writerow([errorcounts[key][j] for key in errorcounts.keys()])
-
-    from set_econt import io_align
-    io_align()
     
     return errorcounts
 
