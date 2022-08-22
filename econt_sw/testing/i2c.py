@@ -224,8 +224,11 @@ if __name__ == "__main__":
         import json
         with open("zmq_i2c/reg_maps/ECON_I2C_dict_info.json") as f:
             names_to_register = json.load(f)
-        with open("zmq_i2c/reg_maps/ECON_I2C_reg_description_dict.json") as f:
-            registerDescriptions = json.load(f)
+        try:
+            with open("zmq_i2c/reg_maps/ECON_I2C_reg_description_dict.json") as f:
+                registerDescriptions = json.load(f)
+        except:
+            registerDescriptions=None
         if args.name:
             p2 = re.compile('^(\w*)\*(\w*)$')
             p3 = re.compile('^(\w*)\*(\w*)\*(\w*)$') #match with two asterisks for autocompleting
@@ -250,7 +253,8 @@ if __name__ == "__main__":
                 print(f'    Size (bits) : {regInfo["size"]}')
                 print(f'    Default     : {regInfo["default"]}')
                 print(f'    Bits        : {regInfo["bits"]}')
-                print(f'    Description : {registerDescriptions[regInfo["docName"]]}')
+                if not registerDescriptions is None:
+                    print(f'    Description : {registerDescriptions[regInfo["docName"]]}')
 
 
         exit()
