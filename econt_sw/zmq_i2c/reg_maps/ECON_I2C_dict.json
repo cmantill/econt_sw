@@ -1056,7 +1056,7 @@
     "CH_ERR_12_raw_error_dll_not_locked": ["RO", "CH_ERR_12_ALL", "raw_error", "dll_not_locked"],
     "CH_ERR_12_raw_error_chns_not_locked": ["RO", "CH_ERR_12_ALL", "raw_error", "chns_not_locked"],
     "CH_ERR_12_raw_error_buffer_wr_ptr_overflow_err": ["RO", "CH_ERR_12_ALL", "raw_error", "buffer_wr_ptr_overflow_err"],
-    "CH_ERR_12_raw_error_fc_err_count_ne_zero": ["RO", "CH_ERR_12_ALL", "raw_error", "fc_error_count_ne_zero"],
+    "CH_ERR_12_raw_error_fc_error_count_ne_zero": ["RO", "CH_ERR_12_ALL", "raw_error", "fc_error_count_ne_zero"],
     "CH_ERR_12_raw_error_command_rx_inverted": ["RO", "CH_ERR_12_ALL", "raw_error", "command_rx_inverted"],
     "CH_ERR_12_error_mask_msk_dat": ["RO", "CH_ERR_12_ALL", "error_mask", "msk_dat"],
     "CH_ERR_12_error_data_err_out": ["RO", "CH_ERR_12_ALL", "error_data", "err_out"],
