@@ -43,14 +43,24 @@ phase_by_board = {
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
     15: "8,8,9,10,10,10,9,10,9,10,10,10",
 }
-def set_phase(board=None,best_setting=None):
-    i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
-    phasesetting = best_setting
-    if board is not None:
-        phasesetting = phase_by_board[board]
-    if phasesetting is not None:
-        logging.debug(f'Set fixed phase {phasesetting}')
-        i2cClient.call(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phasesetting}',args_i2c='ASIC')
+def set_phase(board=None,best_setting=None,trackMode=0):
+    if trackMode==0:
+        i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
+        phasesetting = best_setting
+        if board is not None:
+            phasesetting = phase_by_board[board]
+        if phasesetting is not None:
+            logging.debug(f'Set fixed phase {phasesetting}')
+            i2cClient.call(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{phasesetting}',args_i2c='ASIC')
+    elif trackMode==1:
+        i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'1',args_i2c='ASIC')
+        i2cClient.call(args_name='CH_EPRXGRP_[0-11]_trainChannel',args_value=f'1',args_i2c='ASIC')
+        i2cClient.call(args_name='CH_EPRXGRP_[0-11]_trainChannel',args_value=f'0',args_i2c='ASIC')
+        i2cClient.call(args_name='CH_EPRXGRP_[0-11]_status_phaseSelect',args_i2c='ASIC')
+    elif trackMode in [2,3]:
+        i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'{trackMode}',args_i2c='ASIC')
+    else:
+        logger.Error(f'trackMode setting must be in [0,1,2,3], selected value was {trackMode}')
 
 def set_phase_of_enable(phase=0):
     logger.debug(f'Set phase of enable {phase}')
@@ -116,6 +126,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
         # loop over snapshot BX
         goodASIC = False
         for snapshotBX in [2,3,4,5,1,0,6,7,8,9]:
+            logger.info(f'Trying alignment with snapshot BX={snapshotBX}')
             setAlignment(snapshotBX,delay=0)
             goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
             if goodASIC:
@@ -126,6 +137,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
 
         goodEmulator = False
         for delay in [snapshotBX+1, snapshotBX, snapshotBX-1, snapshotBX+2, snapshotBX-2]:
+            logger.info(f'Trying alignment with delay={delay}')
             setAlignment(delay=delay)
             _,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
             if goodEmulator:
@@ -276,3 +288,18 @@ def bypass_compare(idir,odir):
     lc.set_latency(['lc-emulator'],latencies['lc-emulator'])
 
     return err_counts
+
+if __name__=='__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--wordAlign',default=False, action='store_true')
+    parser.add_argument('--bx',type=int,default=None)
+    parser.add_argument('--delay',type=int,default=None)
+
+    args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
+
+    if args.wordAlign:
+        word_align(args.bx,args.delay)
