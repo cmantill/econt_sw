@@ -20,7 +20,7 @@ df.Address=np.vectorize(int)(df.Address,16)
 df=df.sort_values('Address')
 df.Address=df.Address.apply(hex)
 
-blocks=['CH_ALIGNER',  
+blocks=['CH_ALIGNER',
    'CH_EPRXGRP',
    'ALIGNER',
    'ERRTOP',
@@ -48,11 +48,10 @@ texInfo="""\\newgeometry{left=1cm,bottom=1cm, top=1cm,right=1cm}
 """
 
 for blockName in blocks:
-    
     texInfo += "\\begin{longtable}{| l | c | c | r | c | p{0.6\\textwidth} |}\n"
     _name=blockName.replace('_','\_')
     texInfo += "\\caption{Registers for "+_name+" block}\n"
-    texInfo += "\\label{"+blockName+"RegistersTable} \\\\ \n"
+    texInfo += "\\label{"+blockName+"RegistersTable} \\\\\n"
     texInfo += """\\hline
 \\textbf{Name}& \\textbf{Access} & \\textbf{Address} & \\textbf{Bits} & \\textbf{Default} & \\textbf{Description} \\\\
 \\hline \\hline
@@ -66,8 +65,8 @@ for blockName in blocks:
         n=x['Name'].replace('_','\_')
         d=x['Description'].replace('_','\_')
         endline='\\\\'
-        texInfo += f"      {n} & {x['Access']} & {x['Address']} & {x['Bits']} & {hex(x['Default'])} & {d} {endline} \n"
-        texInfo += "      \hline \n"
+        texInfo += f"      {n} & {x['Access']} & {x['Address']} & {x['Bits']} & {hex(x['Default'])} & {d} {endline}\n"
+        texInfo += "      \hline\n"
     texInfo += "\end{longtable}\n\n\n"
 texInfo += "\end{landscape}\n"
 
