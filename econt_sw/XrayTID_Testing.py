@@ -11,7 +11,7 @@ sys.path.append( 'gpib' )
 from TestStand_Controls import psControl
 ps=psControl('192.168.206.50')
 ps.select(48)
-ps.SetVoltage(None,1.2)
+ps.SetVoltage(48,1.2)
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
 
@@ -63,6 +63,7 @@ def RO_compare(previousStatus, i2c_RO_status):
     else:
         logging.error('RO Mismatches: %s'%diffs)
         logging.debug('RO Mismatches: %s'%full_diffs)
+    return diffs
 
 def RW_compare(previousStatus,i2c_status, fix=False):
 
@@ -92,6 +93,32 @@ def RW_compare(previousStatus,i2c_status, fix=False):
                 yaml.dump(yamlfix,_f)
             i2cClient.call(args_yaml='configs/ITA/temp.yaml',args_write=True)
         return yamlfix
+
+def CapSelAndPhaseScans(voltage=1.2):
+    goodVals=scanCapSelect(verbose=False,saveToFile=False)
+    logging.info(f'Good PLL settings V={voltage:.2f}: {goodVals}')
+    i2cClient.call('PLL_*CapSelect',args_value='27')
+    errCount_eRx=[]
+    goodStates_eRx=[]
+    errCount_eTx=[]
+    goodStates_eTx=[]
+    for i_capSel in goodVals:
+        i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
+        pusm_state=i2cClient.call('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
+        logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}')
+        err,setting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=False)
+        errCount_eRx.append((err).sum())
+        goodStates_eRx.append((err==0).sum())
+        delay_errors=delay_scan(odir=None)
+        delay_errors_array=np.array(list(delay_errors.values())).T
+        delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
+        errCount_eTx.append((delay_errors_array).sum())
+        goodStates_eTx.append((delay_errors_array==0).sum())
+        logging.info(f'eTx delays errors (CapSel={i_capSel}, V={voltage:.2f})\n{delay_errors_string}')
+
+    logging.info(f'total errors per setting\n{repr(np.array([goodVals,goodStates_eRx,errCount_eRx,goodStates_eTx,errCount_eTx]))}')
+    capSel=goodVals[int(len(goodVals)/3)]
+    return capSel
 
 
 #before a reset:
@@ -202,10 +229,12 @@ if __name__=="__main__":
     hexactrl.empty_fifo()
     hexactrl.configure(True,64,64,nlinks=13)
 
-    
+    consecutiveResetCount=0
+    consecutiveErrorCount=0
 
     logging.info(f'Starting stream compare (CTRL-C to stop and do capture and I2C compare)')
     hexactrl.start_daq()
+    doDAQcompare = True 
 
     try:
         i__=0
@@ -213,19 +242,51 @@ if __name__=="__main__":
             p,v,i=ps.Read_Power()
             logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
-            a=hexactrl.get_daq_counters()
+            #if we are getting continuous errors, turn off DAQ comparisons
+            if consecutiveResetCount > 5:
+                logger.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
+                doDAQcompare=False
 
-            if a>0:
-                dateTimeObj=datetime.now()
-                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
-                err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
-                hexactrl.start_daq()
-            if (i__%6)==0:
+            doI2CCompare = (i__%6)==0  #every minute
+            doDAQcapture = (i__%60)==0 #every 10 minutes
+            doPhaseScans = (i__%120)==0 #every 20 minutes
+            doPhaseScans=False
+            resetLevel=-1
+            par_en_error=False
+            errCount=0
+
+
+            if doDAQcompare:
+                errCount=hexactrl.get_daq_counters()
+
+                if errCount>0:
+                    dateTimeObj=datetime.now()
+                    timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+                    err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
+                    hexactrl.start_daq()
+
+                if errCount>1000:
+                    consecutiveErrorCount += 1
+                    logging.error(f'Errors in {consecutiveErrorCount} consecutive comparisons')
+                else:
+                    consecutiveErrorCount = 0
+
+            if doI2CCompare:
                 post_Reg_Status=i2cClient.call('ALL')
                 RO_compare(last_Reg_Status['ASIC']['RO'], post_Reg_Status)    
                 RW_compare(initial_Reg_Status['ASIC']['RW'], post_Reg_Status)
                 last_Reg_Status=post_Reg_Status.copy()
-            if (i__%60)==0:
+                if ((post_Reg_Status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrA']==1) or 
+                    (post_Reg_Status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrB']==1) or
+                    (post_Reg_Status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrC']==1)):
+
+                    logging.error('Parallel Enable Intr Error Observed')
+                    par_en_error=True
+
+            if doDAQcapture:
+                #### Force a link capture, dumping 10 BX to the screen
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
                 err,data=hexactrl.stop_daq(frow=36,capture=False, timestamp=timestamp,odir='logs')
                 data = capture(['lc-ASIC','lc-emulator','lc-input'],
                                nwords=10, mode='L1A', bx=0, csv=False, phex=True, 
@@ -234,62 +295,131 @@ if __name__=="__main__":
                 data_em=data['lc-emulator']
                 if not (data_ASIC==data_em).all():
                     logging.error('MISMATCH')
+                hexactrl.configure(True,64,64,nlinks=13)
                 hexactrl.start_daq()
 
-            if (i__%120)==0:
+            if doPhaseScans:
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
                 err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
 
+                #######
+                ####### Phase Scans at 1.08V
+                #######
+                hexactrl.testVectors(['dtype:PRBS32'])
                 logging.info(f'Setting to 1.08 V')
-                ps.SetVoltage(None,1.08)
+                ps.SetVoltage(48,1.08)
                 p,v,i=ps.Read_Power()
                 logging.info(f'Power(1.08V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                goodVals=scanCapSelect(verbose=False,saveToFile=False)
-                logging.info(f'Good PLL settings: {goodVals}')
-                i2cClient.call('PLL_*CapSelect',args_value='27')
-                scan_prbs(32,'ASIC',0.1,range(12),True)
-                delay_errors=delay_scan(odir=None)
-                delay_errors_array=np.array(list(delay_errors.values())).T
-                delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
-                logging.info(f'eTx delays errors\n{delay_errors_string}')
+                CapSelAndPhaseScans(voltage=1.08)
 
+
+                #######
+                ####### Phase Scans at 1.32V
+                #######
                 logging.info(f'Setting to 1.32 V')
-                ps.SetVoltage(None,1.32)
+                ps.SetVoltage(48,1.32)
                 p,v,i=ps.Read_Power()
                 logging.info(f'Power(1.32V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                goodVals=scanCapSelect(verbose=False,saveToFile=False)
-                logging.info(f'Good PLL settings: {goodVals}')
-                i2cClient.call('PLL_*CapSelect',args_value='27')
-                scan_prbs(32,'ASIC',0.1,range(12),True)
-                delay_errors=delay_scan(odir=None)
-                delay_errors_array=np.array(list(delay_errors.values())).T
-                delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
-                logging.info(f'eTx delays errors\n{delay_errors_string}')
+                CapSelAndPhaseScans(voltage=1.32)
 
+
+                #######
+                ####### Phase Scans at 1.20V
+                #######
                 logging.info(f'Setting to 1.2 V')
-                ps.SetVoltage(None,1.2)
+                ps.SetVoltage(48,1.2)
                 p,v,i=ps.Read_Power()
                 logging.info(f'Power(1.2V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                goodVals=scanCapSelect(verbose=False,saveToFile=False)
-                logging.info(f'Good PLL settings: {goodVals}')
-                i2cClient.call('PLL_*CapSelect',args_value='27')
-                scan_prbs(32,'ASIC',0.1,range(12),True)
-                delay_errors=delay_scan(odir=None)
-                delay_errors_array=np.array(list(delay_errors.values())).T
-                delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
-                logging.info(f'eTx delays errors\n{delay_errors_string}')
-                
+                capSel=CapSelAndPhaseScans(voltage=1.2)
+                logging.info(f'Setting PLL VCO CapSelect to {capSel}')
+                i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
+
+
+                ### Set phaseSelect, do output alignment, and restart DAQ comparisons
                 set_phase(board=10,trackMode=0)
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
                 configureASIC(level=0)
 
                 hexactrl.start_daq()
+
+
+
+            #######
+            ####### RESET SEQUENCES
+            #######
+            if par_en_error:
+                logging.warning("Observed error in parallel enable, performing soft reset")
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+                err,data=hexactrl.stop_daq(frow=36,capture=False)
+                configureASIC(level=2)
+                hexactrl.start_daq()
+
+            elif consecutiveErrorCount>=3:
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+                logging.warning("Starting Reset Process")
+                
+                err,data=hexactrl.stop_daq(frow=36,capture=False)
+                resetLevel=0
+                badData=True
+
+                if badData: #try output alignment first
+                    logging.warning("    Step 1 - Realign Output")
+                    configureASIC(level=0)
+                    hexactrl.start_daq()
+                    sleep(1)
+                    err,data=hexactrl.stop_daq(frow=36,capture=False)
+                    badData = err>1000
+
+                    if badData: #try word alignment and output alignment
+                        logging.warning("    Errors Persisted, Step 2 - Realign Input")
+                        configureASIC(level=1)
+                        hexactrl.start_daq()
+                        sleep(1)
+                        err,data=hexactrl.stop_daq(frow=36,capture=False)
+                        badData = err>1000
+                        if badData: #try soft reset
+                            logging.warning("    Errors Persisted, Step 3 - Soft Reset")
+                            configureASIC(level=2)
+                            hexactrl.start_daq()
+                            sleep(1)
+                            err,data=hexactrl.stop_daq(frow=36,capture=False)
+                            badData = err>1000
+                            if badData: #try hard reset
+                                logging.warning("    Errors Persisted, Step 4 - Hard Reset")
+                                configureASIC(level=3)
+                                hexactrl.start_daq()
+                                sleep(1)
+                                err,data=hexactrl.stop_daq(frow=36,capture=False)
+                                badData = err>1000
+                            else:
+                                logging.warning("    Soft Reset Fixed Errors")
+                        else:
+                            logging.warning("    Input Word Alignment Fixed Errors")
+                    else:
+                        logging.warning("    Output Alignment Fixed Errors")
+                    
+
+
+                #increment or reset consecutiveResetCount
+                if badData:
+                    consecutiveResetCount += 1
+                else:
+                    logging.warning("    Hard Reset Fixed Errors")
+                    consecutiveResetCount = 0
+                #reset consecutive error counter (to not immediately go to reset next iteration)
+                consecutiveErrorCount = 0
+                hexactrl.start_daq()
+
             i__ += 1
             sleep(10)
     except KeyboardInterrupt:
         logging.info(f'Stopping')
     
-    err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
+    err,data=hexactrl.stop_daq(frow=36,capture=False, timestamp=timestamp,odir='logs')
     if int(err)>0:
         print('ASIC')
         for x in data[:8]:

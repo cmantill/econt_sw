@@ -133,7 +133,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
                 break
         if not goodASIC:
             logger.error('Unable to find good snapshot bx')
-            exit()
+            #exit()
 
         goodEmulator = False
         for delay in [snapshotBX+1, snapshotBX, snapshotBX-1, snapshotBX+2, snapshotBX-2]:
@@ -144,7 +144,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
                 break
         if not goodEmulator:
             logger.error('Unable to find good delay setting')
-            exit()
+            #exit()
     else:
         # just set the parameters and check alignment
         setAlignment(snapshotBX,delay)
@@ -216,7 +216,7 @@ def output_align(verbose=False):
         data = lc.get_captured_data(lcaptures,nwords)
         for lcapture in data.keys():
             tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
-        exit()
+#        exit()
     else:
         logging.info('Links are aligned between ASIC and emulator')
         
