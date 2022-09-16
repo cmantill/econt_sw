@@ -11,6 +11,7 @@ from utils.pll_lock_count import PLLLockCount
 
 pll=PLLLockCount()
 i2cClient = I2C_Client()
+# i2cClient = I2C_Client('localhost',forceLocal=True)
 
 allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
                                  13,  14,  15,  24,  25,  26,  27,  28,  29,  30,  31,  56,  57,
@@ -23,7 +24,7 @@ def scanCapSelect(verbose=False, odir='./', tag='', saveToFile=True):
     vals_pusm = {}
     for i in allowedCapSelectVals:
         i2cClient.call('PLL_*CapSelect',args_value=str(i))
-        sleep(0.2)
+        sleep(0.1)
         status = i2cClient.call(args_name='PLL_lfLocked,PUSM_state')
         pusm_state = status['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
         pll_locked = status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_2to0_lfLocked']
