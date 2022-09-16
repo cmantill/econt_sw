@@ -35,8 +35,8 @@ phase_by_board = {
     3: "7,6,8,7,0,8,8,0,8,8,9,8",
     7: "5,4,5,5,6,6,6,6,5,6,6,6",
     8: "5,4,5,5,6,6,6,6,5,6,6,6",
-    9: "7,7,7,7,7,7,7,7,7,7,7,7",
-    10: "7,7,7,7,7,7,7,7,7,7,7,7",
+    9: "8,7,8,8,8,9,9,9,8,9,9,9",
+    10: "8,7,8,8,8,9,9,9,8,9,9,9",
     11: "7,6,8,8,8,9,8,9,7,8,8,8",
     12: "8,8,9,9,9,10,9,10,9,9,9,10",
     13: "8,8,8,8,8,8,8,8,8,8,8,8",
@@ -288,6 +288,20 @@ def bypass_compare(idir,odir):
     lc.set_latency(['lc-emulator'],latencies['lc-emulator'])
 
     return err_counts
+
+def delay_scan(odir,tag=''):
+    bitcounts,errorcounts = from_io.delay_scan(verbose=False)
+
+    if not odir is None:
+        import os
+        os.system(f'mkdir -p {odir}')
+        with open(f'{odir}/{ioType}_io_delayscan{tag}.csv','w') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow([f'CH_{ch}' for ch in errorcounts.keys()])
+            for j in range(len(errorcounts[0])):
+                writer.writerow([errorcounts[key][j] for key in errorcounts.keys()])
+
+    return errorcounts
 
 if __name__=='__main__':
     import argparse
