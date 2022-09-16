@@ -329,6 +329,7 @@ if __name__=='__main__':
 
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
     args = parser.parse_args()
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
 
     
     if args.scanPhaseEnable:

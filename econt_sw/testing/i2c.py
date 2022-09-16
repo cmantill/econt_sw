@@ -264,6 +264,7 @@ if __name__ == "__main__":
     outputs =i2cClient.call(args_name=args.name,
                             args_value=args.value,
                             args_yaml=args.yaml,
+                            args_i2c=args.i2c,
                             args_write=args.write,
                         )
 
