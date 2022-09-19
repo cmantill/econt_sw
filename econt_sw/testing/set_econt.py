@@ -248,6 +248,7 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
           modify_ASIC=False
     )
 
+
 def bypass_compare(idir,odir,ttag=""):
     # configure inputs
     tv.configure("",idir,fname="../testInput.csv",verbose=False)
