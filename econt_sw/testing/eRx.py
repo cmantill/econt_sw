@@ -122,7 +122,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9
     goodEmulator = False
     if not ASIC_only:
         snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
-        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
+        goodEmulator=((status_Emulator&3)==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
         
     # if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
     # if ASIC_only: goodSelect=True

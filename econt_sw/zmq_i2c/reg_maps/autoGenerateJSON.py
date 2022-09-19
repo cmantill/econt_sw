@@ -85,7 +85,6 @@ def processBlock(registers, rwType, blockName, addr_base, blockDocName):
         regAddr=addr_base + (reg_info['addr_offset'] if 'addr_offset' in reg_info else 0)
 
         kDocName=k
-    
         #if multiple iterations, replace with a list of keys
         if 'n_iterations' in reg_info:
             keylist = [k.replace('*',f'{i}') for i in range(reg_info['n_iterations'])]
@@ -96,7 +95,7 @@ def processBlock(registers, rwType, blockName, addr_base, blockDocName):
             keylist=[k]
             byteDefault=[reg_info['value']]
             addr_shift=0
-    
+
         for i,k_ in enumerate(keylist):
             if 'params' in reg_info:
                 p=reg_info['params']
@@ -119,7 +118,7 @@ def processBlock(registers, rwType, blockName, addr_base, blockDocName):
             else:
                 regName=fixNames(f'{blockName}_{k_}')
                 docName=fixNames(f'{blockDocName}_{kDocName}')
-                sizeBytes=reg_info['size_byte'] if 'size_byte' in reg_info else 8
+                sizeBytes=reg_info['size_byte'] if 'size_byte' in reg_info else 1
                 if 'param_mask' in reg_info:
                     bits=max(ceil(log2(reg_info['param_mask'])),1)
                     shift=reg_info['param_shift']
@@ -130,7 +129,7 @@ def processBlock(registers, rwType, blockName, addr_base, blockDocName):
                 else:
                     bits=8*sizeBytes
                     regLoc=f'x[{bits-1}:0]'
-                    
+
                 outputs[regName]={'i2cInfo':[rwType,blockName,k_],
                                   'addr':hex(regAddr+addr_shift*i),
                                   'size':bits,
@@ -164,7 +163,7 @@ def main():
             else:
                 x=processBlock(registers, rwType, block, addr_base, block)
                 outputs.update(x)
-            
+
     #list of the register documentation names
     regDocNames={}
 
@@ -172,14 +171,14 @@ def main():
     lines='{\n'
     infolines='{\n'
 
-    for k,val in outputs.items():        
+    for k,val in outputs.items():
         lines+=f'    "{k}": {val["i2cInfo"]},\n'
         infolines+=f'    "{k}": {val},\n'
         if not val['docName'] in regDocNames:
             regDocNames[val['docName']]=""
     lines = lines[:-2] + '\n}\n'
     infolines = infolines[:-2] + '\n}\n'
-        
+
     with open(outputJSONFile,'w') as _testFile:
         _testFile.write(lines.replace("'",'"'))
     with open(outputJSONFile.replace('.json','_info.json'),'w') as _testFile:
@@ -190,7 +189,7 @@ def main():
     if os.path.exists(outputRegisterDocFile):
         with open(outputRegisterDocFile,'r') as _testFile:
             oldDoc=json.load(_testFile)
-    
+
     #loop though old register descriptions, and write them into new description dictionary if key exists, otherwise print a warning
     missing='### Present in previous file, not in new version\n'
     anyMissing=False
