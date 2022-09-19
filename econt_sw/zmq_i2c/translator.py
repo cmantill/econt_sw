@@ -3,6 +3,9 @@ from yaml import safe_load, load, dump
 from nested_dict import nested_dict
 import math
 
+import os
+full_path = os.path.realpath(__file__)
+full_path = os.path.dirname(full_path)
 def memoize(fn):
     """ Readable memoize decorator. """
     fn.cache = {}
@@ -16,9 +19,9 @@ def memoize(fn):
 class Translator():
     """ Translate between (human-readable) config and corresponding address/register values. """
 
-    def __init__(self,econ):
+    def __init__(self,econ,fpath="./"):
         self.econ = econ
-        self.paramMap = self.load_param_map("reg_maps/ECON_I2C_params_regmap.yaml")[self.econ]
+        self.paramMap = self.load_param_map(f"{full_path}/reg_maps/ECON_I2C_params_regmap.yaml")[self.econ]
         self.regDict = nested_dict()
         self.nInputChannels = self.paramMap['ninput']
         self.nOutputChannels = self.paramMap['noutput']

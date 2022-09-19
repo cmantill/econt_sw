@@ -48,25 +48,13 @@ ECON-T:
     config:
      value: 0
      params:
-      misc_interrupts:
-       param_mask: 0x03
-       param_shift: 6
-      pll_not_locked:
-       param_mask: 0x01
-       param_shift: 5
-      dll_not_locked:
-       param_mask: 0x01
-       param_shift: 4
-      chns_not_locked:
-       param_mask: 0x01
-       param_shift: 3
-      buffer_wr_ptr_overflow_err:
+      wren_mask:
        param_mask: 0x01
        param_shift: 2
-      fc_error_count_ne_zero:
+      wren_err:
        param_mask: 0x01
        param_shift: 1
-      command_rx_inverted:
+      clr_on_read:
        param_mask: 0x01
        param_shift: 0
    
@@ -892,6 +880,51 @@ ECON-T:
        param_mask: 0x01
        param_shift: 1
       prbs_chk_err:
+       param_mask: 0x01
+       param_shift: 0
+    error_mask:
+     addr_offset: 0x01
+     value: 0
+     params:
+      msk_dat:
+       param_mask: 0x3f
+       param_shift: 0
+    error_data:
+     addr_offset: 0x02
+     value: 0
+     params:
+      err_out:
+       param_mask: 0x01
+       param_shift: 6
+      err_dat:
+       param_mask: 0x3f
+       param_shift: 0
+
+  CH_ERR_12_ALL:
+   addr_base: 0x0331
+   registers:
+    raw_error:
+     value: 0
+     params:
+      err_raw_dat:
+       param_mask: 0x3F
+       param_shift: 6
+      pll_not_locked:
+       param_mask: 0x01
+       param_shift: 5
+      dll_not_locked:
+       param_mask: 0x01
+       param_shift: 4
+      chns_not_locked:
+       param_mask: 0x01
+       param_shift: 3
+      buffer_wr_ptr_overflow_err:
+       param_mask: 0x01
+       param_shift: 2
+      fc_error_count_ne_zero:
+       param_mask: 0x01
+       param_shift: 1
+      command_rx_inverted:
        param_mask: 0x01
        param_shift: 0
     error_mask:

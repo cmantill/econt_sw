@@ -1,5 +1,6 @@
 import time
 import argparse
+import csv
 
 #import logging
 #logging.basicConfig()
@@ -19,15 +20,16 @@ def delay_scan(odir,ioType='from',tag=''):
     io = IOBlock(ioType,'IO')
     io.configure_IO(invert=True)
     bitcounts,errorcounts = io.delay_scan(verbose=False)
+    
+    print(errorcounts)
 
     import os
     os.system(f'mkdir -p {odir}')
-    import pickle
-    with open(f'{odir}/{ioType}_io_delayscan{tag}.pkl','wb') as f:
-        pickle.dump(errorcounts,f)
-
-    from set_econt import io_align
-    io_align()
+    with open(f'{odir}/{ioType}_io_delayscan{tag}.csv','w') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow([f'CH_{ch}' for ch in errorcounts.keys()])
+        for j in range(len(errorcounts[0])):
+            writer.writerow([errorcounts[key][j] for key in errorcounts.keys()])
     
     return errorcounts
 

@@ -31,11 +31,11 @@ def print_keys(d, read_keys, prefix=''):
 class econ_interface():
     """ Base class for interfacing with ECON at i2c register level """
 
-    def __init__(self, addr=0x20, i2c=1):
+    def __init__(self, addr=0x20, i2c=1, fpath="./"):
         _init_logger()
         self._logger = logging.getLogger('i2c')
         self.i2c = econ_i2c(i2c)
-        self.translator = Translator('ECON-T')
+        self.translator = Translator('ECON-T',fpath)
         self.i2c_addr = addr
         self.writeCache = {}
 
@@ -64,7 +64,7 @@ class econ_interface():
 
             # get new values
             writePairs = self.translator.pairs_from_cfg(paramMap,prevCache=self.writeCache,allowed=['RW'])
-            self._logger.info('Loaded custom configuration pairs')
+            self._logger.debug('Loaded custom configuration pairs')
         else:
             # read previous values of addresses in register:address dict
             self.writeCache = self.read_pairs(default_pairs)
@@ -144,7 +144,7 @@ class econ_interface():
         pairs = self.translator.pairs_from_cfg(paramMap, self.writeCache)
         rd_pairs = self.read_pairs(pairs)
         cfgRead = self.translator.cfg_from_pairs(rd_pairs,cfg)
-        self._logger.info('Read addresses from config')
+        self._logger.debug('Read addresses from config')
         return cfgRead
 
     def __read_fr_cache(self):
