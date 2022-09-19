@@ -23,7 +23,7 @@ def scanCapSelect(verbose=False, odir='./', tag=''):
     vals_pusm = {}
     for i in allowedCapSelectVals:
         i2cClient.call('PLL_*CapSelect',args_value=str(i))
-        sleep(0.1)
+        sleep(0.05)
         status = i2cClient.call(args_name='PLL_lfLocked,PUSM_state')
         pusm_state = status['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
         pll_locked = status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_2to0_lfLocked']
@@ -32,7 +32,6 @@ def scanCapSelect(verbose=False, odir='./', tag=''):
 
         if pusm_state==9:
             goodVals.append(i)
-
         
         vals_pusm[i] = pusm_state
              
