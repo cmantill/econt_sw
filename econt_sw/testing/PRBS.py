@@ -151,19 +151,21 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
             i2cClient.call(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
 
     err_counts = np.array(err_counts).astype(int)
-    logger.info(f'Error Array:\n{repr(err_counts)}')
+    if verbose:
+        logger.info(f'Error Array:\n{repr(err_counts)}')
     
     counts_window = []
     for i in range(15):
         # add counts over 3 setting window, summing i, i+1, and i-1 (mod 15)  
         counts_window.append( err_counts[i] + err_counts[(i-1)%15] + err_counts[(i+1)%15])
 
-    logger.debug('Error Counts over 3 setting window:')
-    logger.debug(" ".join(map(str,range(len(counts_window))))+" \n")
-    for c in counts_window:
-        logger.debug(" ".join(map(str,c)))
-    logger.debug('Minimum Arg:')
-    logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
+    if verbose:
+        logger.debug('Error Counts over 3 setting window:')
+        logger.debug(" ".join(map(str,range(len(counts_window))))+" \n")
+        for c in counts_window:
+            logger.debug(" ".join(map(str,c)))
+        logger.debug('Minimum Arg:')
+        logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     tag = f"{sleepTime}s{tag}"
     with open(f"{odir}/prbs_counters_scan_%s.csv"%tag, 'w') as f:
@@ -181,7 +183,7 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
         logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
         # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
-    y=(err_counts[2:-2]+err_counts[1:-3]+err_counts[3:-1]+err_counts[4:] + err_counts[:-4])
+    y=(err_counts[2:-2]+3*err_counts[1:-3]+5*err_counts[3:-1]+3*err_counts[4:] + err_counts[:-4])
     y[ err_counts[2:-2]>0 ] += 2555
     x=y.argmin(axis=0)+2
     best_setting=x

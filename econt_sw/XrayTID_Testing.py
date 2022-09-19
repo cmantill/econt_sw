@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.append( 'testing' )
 from i2c import I2C_Client
 from eRx import checkSnapshots
@@ -10,8 +11,13 @@ from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_stat
 sys.path.append( 'gpib' )
 from TestStand_Controls import psControl
 ps=psControl('192.168.206.50')
+
+ps.ConfigRTD()
+print(ps.readRTD())
+
 ps.select(48)
 ps.SetVoltage(48,1.2)
+
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
 
@@ -22,6 +28,8 @@ from time import sleep
 from hexactrl_interface import hexactrl_interface
 import pprint
 import numpy as np
+
+board=9
 
 suppressBlocks=[]#['CH_ALIGNER_','INPUT_ALL'],
 #                ['CH_ERR_','INPUT_ALL']]
@@ -94,7 +102,7 @@ def RW_compare(previousStatus,i2c_status, fix=False):
             i2cClient.call(args_yaml='configs/ITA/temp.yaml',args_write=True)
         return yamlfix
 
-def CapSelAndPhaseScans(voltage=1.2):
+def CapSelAndPhaseScans(voltage,timestamp):
     goodVals=scanCapSelect(verbose=False,saveToFile=False)
     logging.info(f'Good PLL settings V={voltage:.2f}: {goodVals}')
     i2cClient.call('PLL_*CapSelect',args_value='27')
@@ -102,21 +110,26 @@ def CapSelAndPhaseScans(voltage=1.2):
     goodStates_eRx=[]
     errCount_eTx=[]
     goodStates_eTx=[]
+    v=f'{voltage:.2f}'.replace('.','_')
+    _dir=f'phaseScans/board_{board}/voltage_{v}/{timestamp}'
+    os.makedirs(_dir)
     for i_capSel in goodVals:
         i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
         pusm_state=i2cClient.call('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
         logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}')
         err,setting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=False)
+        np.savetxt(f'{_dir}/eRx_PhaseScan_CapSelect_{i_capSel}.csv',err,'% 3s',delimiter=',')
         errCount_eRx.append((err).sum())
         goodStates_eRx.append((err==0).sum())
         delay_errors=delay_scan(odir=None)
         delay_errors_array=np.array(list(delay_errors.values())).T
-        delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
-        errCount_eTx.append((delay_errors_array).sum())
-        goodStates_eTx.append((delay_errors_array==0).sum())
-        logging.info(f'eTx delays errors (CapSel={i_capSel}, V={voltage:.2f})\n{delay_errors_string}')
+        np.savetxt(f'{_dir}/eTx_DelayScan_CapSelect_{i_capSel}.csv',delay_errors_array,'% 5s',delimiter=',')
+        # delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
+        # errCount_eTx.append((delay_errors_array).sum())
+        # goodStates_eTx.append((delay_errors_array==0).sum())
+        # logging.info(f'eTx delays errors (CapSel={i_capSel}, V={voltage:.2f})\n{delay_errors_string}')
 
-    logging.info(f'total errors per setting\n{repr(np.array([goodVals,goodStates_eRx,errCount_eRx,goodStates_eTx,errCount_eTx]))}')
+    # logging.info(f'total errors per setting\n{repr(np.array([goodVals,goodStates_eRx,errCount_eRx,goodStates_eTx,errCount_eTx]))}')
     capSel=goodVals[int(len(goodVals)/3)]
     return capSel
 
@@ -145,7 +158,7 @@ def configureASIC(level=0):
         resets.send_reset(reset='hard')
 
         startup()
-        set_phase(board=10,trackMode=0)
+        set_phase(board=board,trackMode=0)
         set_phase_of_enable(0)
         set_runbit()
         read_status()
@@ -239,8 +252,10 @@ if __name__=="__main__":
     try:
         i__=0
         while True:
-            p,v,i=ps.Read_Power()
-            logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+            p,v,i=ps.Read_Power(48)
+            temperature,resistance=ps.readRTD()
+            logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+            # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
             #if we are getting continuous errors, turn off DAQ comparisons
             if consecutiveResetCount > 5:
@@ -250,7 +265,6 @@ if __name__=="__main__":
             doI2CCompare = (i__%6)==0  #every minute
             doDAQcapture = (i__%60)==0 #every 10 minutes
             doPhaseScans = (i__%120)==0 #every 20 minutes
-            doPhaseScans=False
             resetLevel=-1
             par_en_error=False
             errCount=0
@@ -274,7 +288,7 @@ if __name__=="__main__":
             if doI2CCompare:
                 post_Reg_Status=i2cClient.call('ALL')
                 RO_compare(last_Reg_Status['ASIC']['RO'], post_Reg_Status)    
-                RW_compare(initial_Reg_Status['ASIC']['RW'], post_Reg_Status)
+                RW_compare(last_Reg_Status['ASIC']['RW'], post_Reg_Status)
                 last_Reg_Status=post_Reg_Status.copy()
                 if ((post_Reg_Status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrA']==1) or 
                     (post_Reg_Status['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrB']==1) or
@@ -302,6 +316,7 @@ if __name__=="__main__":
                 dateTimeObj=datetime.now()
                 timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
                 err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
+                logging.info(f"Starting Power Scans ( timestamp {timestamp} )")
 
                 #######
                 ####### Phase Scans at 1.08V
@@ -309,9 +324,11 @@ if __name__=="__main__":
                 hexactrl.testVectors(['dtype:PRBS32'])
                 logging.info(f'Setting to 1.08 V')
                 ps.SetVoltage(48,1.08)
-                p,v,i=ps.Read_Power()
-                logging.info(f'Power(1.08V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                CapSelAndPhaseScans(voltage=1.08)
+                p,v,i=ps.Read_Power(48)
+                temperature,resistance=ps.readRTD()
+                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                CapSelAndPhaseScans(voltage=1.08,timestamp=timestamp)
 
 
                 #######
@@ -319,9 +336,11 @@ if __name__=="__main__":
                 #######
                 logging.info(f'Setting to 1.32 V')
                 ps.SetVoltage(48,1.32)
-                p,v,i=ps.Read_Power()
-                logging.info(f'Power(1.32V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                CapSelAndPhaseScans(voltage=1.32)
+                p,v,i=ps.Read_Power(48)
+                temperature,resistance=ps.readRTD()
+                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
 
 
                 #######
@@ -329,15 +348,17 @@ if __name__=="__main__":
                 #######
                 logging.info(f'Setting to 1.2 V')
                 ps.SetVoltage(48,1.2)
-                p,v,i=ps.Read_Power()
-                logging.info(f'Power(1.2V): {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                capSel=CapSelAndPhaseScans(voltage=1.2)
+                p,v,i=ps.Read_Power(48)
+                temperature,resistance=ps.readRTD()
+                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                capSel=CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
                 logging.info(f'Setting PLL VCO CapSelect to {capSel}')
                 i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
-                set_phase(board=10,trackMode=0)
+                set_phase(board=board,trackMode=0)
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
                 configureASIC(level=0)

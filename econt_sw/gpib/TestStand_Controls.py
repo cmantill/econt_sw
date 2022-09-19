@@ -4,6 +4,7 @@ from time import sleep
 GPIBAddresses={46:6,
               48:8,
               99:5,
+              15:15,
               }
 
 class psControl:
@@ -20,8 +21,11 @@ class psControl:
 
     def select(self,board):
         if not board is None:
-            self.gpib.select(GPIBAddresses[board])
-            self.board=board
+            if board>30:
+                addr=GPIBAddresses[board]
+            else:
+                addr=board
+            self.gpib.select(addr)
 
     def ID(self,board):
         self.select(board)
@@ -62,6 +66,22 @@ class psControl:
         v=self.gpib.query("MEAS:VOLT?")[:-1]
         i=self.gpib.query("MEAS:CURR?")[:-1]
         return output,v,i
+
+    def ConfigRTD(self):
+        self.select(15)
+        self.gpib.write('*RST')
+        self.gpib.write("FUNC 'RES'")
+        self.gpib.write("RES:MODE AUTO")
+        self.gpib.write("RES:RANG 2E3")
+        self.gpib.write(":SYST:RSEN ON")
+        self.gpib.write(":FORM:ELEM RES")
+        self.gpib.write(":OUTP ON")
+
+    def readRTD(self):
+        self.select(15)
+        resistance=float(self.gpib.read()[:-1])
+        temperature=((resistance/1000)-1)/0.00385
+        return temperature, resistance
         
 
 if __name__=='__main__':
