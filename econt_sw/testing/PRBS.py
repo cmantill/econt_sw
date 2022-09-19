@@ -43,7 +43,7 @@ def print_error_and_counters(args,channels,verbose=True):
         if verbose:
             # logger.info(f'{channel}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err}')
             # logger.info(f'{channel}: {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
-            logger.info(f'{channel:02n}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err} {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
+            logger.debug(f'{channel:02n}: {hdr_mm_err} {prbs_chk_err} {raw_error_prbs_chk_err} {orbsyn_hdr_err_cnt} {orbsyn_arr_err_cnt} {orbsyn_fc_err_cnt} {prbs_chk_err_cnt}')
         prbs_chk_err_cnts[channel] = prbs_chk_err_cnt
 
     return prbs_chk_err_cnts

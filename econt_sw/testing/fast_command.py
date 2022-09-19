@@ -15,8 +15,9 @@ fc_requests = [
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Fast commands')
-    parser.add_argument('--fc', type=str, required=True, choices=fc_requests,
+    parser.add_argument('--fc', type=str, choices=fc_requests,
                         help='fast command')
+    parser.add_argument('--configure', default=False, action='store_true', help='configure fast commands')
     parser.add_argument('--read', action='store_true', default=False, help='read')
     parser.add_argument('--getBX', action='store_true', default=False, help='find BX a FC is being issued')
     parser.add_argument('--getCounter', action='store_true', default=False, help='find BX a FC is being issued')
@@ -54,5 +55,5 @@ if __name__ == "__main__":
             fc.read_command_delay()
         else:
             fc.set_command_delay()
-    elif args.fc=='configure':
+    elif args.configure:
         fc.configure_fc(args.read)

@@ -87,7 +87,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".link_align_inhibit").write(1);
             self.dev.dispatch()
 
-    def set_latency(self,lcaptures,latency,verbose=True):
+    def set_latency(self,lcaptures,latency):
         """Reset links and set latency for multiple lcs"""
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
@@ -101,8 +101,8 @@ class LinkCapture:
         latencies = {}
         for lcapture in lcaptures:
             read_latency = []
-            for l in range(output_nlinks):
-                lat = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").read();
+            for k in range(output_nlinks):
+                lat = self.dev.getNode(self.lcs[lcapture]+".link"+str(k)+".fifo_latency").read();
                 self.dev.dispatch()
                 read_latency.append(int(lat))
             latencies[lcapture] = read_latency
@@ -121,7 +121,7 @@ class LinkCapture:
             for l in links:
                 align_pos = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_position").read();
                 self.dev.dispatch()
-                self.logger.debug('Align pos link %i: %i'%(l,int(align_pos)))
+                self.logger.debug('Align position link %i: %i'%(l,int(align_pos)))
                 
                 if align_position and l in links:
                     self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".override_align_position").write(1);
@@ -130,12 +130,12 @@ class LinkCapture:
 
                     read_align_pos = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_position").read();
                     self.dev.dispatch()
-                    self.logger.debug('Set align pos link %i: %i'%(l,read_align_pos))
+                    self.logger.debug('Set align position link %i: %i'%(l,read_align_pos))
 
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_align").write(1);
                 self.dev.dispatch()
                 
-    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0,verbose=False):
+    def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0):
         """Set link captures to acquire with the same mode"""
         """
         mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
@@ -187,7 +187,7 @@ class LinkCapture:
             self.dev.getNode(self.lcs[lcapture]+".global.interrupt_enable").write(0)
             self.dev.dispatch()
     
-    def do_capture(self,lcaptures,verbose=True):
+    def do_capture(self,lcaptures):
         """Set acquire to 1 for multiple lcs"""
         for lcapture in lcaptures:
             self.dev.getNode(self.lcs[lcapture]+".global.aquire").write(0)
@@ -204,7 +204,7 @@ class LinkCapture:
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".continuous_acquire").write(1)
             self.dev.dispatch()
 
-    def stop_continous_capture(self,lcaptures,verbose=False):
+    def stop_continous_capture(self,lcaptures):
         for lcapture in lcaptures:
             self.dev.getNode(self.lcs[lcapture]+".global.continous_acquire").write(0)
             for l in range(self.nlinks[lcapture]):
@@ -239,7 +239,7 @@ class LinkCapture:
                 else:
                     break
 
-    def get_captured_data(self,lcaptures,nwords=4095,verbose=True):
+    def get_captured_data(self,lcaptures,nwords=4095):
         """Get captured data"""
         time.sleep(1)
         captured_data = {}
@@ -259,7 +259,7 @@ class LinkCapture:
             # make sure that all links have the same number of words
             try:
                 assert(int(fifo_occupancy) == fifo_occupancies[0])
-                self.logger.debug('fifo occupancies %i %i'%(fifo_occupancies[0],int(fifo_occupancy)))
+                # self.logger.debug('fifo occupancies %i %i'%(fifo_occupancies[0],int(fifo_occupancy)))
             except:            
                 self.logger.error('not same fifo occ for link %i or nwords %i'%(l,nwords),fifo_occupancies)
                 continue
@@ -270,8 +270,7 @@ class LinkCapture:
                 #fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link%i"%l+".fifo_occupancy").read()
                 #self.dev.dispatch()
                 if int(fifo_occupancy)>0:
-                    if verbose:
-                        self.logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
+                    # self.logger.debug('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
                     data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
                     self.dev.dispatch()
                     daq_data.append([int(d) for d in data])

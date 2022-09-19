@@ -31,11 +31,11 @@ def print_keys(d, read_keys, prefix=''):
 class econ_interface():
     """ Base class for interfacing with ECON at i2c register level """
 
-    def __init__(self, addr=0x20, i2c=1):
+    def __init__(self, addr=0x20, i2c=1, fpath="./"):
         _init_logger()
         self._logger = logging.getLogger('i2c')
         self.i2c = econ_i2c(i2c)
-        self.translator = Translator('ECON-T')
+        self.translator = Translator('ECON-T',fpath)
         self.i2c_addr = addr
         self.writeCache = {}
 

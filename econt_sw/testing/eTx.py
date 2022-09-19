@@ -46,26 +46,26 @@ def capture(lcaptures,nwords=4095,
     fc.configure_fc()
 
     # configure acquire
-    lc.stop_continous_capture(lcaptures,verbose=verbose)
-    lc.configure_acquire(lcaptures,mode,nwords=nwords,total_length=nwords,bx=bx,verbose=verbose)
+    lc.stop_continous_capture(lcaptures)
+    lc.configure_acquire(lcaptures,mode,nwords=nwords,total_length=nwords,bx=bx)
 
     # do link capture
     if mode in lc.fc_by_lfc.keys():
-        lc.do_capture(lcaptures,verbose)
+        lc.do_capture(lcaptures)
         fc.request(lc.fc_by_lfc[mode],verbose)
         time.sleep(0.001)
         fc.get_counter(lc.fc_by_lfc[mode],verbose)
     else:
         if mode == 'L1A' and not trigger:
             fc.get_counter("l1a",verbose)
-            lc.do_capture(lcaptures,verbose)
+            lc.do_capture(lcaptures)
             fc.send_l1a()
             fc.get_counter("l1a",verbose)
         else:
-            lc.do_capture(lcaptures,verbose)
+            lc.do_capture(lcaptures)
 
     # get captured data
-    data = lc.get_captured_data(lcaptures,nwords,verbose)
+    data = lc.get_captured_data(lcaptures,nwords)
 
     # save or print
     verbose_captured_data(data,csv,phex,odir,fname,verbose)
@@ -80,24 +80,26 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
                sleepTime=0.01,
                log=False,verbose=False):
     """Compare two link captures"""
+    print('compare-lc')
     lcaptures = ['lc-ASIC','lc-emulator']
     if nlinks==-1:
         nlinks = output_nlinks
 
     if trigger:
-        # NOTE: before using trigger=True it is recommendable to check that the counters are not always increasing
+        # before using trigger=True it is recommendable to check that the counters are not always increasing
         # otherwise we could get in some weird situations wiht link capture
 
         # reset fc
         fc.configure_fc()
 
         # configure acquire
-        lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0,verbose)
+        lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
 
         # set acquire to 1 (you can set global.acquire to 1 whenever you like.  It will wait indefinitely for the next trigger)
-        lc.do_capture(lcaptures,verbose)
+        lc.do_capture(lcaptures)
 
     # configure stream compare
+    print('configure sc ',nlinks)
     sc.configure_compare(nlinks,trigger)
 
     # log counters
@@ -107,11 +109,12 @@ def compare_lc(trigger=False,nlinks=-1,nwords=4095,
     else:
         err_count = sc.reset_log_counters(sleepTime,verbose)
 
+    print('err count ',err_count)
     # read data if error count > 0
     # trigger will capture 32 words prior to a mismatch identified by stream_compare
     data = None
     if err_count>0 and trigger:
-        data = lc.get_captured_data(lcaptures,nwords,verbose)
+        data = lc.get_captured_data(lcaptures,nwords)
         verbose_captured_data(data,csv,phex,odir,fname,verbose)
 
     # reset fc

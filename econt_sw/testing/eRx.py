@@ -43,7 +43,7 @@ def i2cSnapshot(bx=None):
     return snapshots, status, select
 
 def overrideSelect(select_ASIC):
-    print('Overriding select settings with ',select_ASIC)
+    logger.info('Overriding select settings with ',select_ASIC)
     select_values = ','.join([f'{s}' for s in select_ASIC])
     i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_val',args_value=select_values)
     i2cClient.call(args_name='CH_ALIGNER_[0-11]_sel_override_en',args_value='1')
@@ -83,7 +83,7 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
     if snapshotBX is None:
         # loop over snapshot BX
         goodASIC = False
-        for snapshotBX in [3,4,5,2,1,0,6,7,8,9]:
+        for snapshotBX in [2,3,4,5,1,0,6,7,8,9]:
             setAlignment(snapshotBX,delay=0)
             goodASIC,_ = checkWordAlignment(verbose=verbose,match_pattern=match_pattern,ASIC_only=True)
             if goodASIC:
@@ -108,7 +108,7 @@ def linkResetAlignment(snapshotBX=None, delay=None, orbsyncVal=0, override=True,
         goodASIC,goodEmulator = checkWordAlignment(verbose=verbose,match_pattern=match_pattern)
         
     if goodASIC and goodEmulator:
-        logger.info('Good input word alignment, delay %i and snapshotBX %i'%(delay-1,snapshotBX))
+        logger.info(f'Good input word alignment, snapshotBX {snapshotBX} and delay {delay}')
 
 def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9ccccccc'):
     """Check word alignment"""
@@ -122,7 +122,7 @@ def checkWordAlignment(verbose=True, ASIC_only=False, match_pattern='0xaccccccc9
     goodEmulator = False
     if not ASIC_only:
         snapshots_Emulator, status_Emulator, select_Emulator=readSnapshot('emulator', True)
-        goodEmulator=(status_Emulator==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
+        goodEmulator=((status_Emulator&3)==2).all() & (snapshots_Emulator==(0xacccccccacccccccacccccccaccccccc0000000000000000 + int(match_pattern,16))).all()
         
     # if only checking alignment of ASIC, it doesn't matter if we are within this range, only that we get good status
     # if ASIC_only: goodSelect=True
@@ -398,15 +398,6 @@ if __name__=='__main__':
     parser.add_argument('--verbose', dest='verbose',default=False, action='store_true')
 
     args = parser.parse_args()
-
-    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
-    # logger = logger.getLogger("eRx")
-    # logger.setLevel(logger.DEBUG)
-    # ch = logging.StreamHandler()
-    # ch.setLevel(logging.INFO)
-    # formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-    # ch.setFormatter(formatter)
-    # logger.addHandler(ch)
 
     if args.configureTV:
         tv = TestVectors(args.tv_name)
