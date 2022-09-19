@@ -43,6 +43,7 @@ phase_by_board = {
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
     15: "8,8,9,10,10,10,9,10,9,10,10,10",
 }
+
 def set_phase(board=None,best_setting=None,trackMode=0):
     if trackMode==0:
         i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
@@ -92,6 +93,7 @@ def set_fpga():
     
 def word_align(bx,emulator_delay,bcr=0,verbose=False):
     from eRx import checkWordAlignment,statusLogging
+
 
     verbose=True
     def setAlignment(snapshotBX=None, delay=None):
