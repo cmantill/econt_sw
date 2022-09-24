@@ -548,14 +548,15 @@ if __name__=="__main__":
             sleep(10)
     except KeyboardInterrupt:
         logging.info(f'Stopping')
-        logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
-        message = 'THIS IS A TEST EMAIL (want to make sure the email in the tid script is working)\n'
-        message += 'ECON-T Test stopped\n\n\nLAST 100 LINES OF LOG\n\n\n'
-        message += ''.join([x.decode('utf-8') for x in logTail])
-        dateTimeObj=datetime.now()
-        timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
-        subject=f"ECON ERROR {timestamp}"
-        sendEmail(subject,message)
+        #####test email messaging 
+        # logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+        # message = 'THIS IS A TEST EMAIL (want to make sure the email in the tid script is working)\n'
+        # message += 'ECON-T Test stopped\n\n\nLAST 100 LINES OF LOG\n\n\n'
+        # message += ''.join([x.decode('utf-8') for x in logTail])
+        # dateTimeObj=datetime.now()
+        # timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+        # subject=f"ECON ERROR {timestamp}"
+        # sendEmail(subject,message)
 
     except:
         logging.exception('Stopping because of exception')
