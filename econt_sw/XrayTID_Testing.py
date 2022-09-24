@@ -19,9 +19,11 @@ except:
     GMAIL_PASSWORD=None
 
 import smtplib
+from email.message import EmailMessage
 
-def sendEmail(SUBJECT,TEXT):
+def sendEmail(SUBJECT,TEXT,RECIPIENT=['dnoonan08@gmail.com','criss.ms7@gmail.com']):
     if GMAIL_USER is None or GMAIL_PASSWORD is None:
+        print('No User')
         return
 
     # creates SMTP session
@@ -30,15 +32,18 @@ def sendEmail(SUBJECT,TEXT):
     # start TLS for security
     s.starttls()
 
-    to = ['dnoonan08@gmail.com','dnoonan@cern.ch']
-
     # Authentication
     s.login(GMAIL_USER, GMAIL_PASSWORD)
 
     # message to be sent
-    message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)    
+    message = EmailMessage()
+    message.set_content(TEXT)
+    message['Subject']=SUBJECT
+    message['From']=GMAIL_USER
+    message['To']=RECIPIENT
+
     # sending the mail
-    s.sendmail(GMAIL_USER, to, message)
+    s.send_message(message)
 
     # terminating the session
     s.quit()
@@ -47,15 +52,8 @@ def sendEmail(SUBJECT,TEXT):
 if useGPIB:
     sys.path.append( 'gpib' )
     from TestStand_Controls import psControl
-    gpib_ip='128.141.89.226'
+    gpib_ip='POOL05550020.cern.ch' #'128.141.89.226'
     ps=psControl(host=gpib_ip,timeout=3)
-
-    ps.ConfigRTD()
-    temperature,resistance=ps.readRTD()
-
-    ps.SetVoltage(1.2)
-    p,v,i=ps.Read_Power()
-    print(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
 
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
@@ -106,7 +104,7 @@ def SetVoltage(v,maxTries=5):
     return output
 
 
-board=9
+board=10
 
 suppressBlocks=[]#['CH_ALIGNER_','INPUT_ALL'],
 #                ['CH_ERR_','INPUT_ALL']]
@@ -114,7 +112,6 @@ suppressBlocks=[]#['CH_ALIGNER_','INPUT_ALL'],
 i2cClient=I2C_Client(ip='localhost',forceLocal=True)
 resets=ASICSignals()
 hexactrl=hexactrl_interface()
-hexactrl.testVectors(['dtype:PRBS28'])
 
 def RO_compare(previousStatus, i2c_RO_status):
     diffs={}
@@ -261,9 +258,9 @@ def resetErrorCounts():
     i2cClient.call('ALIGNER_snapshot_en',args_value='0')
     hexactrl.send_fc('link_reset_roct')
     i2cClient.call('ALIGNER_snapshot_en',args_value='1')
-    i2cClient.call('ERRTOP_clr_on_read_top,MISC_rw_ecc_err_clr',args_value='1')
-    i2cClient.call('ERRTOP_clr_on_read_top,MISC_rw_ecc_err_clr',args_value='0')
-
+    i2cClient.call('ERRTOP_clr_on_read_top,MISC_rw_ecc_err_clr,FCTRL_reset_b_fc_counters',args_value='1,1,0')
+    i2cClient.call('ERRTOP_clr_on_read_top,MISC_rw_ecc_err_clr,FCTRL_reset_b_fc_counters',args_value='0,0,1')
+    
 
 ### set threshold to 0 (or 50, or 100???)
 
@@ -291,12 +288,21 @@ if __name__=="__main__":
     logging.getLogger().addHandler(console)
 
     logging.info(f'Starting')
+    logging.info(f'Using Board {board}')
+
+    ps.ConfigRTD()
+    temperature,resistance=ps.readRTD()
+
+    ps.SetVoltage(1.2)
+    p,v,i=ps.Read_Power()
+    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
 
     dateTimeObj=datetime.now()
     timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
     if not args.tag=="":
         timestamp=f'{args.tag}_{timestamp}'
 
+    hexactrl.testVectors(['dtype:PRBS28'])
     logging.info('Configuring ASIC')
     configureASIC(level=3)
 
@@ -538,6 +544,15 @@ if __name__=="__main__":
             sleep(10)
     except KeyboardInterrupt:
         logging.info(f'Stopping')
+        logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+        message = 'THIS IS A TEST EMAIL (want to make sure the email in the tid script is working)\n'
+        message += 'ECON-T Test stopped\n\n\nLAST 100 LINES OF LOG\n\n\n'
+        message += ''.join([x.decode('utf-8') for x in logTail])
+        dateTimeObj=datetime.now()
+        timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+        subject=f"ECON ERROR {timestamp}"
+        sendEmail(subject,message)
+
     except:
         logging.exception('Stopping because of exception')
 
