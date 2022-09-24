@@ -234,7 +234,10 @@ def configureASIC(level=0):
         resets.send_reset(reset='hard')
 
         startup()
-        set_phase(board=board,trackMode=0)
+
+        err,best_PhaseSetting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=True)
+        set_phase(best_setting=','.join([str(i) for i in best_PhaseSetting]))
+
         set_phase_of_enable(0)
         set_runbit()
         read_status()
@@ -459,14 +462,14 @@ if __name__=="__main__":
                     p,v,i,temperature,resistance=-1,-1,-1,-1,-1
                 logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                 # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                capSel=CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
+                capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
                 logging.info(f'Setting PLL VCO CapSelect to {capSel}')
                 i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
                 # set_phase(board=board,trackMode=0)
-                set_phase(best_setting=','.join([str(i) for i in best_setting]))
+                set_phase(best_setting=','.join([str(i) for i in best_PhaseSetting]))
 
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
