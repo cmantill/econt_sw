@@ -113,11 +113,13 @@ def CapSelAndPhaseScans(voltage,timestamp):
     v=f'{voltage:.2f}'.replace('.','_')
     _dir=f'phaseScans/board_{board}/voltage_{v}/{timestamp}'
     os.makedirs(_dir)
+    settings = {}
     for i_capSel in goodVals:
         i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
         pusm_state=i2cClient.call('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
         logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}')
         err,setting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=False)
+        settings[i_capSel] = setting
         np.savetxt(f'{_dir}/eRx_PhaseScan_CapSelect_{i_capSel}.csv',err,'% 3s',delimiter=',')
         errCount_eRx.append((err).sum())
         goodStates_eRx.append((err==0).sum())
@@ -131,7 +133,7 @@ def CapSelAndPhaseScans(voltage,timestamp):
 
     # logging.info(f'total errors per setting\n{repr(np.array([goodVals,goodStates_eRx,errCount_eRx,goodStates_eTx,errCount_eTx]))}')
     capSel=goodVals[int(len(goodVals)/3)]
-    return capSel
+    return capSel,settings[capSel]
 
 
 #before a reset:
@@ -358,7 +360,9 @@ if __name__=="__main__":
 
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
-                set_phase(board=board,trackMode=0)
+                # set_phase(board=board,trackMode=0)
+                set_phase(best_setting=','.join([str(i) for i in best_setting]))
+
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
                 configureASIC(level=0)
