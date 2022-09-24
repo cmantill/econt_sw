@@ -6,17 +6,56 @@ from eRx import checkSnapshots
 from eTx import capture
 from PLL import scanCapSelect
 
+import subprocess
+
 from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,word_align,output_align,delay_scan
 
-sys.path.append( 'gpib' )
-from TestStand_Controls import psControl
-ps=psControl('192.168.206.50')
+useGPIB=True
 
-ps.ConfigRTD()
-print(ps.readRTD())
+try:
+    from emailLogin import GMAIL_USER,GMAIL_PASSWORD
+except:
+    GMAIL_USER=None
+    GMAIL_PASSWORD=None
 
-ps.select(48)
-ps.SetVoltage(48,1.2)
+import smtplib
+
+def sendEmail(SUBJECT,TEXT):
+    if GMAIL_USER is None or GMAIL_PASSWORD is None:
+        return
+
+    # creates SMTP session
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+
+    # start TLS for security
+    s.starttls()
+
+    to = ['dnoonan08@gmail.com','dnoonan@cern.ch']
+
+    # Authentication
+    s.login(GMAIL_USER, GMAIL_PASSWORD)
+
+    # message to be sent
+    message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT)    
+    # sending the mail
+    s.sendmail(GMAIL_USER, to, message)
+
+    # terminating the session
+    s.quit()
+
+
+if useGPIB:
+    sys.path.append( 'gpib' )
+    from TestStand_Controls import psControl
+    gpib_ip='128.141.89.226'
+    ps=psControl(host=gpib_ip,timeout=3)
+
+    ps.ConfigRTD()
+    temperature,resistance=ps.readRTD()
+
+    ps.SetVoltage(1.2)
+    p,v,i=ps.Read_Power()
+    print(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
 
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
@@ -28,6 +67,44 @@ from time import sleep
 from hexactrl_interface import hexactrl_interface
 import pprint
 import numpy as np
+
+
+#### define try/except loops, in an attempt to solve timeout issue which killed script (final except will
+def Read_Power(maxTries=5):
+    _n=0
+    while _n<maxTries:
+        try:
+            p,v,i=ps.Read_Power()
+            break
+        except:
+            _n += 1
+            p,v,i=-1,-1,-1
+    return p,v,i
+
+def readRTD(maxTries=5):
+    _n=0
+    while _n<maxTries:
+        try:
+            temperature,resistance=ps.readRTD()
+            break
+        except:
+            _n += 1
+            temperature,resistance=-1,-1
+    return temperature,resistance
+
+def SetVoltage(v,maxTries=5):
+    _n=0
+    while _n<maxTries:
+        try:
+            ps.SetVoltage(v)
+            output=v
+            break
+        except:
+            _n += 1
+            output=-1
+    sleep(1)
+    return output
+
 
 board=9
 
@@ -252,14 +329,26 @@ if __name__=="__main__":
     try:
         i__=0
         while True:
-            p,v,i=ps.Read_Power(48)
-            temperature,resistance=ps.readRTD()
+            if useGPIB:
+                p,v,i=Read_Power()
+                temperature,resistance=readRTD()
+            else:
+                p,v,i,temperature,resistance=-1,-1,-1,-1,-1
             logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
             # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
             #if we are getting continuous errors, turn off DAQ comparisons
             if consecutiveResetCount > 5:
                 logger.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
+
+                logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+                message = 'ECON-T had too many failed resets\n\n\nLAST 100 LINES OF LOG\n\n\n'
+                message += ''.join([x.decode('utf-8') for x in logTail])
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+                subject=f"ECON RESET ERROR {timestamp}"
+                sendEmail(subject, message)
+
                 doDAQcompare=False
 
             doI2CCompare = (i__%6)==0  #every minute
@@ -318,38 +407,48 @@ if __name__=="__main__":
                 err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
                 logging.info(f"Starting Power Scans ( timestamp {timestamp} )")
 
-                #######
-                ####### Phase Scans at 1.08V
-                #######
-                hexactrl.testVectors(['dtype:PRBS32'])
-                logging.info(f'Setting to 1.08 V')
-                ps.SetVoltage(48,1.08)
-                p,v,i=ps.Read_Power(48)
-                temperature,resistance=ps.readRTD()
-                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
-                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                CapSelAndPhaseScans(voltage=1.08,timestamp=timestamp)
+                if useGPIB:
+                    #######
+                    ####### Phase Scans at 1.08V
+                    #######
+                    hexactrl.testVectors(['dtype:PRBS32'])
+                    logging.info(f'Setting to 1.08 V')
+                    _v=SetVoltage(1.08)
+                    if _v==-1:
+                        logging.error('Problem setting voltage')
+                    p,v,i=Read_Power()
+                    temperature,resistance=readRTD()
+                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                    # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                    CapSelAndPhaseScans(voltage=1.08,timestamp=timestamp)
 
 
-                #######
-                ####### Phase Scans at 1.32V
-                #######
-                logging.info(f'Setting to 1.32 V')
-                ps.SetVoltage(48,1.32)
-                p,v,i=ps.Read_Power(48)
-                temperature,resistance=ps.readRTD()
-                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
-                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
+                    #######
+                    ####### Phase Scans at 1.32V
+                    #######
+                    logging.info(f'Setting to 1.32 V')
+                    _v=SetVoltage(1.32)
+                    if _v==-1:
+                        logging.error('Problem setting voltage')
+                    p,v,i=Read_Power()
+                    temperature,resistance=readRTD()
+                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                    # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                    CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
 
 
                 #######
                 ####### Phase Scans at 1.20V
                 #######
                 logging.info(f'Setting to 1.2 V')
-                ps.SetVoltage(48,1.2)
-                p,v,i=ps.Read_Power(48)
-                temperature,resistance=ps.readRTD()
+                if useGPIB:
+                    _v=SetVoltage(1.2,maxTries=25)
+                    if _v==-1:
+                        logging.error('Problem setting voltage')
+                    p,v,i=Read_Power()
+                    temperature,resistance=readRTD()
+                else:
+                    p,v,i,temperature,resistance=-1,-1,-1,-1,-1
                 logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                 # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
                 capSel=CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
@@ -439,7 +538,18 @@ if __name__=="__main__":
             sleep(10)
     except KeyboardInterrupt:
         logging.info(f'Stopping')
-    
+    except:
+        logging.exception('Stopping because of exception')
+
+        logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+        message = 'ECON-T Test stopped\n\n\nLAST 100 LINES OF LOG\n\n\n'
+        message += ''.join([x.decode('utf-8') for x in logTail])
+        dateTimeObj=datetime.now()
+        timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+        subject=f"ECON ERROR {timestamp}"
+        sendEmail(subject,message)
+
+
     err,data=hexactrl.stop_daq(frow=36,capture=False, timestamp=timestamp,odir='logs')
     if int(err)>0:
         print('ASIC')

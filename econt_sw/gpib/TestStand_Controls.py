@@ -31,18 +31,18 @@ class psControl:
         self.select(board)
         return self.gpib.query("*IDN?")[:-1]
 
-    def SetVoltage(self, board, voltage):
-        self.select(board)
+    def SetVoltage(self, voltage):
+        self.select(8)
 
         if float(voltage)<=1.5 and float(voltage) >= 0.9:
-            self.gpib.write(f"VOLT {voltage}")
+            self.gpib.write(f"V {voltage}")
             return True
         else:
             print(f'Selected voltage ({voltage}) outside of defined safe range 0.9-1.5')
             return False
 
-    def ASICOn(self,board=None,voltage=None):
-        self.select(board)
+    def ASICOn(self,voltage=None):
+        self.select(8)
         x=self.gpib.query('++addr')
 
         if voltage is None:
@@ -51,35 +51,34 @@ class psControl:
             is_set=self.SetVoltage(None,float(voltage))
 
         if is_set:
-            self.gpib.write("CURR 0.6")
-            self.gpib.write("OUTP ON")
+            self.gpib.write("I 0.6")
+            self.gpib.write("OP 1")
 
-    def ASICOff(self,board=None):
-        self.select(board)
+    def ASICOff(self):
+        self.select(8)
         x=self.gpib.query('++addr')
-        self.gpib.write("OUTP OFF")
+        self.gpib.write("OP 0")
 
-    def Read_Power(self,board=None):
-        self.select(board)
-
-        output=self.gpib.query("OUTP?")[:-1]
-        v=self.gpib.query("MEAS:VOLT?")[:-1]
-        i=self.gpib.query("MEAS:CURR?")[:-1]
+    def Read_Power(self):
+        self.select(8)
+#        x=self.gpib.query('++addr')
+#        print(x)
+#        output=self.gpib.query("OUTP?")[:-1]
+        output="1"
+        v=self.gpib.query("VO?")[:-2]
+        i=self.gpib.query("IO?")[:-2]
         return output,v,i
 
     def ConfigRTD(self):
-        self.select(15)
+        self.select(12)
         self.gpib.write('*RST')
-        self.gpib.write("FUNC 'RES'")
-        self.gpib.write("RES:MODE AUTO")
-        self.gpib.write("RES:RANG 2E3")
-        self.gpib.write(":SYST:RSEN ON")
-        self.gpib.write(":FORM:ELEM RES")
-        self.gpib.write(":OUTP ON")
+        self.gpib.write("FUNC 'FRES'")
+        self.gpib.write("FRES:RANG 1E3")
 
     def readRTD(self):
-        self.select(15)
-        resistance=float(self.gpib.read()[:-1])
+        self.select(12)
+        resistance=float(self.gpib.query(":READ?"))
+#        resistance=float(self.gpib.read()[:-1])
         temperature=((resistance/1000)-1)/0.00385
         return temperature, resistance
         
@@ -114,7 +113,7 @@ if __name__=='__main__':
     if args.id:
         print(ps.ID(args.board))
     if args.read:
-        p,v,i=ps.Read_Power(args.board)
+        p,v,i=ps.Read_Power()
         print(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
     if args.logging:
         import logging
@@ -131,7 +130,7 @@ if __name__=='__main__':
 
         try:
             while True:
-                on_ASIC,v_ASIC,i_ASIC=ps.Read_Power(args.board)
+                on_ASIC,v_ASIC,i_ASIC=ps.Read_Power()
                 logging.info(f'Power: {"On" if int(p) else "Off"}, ASIC Voltage: {float(v_ASIC):.4f}, ASIC Current:{float(i_ASIC):.4f}')
                 sleep(args.time)
         except KeyboardInterrupt:
