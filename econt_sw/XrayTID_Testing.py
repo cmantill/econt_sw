@@ -191,6 +191,7 @@ def CapSelAndPhaseScans(voltage,timestamp):
     _dir=f'phaseScans/board_{board}/voltage_{v}/{timestamp}'
     os.makedirs(_dir)
     settings = {}
+    settings_trackMode1 = {}
     for i_capSel in goodVals:
         p,v,i=Read_Power()
         i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
@@ -200,10 +201,20 @@ def CapSelAndPhaseScans(voltage,timestamp):
         settings[i_capSel] = setting
         np.savetxt(f'{_dir}/eRx_PhaseScan_CapSelect_{i_capSel}.csv',err,'% 3s',delimiter=',')
 
+        set_phase(trackMode=1)
+        phaseSel=i2cClient.call(args_name='CH_EPRXGRP_[0-11]_status_phaseSelect',args_i2c='ASIC')['ASIC']['RO']
+        settings_trackMode1[i_capSel]=[phaseSel[f'CH_EPRXGRP_{i}INPUT_ALL']['status_phaseSelect'] for i in range(12)]
+        i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
+
         delay_errors=delay_scan(odir=None)
         delay_errors_array=np.array(list(delay_errors.values())).T
         np.savetxt(f'{_dir}/eTx_DelayScan_CapSelect_{i_capSel}.csv',delay_errors_array,'% 5s',delimiter=',')
 
+
+    with open(f'{_dir}/phaseSelect_TrackMode0.txt','w') as _file:
+        _file.write(pprint.pformat(settings))
+    with open(f'{_dir}/phaseSelect_TrackMode1.txt','w') as _file:
+        _file.write(pprint.pformat(settings_trackMode1))
     capSel=goodVals[int(len(goodVals)/3)]
     logging.info(f'NOTE: ! Using 27 instead of {capSel}')
     capSel=27
