@@ -223,9 +223,10 @@ def output_align(verbose=False):
         for lcapture in data.keys():
             tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
     else:
-        data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
         logging.info('Links are aligned between ASIC and emulator')
-        
+
+    data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
+
 def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=13):
     # configure alignment inputs
     tv.configure("",idir,fname="testInput.csv")
