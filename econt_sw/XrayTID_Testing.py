@@ -21,7 +21,7 @@ except:
 import smtplib
 from email.message import EmailMessage
 
-def sendEmail(SUBJECT,TEXT,RECIPIENT=['dnoonan08@gmail.com','criss.ms7@gmail.com']):
+def sendEmail(SUBJECT,TEXT,RECIPIENT=['dnoonan08@gmail.com','criss.ms7@gmail.com','jhirsch@fnal.gov','james.f.hirschauer@gmail.com']):
     if GMAIL_USER is None or GMAIL_PASSWORD is None:
         print('No User')
         return
@@ -52,8 +52,9 @@ def sendEmail(SUBJECT,TEXT,RECIPIENT=['dnoonan08@gmail.com','criss.ms7@gmail.com
 if useGPIB:
     sys.path.append( 'gpib' )
     from TestStand_Controls import psControl
-    gpib_ip='POOL05550020.cern.ch' #'128.141.89.226'
-    ps=psControl(host=gpib_ip,timeout=3)
+#    gpib_ip='POOL05550020.cern.ch' #'128.141.89.226'
+    ps=psControl(host='POOL05550020.cern.ch',timeout=3)
+    rtd=psControl(host='POOL05550016.cern.ch',timeout=3)
 
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
@@ -77,17 +78,21 @@ def Read_Power(maxTries=5):
         except:
             _n += 1
             p,v,i=-1,-1,-1
+    if _n==maxTries:
+        ps.reconnect()
     return p,v,i
 
 def readRTD(maxTries=5):
     _n=0
     while _n<maxTries:
         try:
-            temperature,resistance=ps.readRTD()
+            temperature,resistance=rtd.readRTD()
             break
         except:
             _n += 1
             temperature,resistance=-1,-1
+    if _n==maxTries:
+        rtd.reconnect()
     return temperature,resistance
 
 def SetVoltage(v,maxTries=5):
@@ -100,9 +105,10 @@ def SetVoltage(v,maxTries=5):
         except:
             _n += 1
             output=-1
+    if _n==maxTries:
+        ps.reconnect()
     sleep(1)
     return output
-
 
 board=10
 
@@ -180,33 +186,27 @@ def CapSelAndPhaseScans(voltage,timestamp):
     goodVals=scanCapSelect(verbose=False,saveToFile=False)
     logging.info(f'Good PLL settings V={voltage:.2f}: {goodVals}')
     i2cClient.call('PLL_*CapSelect',args_value='27')
-    errCount_eRx=[]
-    goodStates_eRx=[]
-    errCount_eTx=[]
-    goodStates_eTx=[]
+
     v=f'{voltage:.2f}'.replace('.','_')
     _dir=f'phaseScans/board_{board}/voltage_{v}/{timestamp}'
     os.makedirs(_dir)
     settings = {}
     for i_capSel in goodVals:
+        p,v,i=Read_Power()
         i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
         pusm_state=i2cClient.call('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
-        logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}')
+        logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}, V={float(v):.2f}, I={float(i):.4f}')
         err,setting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=False)
         settings[i_capSel] = setting
         np.savetxt(f'{_dir}/eRx_PhaseScan_CapSelect_{i_capSel}.csv',err,'% 3s',delimiter=',')
-        errCount_eRx.append((err).sum())
-        goodStates_eRx.append((err==0).sum())
+
         delay_errors=delay_scan(odir=None)
         delay_errors_array=np.array(list(delay_errors.values())).T
         np.savetxt(f'{_dir}/eTx_DelayScan_CapSelect_{i_capSel}.csv',delay_errors_array,'% 5s',delimiter=',')
-        # delay_errors_string=repr(delay_errors_array).replace(",\n       ",",").replace("],","],\n       ")
-        # errCount_eTx.append((delay_errors_array).sum())
-        # goodStates_eTx.append((delay_errors_array==0).sum())
-        # logging.info(f'eTx delays errors (CapSel={i_capSel}, V={voltage:.2f})\n{delay_errors_string}')
 
-    # logging.info(f'total errors per setting\n{repr(np.array([goodVals,goodStates_eRx,errCount_eRx,goodStates_eTx,errCount_eTx]))}')
     capSel=goodVals[int(len(goodVals)/3)]
+    logging.info(f'NOTE: ! Using 27 instead of {capSel}')
+    capSel=27
     return capSel,settings[capSel]
 
 
@@ -237,6 +237,8 @@ def configureASIC(level=0):
 
         err,best_PhaseSetting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=True)
         set_phase(best_setting=','.join([str(i) for i in best_PhaseSetting]))
+
+        hexactrl.testVectors(['dtype:PRBS28'])
 
         set_phase_of_enable(0)
         set_runbit()
@@ -295,9 +297,10 @@ if __name__=="__main__":
     logging.info(f'Starting')
     logging.info(f'Using Board {board}')
 
-    ps.ConfigRTD()
-    temperature,resistance=ps.readRTD()
+    rtd.ConfigRTD()
+    temperature,resistance=rtd.readRTD()
 
+    ps.ConfigReadCurrent()
     ps.SetVoltage(1.2)
     p,v,i=ps.Read_Power()
     logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
@@ -332,6 +335,8 @@ if __name__=="__main__":
 
     consecutiveResetCount=0
     consecutiveErrorCount=0
+    badVoltageCount=0
+    voltageEmailSent=False
 
     logging.info(f'Starting stream compare (CTRL-C to stop and do capture and I2C compare)')
     hexactrl.start_daq()
@@ -348,9 +353,26 @@ if __name__=="__main__":
             logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
             # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
+            #trigger email if bad voltage readings multiple times
+            if float(v)<1.14 or float(v)>1.26:
+                badVoltageCount += 1
+            else:
+                badVoltageCount = 0
+
+            if badVoltageCount==5 and not voltageEmailSent:
+                logging.error("Voltage bad for multiple consecutive readings")
+                message = f'ECON-T voltage at bad settings\n\n\nPower: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms\n\n\nLAST 100 LINES OF LOG\n\n\n'
+                logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+                message += ''.join([x.decode('utf-8') for x in logTail])
+                dateTimeObj=datetime.now()
+                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+                subject=f"ECON VOLTAGE ERROR {timestamp}"
+                sendEmail(subject, message)
+                voltageEmailSent=True
+
             #if we are getting continuous errors, turn off DAQ comparisons
-            if consecutiveResetCount > 5:
-                logger.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
+            if (consecutiveResetCount > 5) and doDAQcompare:
+                logging.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
 
                 logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
                 message = 'ECON-T had too many failed resets\n\n\nLAST 100 LINES OF LOG\n\n\n'
@@ -463,16 +485,18 @@ if __name__=="__main__":
                 logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                 # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
                 capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
-                logging.info(f'Setting PLL VCO CapSelect to {capSel}')
+                bestPhase=','.join([str(i) for i in best_PhaseSetting])
+                logging.info(f'Setting PLL VCO CapSelect to {capSel} with phaseSelect settings of {bestPhase}')
                 i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
                 # set_phase(board=board,trackMode=0)
-                set_phase(best_setting=','.join([str(i) for i in best_PhaseSetting]))
+                set_phase(best_setting=bestPhase)
 
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
+                resets.send_reset(reset='soft')
                 configureASIC(level=0)
 
                 hexactrl.start_daq()
