@@ -162,7 +162,8 @@ def output_align(verbose=False):
     x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    logging.debug(f"Num links {num_links_asic} {num_links_emu}")
+    if num_links_emu != num_links_asic:
+        logging.warning(f"Num links {num_links_asic} {num_links_emu}")
 
     for phase_of_enable in [0,4]:
         logging.debug(f'Aligning ASIC: Setting phase of enable to {phase_of_enable}')
@@ -173,6 +174,9 @@ def output_align(verbose=False):
         from_io.reset_counters()
         align = from_io.check_IO(verbose=False)
         if not align:
+            if phase_of_enable==4:
+                logging.warning(f'IO block not aligned, exit output alignment')
+                return
             continue
         else:
             from_io.manual_IO()
@@ -187,8 +191,9 @@ def output_align(verbose=False):
         # check
         align = lc.check_links(['lc-ASIC'])
         data = lc.get_captured_data(['lc-ASIC'])
-        # tv.save_testvector(f"asic_capture.csv",data['lc-ASIC'])
+        tv.save_testvector(f"asic_capture.csv",data['lc-ASIC'])
         if not align:
+            logging.warning(f'ASIC link capture not aligned')
             continue
         else:
             break
@@ -201,7 +206,8 @@ def output_align(verbose=False):
     x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    logging.debug(f"Num links {num_links_asic} {num_links_emu}")
+    if num_links_emu != num_links_asic:
+        logging.warning(f"Num links {num_links_asic} {num_links_emu}")
 
     nwords = 4095
     lcaptures = ['lc-ASIC','lc-emulator']
@@ -209,15 +215,15 @@ def output_align(verbose=False):
     lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
     lc.do_capture(lcaptures)
     sc.configure_compare(13,trigger=True)
-    err_counts = sc.reset_log_counters(0.01,verbose=False)
+    err_counts = sc.reset_log_counters(0.01,verbose=True)
 
     if err_counts>0:
         logging.warning(f'eTx error count after alignment: {err_counts}')
         data = lc.get_captured_data(lcaptures,nwords)
         for lcapture in data.keys():
             tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
-#        exit()
     else:
+        data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
         logging.info('Links are aligned between ASIC and emulator')
         
 def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=13):
