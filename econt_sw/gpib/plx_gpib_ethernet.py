@@ -20,6 +20,13 @@ class PrologixGPIBEthernet:
 
         self._setup()
 
+    def reconnect(self):
+        self.socket.close()
+        self.socket = socket.socket(socket.AF_INET,
+                                    socket.SOCK_STREAM,
+                                    socket.IPPROTO_TCP)
+        self.socket.connect((self.host, self.PORT))
+
     def close(self):
         self.socket.close()
 

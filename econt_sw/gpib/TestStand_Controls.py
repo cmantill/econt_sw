@@ -16,6 +16,9 @@ class psControl:
     def close(self):
         self.gpib.close()
 
+    def reconnect(self):
+        self.gpib.reconnect()
+
     def disconnect(self):
         self.gpib.disconnect()
 
@@ -66,7 +69,8 @@ class psControl:
 #        output=self.gpib.query("OUTP?")[:-1]
         output="1"
         v=self.gpib.query("VO?")[:-2]
-        i=self.gpib.query("IO?")[:-2]
+        i=self.readCurrent()
+#        i=self.gpib.query("IO?")[:-2]
         return output,v,i
 
     def ConfigRTD(self):
@@ -82,6 +86,16 @@ class psControl:
         temperature=((resistance/1000)-1)/0.00385
         return temperature, resistance
         
+    def ConfigReadCurrent(self):
+        self.select(12)
+        self.gpib.write("*RST")
+        self.gpib.write("FUNC 'CURR:DC'")
+        self.gpib.write("CURR:RANGE 1.")
+
+    def readCurrent(self):
+        self.select(12)
+        current=float(self.gpib.query(":READ?"))
+        return current
 
 if __name__=='__main__':
     import argparse
