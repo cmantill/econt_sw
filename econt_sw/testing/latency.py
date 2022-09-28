@@ -147,10 +147,10 @@ def scan_latency(
     # loop over latency values
     for val in range(val,20): 
         # replace value in the latency array, if it is not 1
-        logging.debug(f'Setting latency for {lcapture} to {val}')
+        # logging.debug(f'Setting latency for {lcapture} to {val}')
         latency[latency==-1] = val
         
-        logging.debug(f'Setting latency array %s',latency)
+        # logging.debug(f'Setting latency array %s',latency)
         lc.set_latency([lcapture],latency)
 
         # send a pattern and find rows in which BX0 training pattern is present
