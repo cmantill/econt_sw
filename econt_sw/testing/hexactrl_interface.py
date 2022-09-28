@@ -88,6 +88,7 @@ class hexactrl_interface():
                  np.pad(first_rows['lc-input'], [(0, 0), (0, 1)])
              )
             )
+        self.empty_fifo()
         return err_count,daq_data
 
     def empty_fifo(self):
