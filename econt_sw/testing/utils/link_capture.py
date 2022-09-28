@@ -170,7 +170,7 @@ class LinkCapture:
             capture_dict[mode] = 1
             bx = 0
             
-        self.logger.debug("Configure acquire with bx %i and  %s"%(bx,capture_dict))
+        # self.logger.debug("Configure acquire with bx %i and  %s"%(bx,capture_dict))
 
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
@@ -223,7 +223,6 @@ class LinkCapture:
                 fifo_occupancies.append(int(fifo_occupancy))
 
         return fifo_occupancies
-
 
     def empty_fifo(self,lcaptures):
         # sleep a bit in case there was an acquisition

@@ -6,8 +6,6 @@ from .uhal_config import *
 
 import logging
 
-# logging level
-# 0: info, 10:debug
 class TestVectors():
     """ Class to handle test vectors """
     def __init__(self,tv='testvectors',logLevel="",logLevelLogger=20):
@@ -97,7 +95,7 @@ class TestVectors():
             testvectors_settings["idle_word"] = 0xa0000000
             testvectors_settings["idle_word_BX0"] = 0x90000000
 
-        self.logger.debug('Test vector settings %s'%testvectors_settings)
+        # self.logger.debug('Test vector settings %s'%testvectors_settings)
 
         for l in range( self.nlinks ):
             for key,value in testvectors_settings.items():
@@ -143,7 +141,7 @@ class TestVectors():
 
     def set_bypass(self,bypass=1):
         """Set bypass"""
-        self.logger.debug(f"Setting bypass switch output_select to {bypass}")
+        # self.logger.debug(f"Setting bypass switch output_select to {bypass}")
         for l in range(13):
             self.dev.getNode(names['bypass']['switch']+".link"+str(l)+".output_select").write(bypass)
         self.dev.dispatch()
