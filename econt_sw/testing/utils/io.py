@@ -79,7 +79,7 @@ class IOBlock:
             delay_P[link] = int(delay_out)
             delay_N[link] = int(delay_out_N)
 
-        self.logger.debug("P-side delay setting: %s, Eye width: %s"%(delay_P,delay_N)
+        self.logger.debug("P-side delay setting: %s, Eye width: %s"%(delay_P,delay_N))
 
         return delay_P,delay_N
 
