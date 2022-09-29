@@ -75,7 +75,6 @@ class IOBlock:
             delay_out = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out").read()
             delay_out_N = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out_N").read()
             self.dev.dispatch()
-            self.logger.debug("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
             delay_P[link] = int(delay_out)
             delay_N[link] = int(delay_out_N)
 
@@ -132,8 +131,15 @@ class IOBlock:
                 bitcounts[l].append(int(bit_counter))
                 errorcounts[l].append(int(error_counter))
 
+        self.align_delay_vals()
+
         return bitcounts,errorcounts
     
+    def align_delay_vals(self):
+        for l in range(self.nlinks):
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_mode").write(1)
+        self.manual_IO()
+
     def print_IO(self):
         """Prints IO block configuration"""
         regs = ["reg0.reset_link","reg0.reset_counters","reg0.delay_mode","reg0.delay_set",

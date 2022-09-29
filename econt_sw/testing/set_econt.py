@@ -155,6 +155,39 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
 
     statusLogging(sleepTime=2,N=1)
 
+def simple_output_align(verbose=False):
+    #find good delay settings
+    from_io.align_delay_vals()
+
+    # send link reset econt
+    fc.request("link_reset_econt")
+
+    # # check
+    # align = lc.check_links(['lc-ASIC'])
+
+    # # find latency
+    # from latency import align
+    # lc_emu_aligned = align()
+
+    # nwords = 4095
+    # lcaptures = ['lc-ASIC','lc-emulator']
+    # fc.configure_fc()
+    # lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
+    # lc.do_capture(lcaptures)
+    # sc.configure_compare(13,trigger=True)
+    # err_counts = sc.reset_log_counters(0.01,verbose=True)
+
+    # if err_counts>0:
+    #     logging.warning(f'eTx error count after alignment: {err_counts}')
+    #     data = lc.get_captured_data(lcaptures,nwords)
+    #     for lcapture in data.keys():
+    #         tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
+    # else:
+    #     logging.info('Links are aligned between ASIC and emulator')
+
+    # data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
+
+
 def output_align(verbose=False):
     tv.set_bypass(1)
     i2cClient.call(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
