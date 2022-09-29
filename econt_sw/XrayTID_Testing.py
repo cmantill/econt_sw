@@ -8,7 +8,7 @@ from PLL import scanCapSelect
 
 import subprocess
 
-from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,word_align,output_align,delay_scan
+from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,word_align,output_align,simple_output_align,delay_scan
 
 useGPIB=True
 
@@ -79,7 +79,10 @@ def Read_Power(maxTries=5):
             _n += 1
             p,v,i=-1,-1,-1
     if _n==maxTries:
-        ps.reconnect()
+        try:
+            ps.reconnect()
+        except:
+            logging.error('Unable to reconnect to GPIB')
     return p,v,i
 
 def readRTD(maxTries=5):
@@ -110,7 +113,7 @@ def SetVoltage(v,maxTries=5):
     sleep(1)
     return output
 
-board=10
+board=9
 
 suppressBlocks=[]#['CH_ALIGNER_','INPUT_ALL'],
 #                ['CH_ERR_','INPUT_ALL']]
@@ -196,7 +199,7 @@ def CapSelAndPhaseScans(voltage,timestamp):
         p,v,i=Read_Power()
         i2cClient.call('PLL_*CapSelect',args_value=f'{i_capSel}')
         pusm_state=i2cClient.call('PUSM_state')['ASIC']['RO']['MISC_ALL']['misc_ro_0_PUSM_state']
-        logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}, V={float(v):.2f}, I={float(i):.4f}')
+        logging.info(f'   CapSel={i_capSel}, V={voltage:.2f}, PUSM={pusm_state}, V={float(v):.2f}, I={float(i):.6f}')
         err,setting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=False)
         settings[i_capSel] = setting
         np.savetxt(f'{_dir}/eRx_PhaseScan_CapSelect_{i_capSel}.csv',err,'% 3s',delimiter=',')
@@ -216,8 +219,10 @@ def CapSelAndPhaseScans(voltage,timestamp):
     with open(f'{_dir}/phaseSelect_TrackMode1.txt','w') as _file:
         _file.write(pprint.pformat(settings_trackMode1))
     capSel=goodVals[int(len(goodVals)/3)]
-    logging.info(f'NOTE: ! Using 27 instead of {capSel}')
-    capSel=27
+
+    # forcedCapSel=27 if voltage==1.2 else 28
+    # logging.info(f'NOTE: ! Using {forcedCapSel} instead of {capSel}')
+    # capSel=forcedCapSel
     return capSel,settings[capSel]
 
 
@@ -271,6 +276,13 @@ def configureASIC(level=0):
         i2cClient.call('*threshold*',args_value='50',args_i2c='ASIC,emulator')
         resetErrorCounts()
 
+    if level==-1:  #input align only
+        word_align(None,None)
+
+        selVals=i2cClient.call('CH_ALI*select')['ASIC']['RO']
+        selValString=','.join([str(selVals[f'CH_ALIGNER_{i}INPUT_ALL']['select']) for i in range(12)])
+        i2cClient.call('CH_ALIGNER_[0-11]_sel_override_en,CH_ALIGNER_[0-11]_sel_override_val',args_value='[1]*12,'+selValString)
+
 def resetErrorCounts():
     i2cClient.call('CH_ERR*err_dat*')
     i2cClient.call('ALIGNER_snapshot_en',args_value='0')
@@ -314,7 +326,7 @@ if __name__=="__main__":
     ps.ConfigReadCurrent()
     ps.SetVoltage(1.2)
     p,v,i=ps.Read_Power()
-    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
 
     dateTimeObj=datetime.now()
     timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
@@ -361,7 +373,7 @@ if __name__=="__main__":
                 temperature,resistance=readRTD()
             else:
                 p,v,i,temperature,resistance=-1,-1,-1,-1,-1
-            logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+            logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
             # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
             #trigger email if bad voltage readings multiple times
@@ -372,7 +384,7 @@ if __name__=="__main__":
 
             if badVoltageCount==5 and not voltageEmailSent:
                 logging.error("Voltage bad for multiple consecutive readings")
-                message = f'ECON-T voltage at bad settings\n\n\nPower: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms\n\n\nLAST 100 LINES OF LOG\n\n\n'
+                message = f'ECON-T voltage at bad settings\n\n\nPower: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms\n\n\nLAST 100 LINES OF LOG\n\n\n'
                 logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
                 message += ''.join([x.decode('utf-8') for x in logTail])
                 dateTimeObj=datetime.now()
@@ -397,7 +409,8 @@ if __name__=="__main__":
 
             doI2CCompare = (i__%6)==0  #every minute
             doDAQcapture = (i__%60)==0 #every 10 minutes
-            doPhaseScans = (i__%120)==0 #every 20 minutes
+            doPhaseScans_A = (i__%120)==0 #every 20 minutes
+            doPhaseScans_B = (i__%120)==0 #every 20 minutes
             resetLevel=-1
             par_en_error=False
             errCount=0
@@ -412,7 +425,7 @@ if __name__=="__main__":
                     err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
                     hexactrl.start_daq()
 
-                if errCount>1000:
+                if errCount>20000000:
                     consecutiveErrorCount += 1
                     logging.error(f'Errors in {consecutiveErrorCount} consecutive comparisons')
                 else:
@@ -445,28 +458,14 @@ if __name__=="__main__":
                 hexactrl.configure(True,64,64,nlinks=13)
                 hexactrl.start_daq()
 
-            if doPhaseScans:
+            if doPhaseScans_A or doPhaseScans_B:
                 dateTimeObj=datetime.now()
                 timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
                 err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
                 logging.info(f"Starting Power Scans ( timestamp {timestamp} )")
 
-                if useGPIB:
-                    #######
-                    ####### Phase Scans at 1.08V
-                    #######
-                    hexactrl.testVectors(['dtype:PRBS32'])
-                    logging.info(f'Setting to 1.08 V')
-                    _v=SetVoltage(1.08)
-                    if _v==-1:
-                        logging.error('Problem setting voltage')
-                    p,v,i=Read_Power()
-                    temperature,resistance=readRTD()
-                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
-                    # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                    CapSelAndPhaseScans(voltage=1.08,timestamp=timestamp)
-
-
+                hexactrl.testVectors(['dtype:PRBS32'])
+                if useGPIB and doPhaseScans_B:
                     #######
                     ####### Phase Scans at 1.32V
                     #######
@@ -476,40 +475,67 @@ if __name__=="__main__":
                         logging.error('Problem setting voltage')
                     p,v,i=Read_Power()
                     temperature,resistance=readRTD()
-                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                     # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
                     CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
 
-
-                #######
-                ####### Phase Scans at 1.20V
-                #######
-                logging.info(f'Setting to 1.2 V')
-                if useGPIB:
-                    _v=SetVoltage(1.2,maxTries=25)
+                    #######
+                    ####### Phase Scans at 1.08V
+                    #######
+                    logging.info(f'Setting to 1.08 V')
+                    _v=SetVoltage(1.08)
                     if _v==-1:
                         logging.error('Problem setting voltage')
                     p,v,i=Read_Power()
                     temperature,resistance=readRTD()
-                else:
-                    p,v,i,temperature,resistance=-1,-1,-1,-1,-1
-                logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
-                # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
-                bestPhase=','.join([str(i) for i in best_PhaseSetting])
-                logging.info(f'Setting PLL VCO CapSelect to {capSel} with phaseSelect settings of {bestPhase}')
-                i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
+                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                    # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                    capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.08,timestamp=timestamp)
+                    # bestPhase=','.join([str(i) for i in best_PhaseSetting])
+                    # logging.info(f'Setting PLL VCO CapSelect to {capSel} at V=1.08 with phaseSelect settings of {bestPhase}')
+                    # i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
+
+                # if doPhaseScans_A:
+                if True:
+                    #######
+                    ####### Phase Scans at 1.20V
+                    #######
+                    logging.info(f'Setting to 1.2 V')
+                    if useGPIB:
+                        _v=SetVoltage(1.2,maxTries=25)
+                        if _v==-1:
+                            logging.error('Problem setting voltage')
+                        p,v,i=Read_Power()
+                        temperature,resistance=readRTD()
+                    else:
+                        p,v,i,temperature,resistance=-1,-1,-1,-1,-1
+                    logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
+                    # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
+                    capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
+
+                    bestPhase=','.join([str(i) for i in best_PhaseSetting])
+                    logging.info(f'Setting PLL VCO CapSelect to {capSel} at V=1.20 with phaseSelect settings of {bestPhase}')
+                    i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
-                # set_phase(board=board,trackMode=0)
                 set_phase(best_setting=bestPhase)
 
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
                 resets.send_reset(reset='soft')
+                #input word alignmet
+                #configureASIC(level=-1)
+                #simple_output_align()
                 configureASIC(level=0)
+#                i2cClient.call('*threshold*',args_value='50',args_i2c='ASIC,emulator')
+#                resetErrorCounts()
+                # data = capture(['lc-ASIC','lc-emulator','lc-input'],
+                #                nwords=10, mode='L1A', bx=0, csv=False, phex=True, 
+                #                odir=None, fname=None, trigger=False,verbose=True)
 
+                # hexactrl.empty_fifo()
+                # hexactrl.configure(True,64,64,nlinks=13)
                 hexactrl.start_daq()
 
 
