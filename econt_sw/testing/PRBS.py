@@ -183,7 +183,8 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
         logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
         # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
-    y=(err_counts[2:-2]+3*err_counts[1:-3]+5*err_counts[3:-1]+3*err_counts[4:] + err_counts[:-4])
+    y=(1*err_counts[:-4] + 3*err_counts[1:-3] + 5*err_counts[2:-2] + 3*err_counts[3:-1] + 1*err_counts[4:])
+
     y[ err_counts[2:-2]>0 ] += 2555
     x=y.argmin(axis=0)+2
     best_setting=x
