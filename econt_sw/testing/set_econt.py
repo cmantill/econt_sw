@@ -231,6 +231,7 @@ def output_align(verbose=False):
         else:
             break
 
+    lc.empty_fifo(['lc-ASIC','lc-emulator','lc-input'])
     # find latency
     from latency import align
     lc_emu_aligned = align()
@@ -242,6 +243,7 @@ def output_align(verbose=False):
     if num_links_emu != num_links_asic:
         logging.warning(f"Num links {num_links_asic} {num_links_emu}")
 
+    lc.empty_fifo(['lc-ASIC','lc-emulator','lc-input'])
     nwords = 4095
     lcaptures = ['lc-ASIC','lc-emulator']
     fc.configure_fc()

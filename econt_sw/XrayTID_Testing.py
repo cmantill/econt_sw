@@ -394,22 +394,22 @@ if __name__=="__main__":
             logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
             # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
 
-            #trigger email if bad voltage readings multiple times
-            if float(v)<1.14 or float(v)>1.26:
-                badVoltageCount += 1
-            else:
-                badVoltageCount = 0
+            # #trigger email if bad voltage readings multiple times
+            # if float(v)<1.14 or float(v)>1.26:
+            #     badVoltageCount += 1
+            # else:
+            #     badVoltageCount = 0
 
-            if badVoltageCount==5 and not voltageEmailSent:
-                logging.error("Voltage bad for multiple consecutive readings")
-                message = f'ECON-T voltage at bad settings\n\n\nPower: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms\n\n\nLAST 100 LINES OF LOG\n\n\n'
-                logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
-                message += ''.join([x.decode('utf-8') for x in logTail])
-                dateTimeObj=datetime.now()
-                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
-                subject=f"ECON VOLTAGE ERROR {timestamp}"
-                sendEmail(subject, message)
-                voltageEmailSent=True
+            # if badVoltageCount==5 and not voltageEmailSent:
+            #     logging.error("Voltage bad for multiple consecutive readings")
+            #     message = f'ECON-T voltage at bad settings\n\n\nPower: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms\n\n\nLAST 100 LINES OF LOG\n\n\n'
+            #     logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+            #     message += ''.join([x.decode('utf-8') for x in logTail])
+            #     dateTimeObj=datetime.now()
+            #     timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+            #     subject=f"ECON VOLTAGE ERROR {timestamp}"
+            #     sendEmail(subject, message)
+            #     voltageEmailSent=True
 
             #if we are getting continuous errors, turn off DAQ comparisons
             if (consecutiveResetCount > 5) and doDAQcompare:
@@ -427,8 +427,8 @@ if __name__=="__main__":
 
             doI2CCompare = (i__%6)==0  #every minute
             doDAQcapture = (i__%60)==0 #every 10 minutes
-            doPhaseScans_A = (i__%120)==0 #every 20 minutes
-            doPhaseScans_B = (i__%120)==0 #every 20 minutes
+            doPhaseScans_A = (i__%120)==60 #every 20 minutes (1.2 V)
+            doPhaseScans_B = (i__%120)==0 #every 20 minutes (1.08 and 1.32V)
             resetLevel=-1
             par_en_error=False
             errCount=0
@@ -512,10 +512,9 @@ if __name__=="__main__":
                     # bestPhase=','.join([str(i) for i in best_PhaseSetting])
                     # logging.info(f'Setting PLL VCO CapSelect to {capSel} at V=1.08 with phaseSelect settings of {bestPhase}')
                     # i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
+                    vSetting=1.08
 
-
-                # if doPhaseScans_A:
-                if True:
+                if doPhaseScans_A:
                     #######
                     ####### Phase Scans at 1.20V
                     #######
@@ -531,10 +530,11 @@ if __name__=="__main__":
                     logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                     # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
                     capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.2,timestamp=timestamp)
+                    vSetting=1.2
 
-                    bestPhase=','.join([str(i) for i in best_PhaseSetting])
-                    logging.info(f'Setting PLL VCO CapSelect to {capSel} at V=1.20 with phaseSelect settings of {bestPhase}')
-                    i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
+                bestPhase=','.join([str(i) for i in best_PhaseSetting])
+                logging.info(f'Setting PLL VCO CapSelect to {capSel} at V={vSetting} with phaseSelect settings of {bestPhase}')
+                i2cClient.call('PLL_*CapSelect',args_value=f'{capSel}')
 
                 ### Set phaseSelect, do output alignment, and restart DAQ comparisons
                 set_phase(best_setting=bestPhase)
@@ -542,10 +542,13 @@ if __name__=="__main__":
                 hexactrl.testVectors(['dtype:PRBS28'])
                 
                 resets.send_reset(reset='soft')
-                #input word alignmet
-                #configureASIC(level=-1)
+
+                ####input word alignmet
+                configureASIC(level=-1)
+
                 #simple_output_align()
                 configureASIC(level=0)
+
 #                i2cClient.call('*threshold*',args_value='50',args_i2c='ASIC,emulator')
 #                resetErrorCounts()
                 # data = capture(['lc-ASIC','lc-emulator','lc-input'],
