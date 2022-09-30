@@ -10,7 +10,6 @@ GPIBAddresses={46:6,
 class psControl:
     def __init__(self, *args, **kwargs):
         self.gpib = PrologixGPIBEthernet(*args, **kwargs)
-        self.gpib.connect()
         self.board=None
 
     def close(self):

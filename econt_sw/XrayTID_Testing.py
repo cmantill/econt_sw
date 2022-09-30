@@ -54,7 +54,15 @@ if useGPIB:
     from TestStand_Controls import psControl
 #    gpib_ip='POOL05550020.cern.ch' #'128.141.89.226'
     ps=psControl(host='POOL05550020.cern.ch',timeout=3)
+    try:
+        ps.reconnect()
+    except:
+        print("Can't connect to power supply GPIB")
     rtd=psControl(host='POOL05550016.cern.ch',timeout=3)
+    try:
+        rtd.reconnect()
+    except:
+        print("Can't connect to RTD GPIB")
 
 from utils.asic_signals import ASICSignals
 from PRBS import scan_prbs
@@ -95,7 +103,10 @@ def readRTD(maxTries=5):
             _n += 1
             temperature,resistance=-1,-1
     if _n==maxTries:
-        rtd.reconnect()
+        try:
+            rtd.reconnect()
+        except:
+            logging.error('Unable to reconnect to GPIB')
     return temperature,resistance
 
 def SetVoltage(v,maxTries=5):
@@ -320,12 +331,19 @@ if __name__=="__main__":
     logging.info(f'Starting')
     logging.info(f'Using Board {board}')
 
-    rtd.ConfigRTD()
-    temperature,resistance=rtd.readRTD()
+    try:
+        rtd.ConfigRTD()
+        temperature,resistance=rtd.readRTD()
+    except:
+        temperature,resistance=-1,-1
 
-    ps.ConfigReadCurrent()
-    ps.SetVoltage(1.2)
-    p,v,i=ps.Read_Power()
+    try:
+        ps.ConfigReadCurrent()
+        ps.SetVoltage(1.2)
+        p,v,i=ps.Read_Power()
+    except:
+        p,v,i=-1,-1,-1
+
     logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
 
     dateTimeObj=datetime.now()
