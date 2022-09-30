@@ -427,8 +427,9 @@ if __name__=="__main__":
 
             doI2CCompare = (i__%6)==0  #every minute
             doDAQcapture = (i__%60)==0 #every 10 minutes
-            doPhaseScans_A = (i__%120)==60 #every 20 minutes (1.2 V)
-            doPhaseScans_B = (i__%120)==0 #every 20 minutes (1.08 and 1.32V)
+            doPhaseScans_A = (i__%120)==0 #every 20 minutes, minutes 0-10 (1.2 V)
+            doPhaseScans_B = (i__%120)==60 #every 20 minutes, minutes 10-15 (1.08 V)
+            doPhaseScans_C = (i__%120)==90 #every 20 minutes, minutes 15-20 (1.32 V)
             resetLevel=-1
             par_en_error=False
             errCount=0
@@ -476,14 +477,14 @@ if __name__=="__main__":
                 hexactrl.configure(True,64,64,nlinks=13)
                 hexactrl.start_daq()
 
-            if doPhaseScans_A or doPhaseScans_B:
+            if doPhaseScans_A or doPhaseScans_B or doPhaseScans_C:
                 dateTimeObj=datetime.now()
                 timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
                 err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
                 logging.info(f"Starting Power Scans ( timestamp {timestamp} )")
 
                 hexactrl.testVectors(['dtype:PRBS32'])
-                if useGPIB and doPhaseScans_B:
+                if doPhaseScans_B:
                     #######
                     ####### Phase Scans at 1.32V
                     #######
@@ -495,8 +496,10 @@ if __name__=="__main__":
                     temperature,resistance=readRTD()
                     logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                     # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
-                    CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
+                    capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
+                    vSetting=1.08
 
+                if doPhaseScans_C:
                     #######
                     ####### Phase Scans at 1.08V
                     #######
