@@ -411,19 +411,28 @@ if __name__=="__main__":
             #     sendEmail(subject, message)
             #     voltageEmailSent=True
 
+
             #if we are getting continuous errors, turn off DAQ comparisons
-            if (consecutiveResetCount > 5) and doDAQcompare:
+            if (consecutiveResetCount >= 1) and doDAQcompare:
                 logging.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
 
-                logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
-                message = 'ECON-T had too many failed resets\n\n\nLAST 100 LINES OF LOG\n\n\n'
-                message += ''.join([x.decode('utf-8') for x in logTail])
-                dateTimeObj=datetime.now()
-                timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
-                subject=f"ECON RESET ERROR {timestamp}"
-                sendEmail(subject, message)
-
                 doDAQcompare=False
+
+
+            # #if we are getting continuous errors, turn off DAQ comparisons
+            # if (consecutiveResetCount > 5) and doDAQcompare:
+            #     logging.error("TOO MANY FAILED RESET ATTEMPTS, STOPPING DAQ COMPARISON")
+
+            #     logTail = subprocess.Popen(['tail','-n','100',args.logName],stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.readlines()
+            #     message = 'ECON-T had too many failed resets\n\n\nLAST 100 LINES OF LOG\n\n\n'
+            #     message += ''.join([x.decode('utf-8') for x in logTail])
+            #     dateTimeObj=datetime.now()
+            #     timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
+            #     subject=f"ECON RESET ERROR {timestamp}"
+            #     sendEmail(subject, message)
+
+            #     doDAQcompare=False
+
 
             doI2CCompare = (i__%6)==0  #every minute
             doDAQcapture = (i__%60)==0 #every 10 minutes
@@ -444,7 +453,7 @@ if __name__=="__main__":
                     err,data=hexactrl.stop_daq(frow=36,capture=True, timestamp=timestamp,odir='logs')
                     hexactrl.start_daq()
 
-                if errCount>20000000:
+                if errCount>200000000:
                     consecutiveErrorCount += 1
                     logging.error(f'Errors in {consecutiveErrorCount} consecutive comparisons')
                 else:
@@ -560,6 +569,8 @@ if __name__=="__main__":
 
                 # hexactrl.empty_fifo()
                 # hexactrl.configure(True,64,64,nlinks=13)
+                doDAQcompare=True
+
                 hexactrl.start_daq()
 
 
@@ -590,7 +601,7 @@ if __name__=="__main__":
                     hexactrl.start_daq()
                     sleep(1)
                     err,data=hexactrl.stop_daq(frow=36,capture=False)
-                    badData = err>1000
+                    badData = err>100000
 
                     if badData: #try word alignment and output alignment
                         logging.warning("    Errors Persisted, Step 2 - Realign Input")
@@ -598,21 +609,25 @@ if __name__=="__main__":
                         hexactrl.start_daq()
                         sleep(1)
                         err,data=hexactrl.stop_daq(frow=36,capture=False)
-                        badData = err>1000
+                        badData = err>100000
                         if badData: #try soft reset
                             logging.warning("    Errors Persisted, Step 3 - Soft Reset")
                             configureASIC(level=2)
                             hexactrl.start_daq()
                             sleep(1)
                             err,data=hexactrl.stop_daq(frow=36,capture=False)
-                            badData = err>1000
+                            badData = err>100000
                             if badData: #try hard reset
                                 logging.warning("    Errors Persisted, Step 4 - Hard Reset")
                                 configureASIC(level=3)
                                 hexactrl.start_daq()
                                 sleep(1)
                                 err,data=hexactrl.stop_daq(frow=36,capture=False)
-                                badData = err>1000
+                                badData = err>100000
+                                if badData:
+                                    logging.warning("    Errors Persisted after Hard Reset")
+                                else:
+                                    logging.warning("    Hard Reset Fixed Errors")
                             else:
                                 logging.warning("    Soft Reset Fixed Errors")
                         else:
@@ -626,7 +641,6 @@ if __name__=="__main__":
                 if badData:
                     consecutiveResetCount += 1
                 else:
-                    logging.warning("    Hard Reset Fixed Errors")
                     consecutiveResetCount = 0
                 #reset consecutive error counter (to not immediately go to reset next iteration)
                 consecutiveErrorCount = 0
