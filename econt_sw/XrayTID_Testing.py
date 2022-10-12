@@ -231,6 +231,10 @@ def CapSelAndPhaseScans(voltage,timestamp):
         _file.write(pprint.pformat(settings_trackMode1))
     capSel=goodVals[int(len(goodVals)/3)]
 
+    if voltage==1.08:
+        forcedCapSel=30
+        logging.info(f'NOTE: ! Using {forcedCapSel} instead of {capSel}')
+        capSel=forcedCapSel
     # forcedCapSel=27 if voltage==1.2 else 28
     # logging.info(f'NOTE: ! Using {forcedCapSel} instead of {capSel}')
     # capSel=forcedCapSel
@@ -506,7 +510,7 @@ if __name__=="__main__":
                     logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.6f} A, Temp: {temperature:.4f} C, Res.: {resistance:.2f} Ohms')
                     # logging.info(f'Power: {"On" if int(p) else "Off"}, Voltage: {float(v):.4f} V, Current: {float(i):.4f} A')
                     capSel,best_PhaseSetting = CapSelAndPhaseScans(voltage=1.32,timestamp=timestamp)
-                    vSetting=1.08
+                    vSetting=1.32
 
                 if doPhaseScans_C:
                     #######
@@ -570,7 +574,7 @@ if __name__=="__main__":
                 # hexactrl.empty_fifo()
                 # hexactrl.configure(True,64,64,nlinks=13)
                 doDAQcompare=True
-
+                consecutiveResetCount=0
                 hexactrl.start_daq()
 
 
