@@ -127,6 +127,60 @@
     [HGCAL_dev@localhost mylittledt]$ sudo ./load.sh ~/firmware/econ-t-tester-Nov12/ && sudo chmod a+rw /dev/i2c-* /dev/uio*
     ```
 
+## Loading firmware with RPM:
+
+As root, create a file in /etc/yum.repos.d/ named HGCAL.repo. 
+```
+[HGCAL-firmware]
+name=HGCAL firmware RPM repository
+baseurl=https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/
+enabled=1
+gpgcheck=0
+```
+then
+```
+sudo yum check-update
+sudo yum update
+sudo yum install fw-loader
+```
+
+Next, download the image that you want:
+```
+sudo yum install econ-t-tester2
+```
+or
+```
+sudo yum install econd_4CG-FPGA_fit
+```
+You can look (https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/rpms/rpm_path/)[here] to find the image name (everything preceding the date)
+
+You will see something like this:
+```
+================================================================================================================================================================================================================================================================================
+ Package                                                   Arch                                                   Version                                                                                  Repository                                                      Size
+================================================================================================================================================================================================================================================================================
+Installing:
+ econd_4CG                                                 noarch                                                 FPGA_fit-2022_11_23_01_19_35.66f2b13b                                                    HGCAL-firmware                                                 3.0 M
+```
+
+To load the firmware:
+```
+sudo fw-loader load econd_4CG
+```
+
+If the firmware loading is sucessful you will see, e.g.:
+```
+Using bitstream: /opt/cms-hgcal-firmware/hgc-test-systems/econd_4CG/econd_4CG.bit
+Using device tree overlay: /opt/cms-hgcal-firmware/hgc-test-systems/econd_4CG/device-tree/pl.dtbo
+Loading the bitstream took: 3.843s
+Loaded the device tree overlay successfully using the zynqMP FPGA manager
+```
+
+To list the firmware image loaded:
+```
+sudo fw-loader list
+```
+
 
 ## @ ITA:
 - Address:

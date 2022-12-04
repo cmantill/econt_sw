@@ -16,7 +16,6 @@ ECON-T:
     orbsyn_cnt_load_val:
      value: 0x0
 
-
   FCTRL_ALL:
    registers:
     config:
@@ -38,6 +37,13 @@ ECON-T:
    registers:
     drop_lsb:
      value: 1
+
+  EPRXGRP_TOP_ALL:
+   registers:
+    config:
+     params:
+      trackMode:
+       param_value: 0
 
   PLL_ALL:
    registers:

@@ -15,7 +15,7 @@ def find_BX0(lcapture,
              BX0_word=0xf922f922,
              BX0_position=None):
     """
-    Finds the BX0s for each eTx
+    Finds the BX0s for each eTx.
     """
     lc.configure_acquire([lcapture],"linkreset_ECONt")
     lc.do_capture([lcapture])
@@ -81,34 +81,34 @@ def match_BX0(
         latencies_not_match = None
         all_eTx_match = (positions == target)
         if ref_position is not None:
-            logging.debug(f'Reference position is {ref_position}')
+            # logging.debug(f'Reference position is {ref_position}')
             all_eTx_match_ref = (positions == ref_position)
         else:
             ref_position = target
-            logging.debug(f'Reference position is same as target {ref_position}')
+            # logging.debug(f'Reference position is same as target {ref_position}')
             all_eTx_match_ref = all_eTx_match
 
         if np.all(all_eTx_match & all_eTx_match_ref):
-            logging.debug(f'All links found BX0 in the same position as reference position {ref_position}')
+            # logging.debug(f'All links found BX0 in the same position as reference position {ref_position}')
             new_ref_position = target
             keep_latency_scan = False
             latencies_not_match = ~np.all(all_eTx_match & all_eTx_match_ref)
             break
 
         elif np.any(~all_eTx_match) and np.any(all_eTx_match_ref):
-            logging.debug('Some links found BX0 in the same position as reference position %s'%(np.any(all_eTx_match & all_eTx_match_ref)))
+            # logging.debug('Some links found BX0 in the same position as reference position %s'%(np.any(all_eTx_match & all_eTx_match_ref)))
             if (ref_position - positions[~all_eTx_match_ref][0] < 0):
-                logging.debug('Some links found BX0 in a position later than the reference position')
+                # logging.debug('Some links found BX0 in a position later than the reference position')
                 new_ref_position = positions[~all_eTx_match_ref][0]
                 latencies_not_match = all_eTx_match_ref
             else:
-                logging.debug('Some links found BX0 in a position earlier than the reference position')
+                # logging.debug('Some links found BX0 in a position earlier than the reference position')
                 new_ref_position = positions[all_eTx_match_ref][0]
                 latencies_not_match = ~all_eTx_match_ref
             break
 
         elif np.all(all_eTx_match) and np.all(~all_eTx_match_ref) and (ref_position - target < 0):
-            logging.debug('All links found BX0 in a same position earlier than the reference position')
+            # logging.debug('All links found BX0 in a same position earlier than the reference position')
             new_ref_position = target
             keep_latency_scan = False
             latencies_not_match = ~all_eTx_match_ref
@@ -125,7 +125,8 @@ def scan_latency(
         BX0_word=0xf922f922,
         neTx=13,
         BX0_position=None,
-        val=0):
+        starting_value=0,
+        reverse=False):
     """
     Scan latency of capture links.
     ------
@@ -140,17 +141,25 @@ def scan_latency(
     - val:
        value of latency to start the scan
     """
-    logging.debug(f'Scan latency values for {lcapture} with nlinks {neTx}, starting value {val} and reference BX0 position {BX0_position}')
+    logging.debug(f'Scan latency values for {lcapture} with nlinks {neTx}, with reference BX0 at {BX0_position}')
 
     # start with an array of latencies per active channel
-    latency = np.array([val] * lc.nlinks[lcapture])
+    latency = np.array([starting_value] * lc.nlinks[lcapture])
+
+    if reverse:
+        latencies = range(starting_value,-1,-1)
+    else:
+        latencies = range(starting_value,20)
+
+    # print(latencies)
     # loop over latency values
-    for val in range(val,20): 
+    for val in latencies:
         # replace value in the latency array, if it is not 1
         # logging.debug(f'Setting latency for {lcapture} to {val}')
         latency[latency==-1] = val
         
         # logging.debug(f'Setting latency array %s',latency)
+        # logging.debug(f'Setting latency for {lcapture} %s',latency)
         lc.set_latency([lcapture],latency)
 
         # send a pattern and find rows in which BX0 training pattern is present
@@ -171,28 +180,39 @@ def scan_latency(
 def align(BX0_word=0xf922f922,
           neTx=13,
           start_ASIC=0,start_emulator=0,
-          latency_ASIC=None,latency_emulator=None):
+          modify_ASIC=True,modify_emulator=True):
 
-    if latency_ASIC is not None:
-        lc.set_latency(['lc-ASIC'],latency_ASIC)
-    else:
-        latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,val=start_ASIC,neTx=neTx)
+    if modify_ASIC:
+        latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,starting_value=start_ASIC)
         if BX0_ASIC is None:
             logging.error('No BX0 word found for ASIC during latency alignment')
             exit()
         else:
-            logging.debug('Found latency for ASIC %s'%latency_ASIC)
-            logging.info('Found BX0 word for ASIC %i'%BX0_ASIC)
-    
-    if latency_emulator is not None:
-        lc.set_latency(['lc-emulator'],latency_emulator)
+            logging.debug('Found latency and BX0 word for ASIC %s %i'%(latency_ASIC,BX0_ASIC))
+
     else:
-        latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,
-                                                       BX0_position=BX0_ASIC,val=start_emulator,neTx=neTx)
+        BX0_rows = find_BX0('lc-ASIC',BX0_word)
+        _,_,BX0_ASIC = match_BX0(BX0_rows,neTx)
+
+    if modify_emulator:
+        latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator)
+
         if(BX0_emulator != BX0_ASIC):
-            logging.info('Trying to find ASIC latency again')
-            latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,BX0_position=BX0_emulator,val=start_ASIC,neTx=neTx)
+            if modify_ASIC and 0 in latency_emulator:
+                logging.info('Found BX0 word for emulator at %i. Modifying ASICs latency now.'%(BX0_emulator))
+                latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,BX0_emulator,starting_value=0)
+            elif np.any(latency_emulator)>=0:
+                logging.info('Found BX0 word for emulator at %i. Need to do a reverse search starting from %i'%(BX0_emulator,start_emulator-1))
+                latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator-1,reverse=True)
+                if BX0_emulator == BX0_ASIC:
+                    logging.debug('Found latency and BX0 word: emulator %s %i'%(latency_emulator,BX0_emulator))
+                else:
+                    logging.warning('Did not find latency. Exiting')
+                    exit()
+            else:
+                minlatency_ASIC = min(lc.read_latency(['lc-ASIC'])['lc-ASIC'])
+                logging.warning('Found BX0 word for emulator at %i at the lowest latency. But, not able to modify ASICs latency since min is at %i.'%minlatency_ASIC)
         else:
-            logging.debug('Found latency for emulator %s '%latency_emulator)
-            logging.info('Found BX0 word for emulator %i '%BX0_emulator)
+            logging.debug('Found latency and BX0 word for emulator %s %i'%(latency_emulator,BX0_emulator))
+
     return True

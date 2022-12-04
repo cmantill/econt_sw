@@ -399,15 +399,6 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
-    # logger = logger.getLogger("eRx")
-    # logger.setLevel(logger.DEBUG)
-    # ch = logging.StreamHandler()
-    # ch.setLevel(logging.INFO)
-    # formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-    # ch.setFormatter(formatter)
-    # logger.addHandler(ch)
-
     if args.configureTV:
         tv = TestVectors(args.tv_name)
         if args.tv_name=="bypass":

@@ -44,37 +44,49 @@ def qc_i2c(i2c_address=0x20):
         # This is the FCMD_CLK input, disabling it disables i2c clock                                                                                                                          
         pairs_zero[1267][0]=b'\x01'
 
-        logging.info(f"Writing ones to all registers")
+        logging.debug(f"I2C: Writing ones to all registers")
         board.write_pairs(pairs_one)
         pairs_one_read = board.read_pairs(pairs_one) 
         no_match = is_match(pairs_one,pairs_one_read)
         if no_match:
-            logging.warning("Read pairs do not match %s",no_match)
-
-        logging.info(f"Writing zeros to all registers")
+            logging.warning("I2C: Read pairs do not match %s",no_match)
+            return False
+            
+        logging.debug(f"I2C: Writing zeros to all registers")
         board.write_pairs(pairs_zero)
         pairs_zero_read = board.read_pairs(pairs_zero)
         no_match = is_match(pairs_zero,pairs_zero_read)
         if no_match:
-            logging.warning("Read pairs do not match %s",no_match)
+            logging.warning("I2C: Read pairs do not match %s",no_match)
+            return False
+
+        return no_match
 
     from econ_interface import econ_interface
     board = econ_interface(i2c_address, 1, fpath="zmq_i2c/")
-    ping_all_addresses()
+    no_match = ping_all_addresses()
+    if no_match:
+        logging.error('I2C: Unable to ping all addresses via i2c')
+        exit()
+    else:
+        logging.info('I2C: Test completed')
+        logging.info('\n')
+
 
 def econt_qc(board,odir,voltage,tag=''):
 
-    logging.info(f"Tests with voltage {voltage} and output directory {odir}, board {board}.")
+    logging.info(f"QC TESTS")
+    logging.info(f"Voltage: {voltage}, Output Directory: {odir}, Board: {board}.")
 
     # Stress test i2c
     qc_i2c()
 
     # Do a hard reset
-    logging.info(f"Hard reset")
+    logging.info(f"Hard reset")    
     resets = ASICSignals()
     resets.send_reset(reset='hard',i2c='ASIC')
     resets.send_reset(reset='hard',i2c='emulator')
-
+        
     dirs = [
         "configs/test_vectors/mcDataset/STC_type0_eTx5/",
         "configs/test_vectors/mcDataset/STC_type1_eTx2/",
@@ -87,22 +99,38 @@ def econt_qc(board,odir,voltage,tag=''):
     ]
     
     # Initialize
-    logging.info("Initializing")
+    logging.info("Initialize with startup registers")
     startup()
-    
+    logging.info('\n')
+
+    # Set FPGA to send PRBS
+    set_fpga()
+
     # PLL VCO Cap select scan and set value back
     logging.info(f"Scan over PLL VCOCapSelect values")
-    goodValue = 27
-    #TODO: find good value automatically 
-    goodValues = scanCapSelect(verbose=True, odir=odir,tag=tag)
-    logging.info(f"Good PLL VCOCapSelect values: %s"%goodValues)
-    logging.debug(f"Setting VCOCapSelect value to {goodValue}")
-    i2cClient.call(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodValue}')
-    
+    goodVCOCapValue = 27
+    ## TODO: find good value automatically 
+    VCOCapValues = scanCapSelect(verbose=True, odir=odir,tag=tag)
+    logging.info(f"Good PLL VCOCapSelect values: %s"%VCOCapValues)
+
+    if len(VCOCapValues)==0:
+        logging.error(f"No good VCOCapSelect values found.. exiting")
+        exit()
+
+    if goodVCOCapValue not in VCOCapValues:
+        logging.warning(f"Default value {goodVCOCapValue} does not give PUSM 9.. exiting")
+        goodVCOCapValue = VCOCapValues[0]
+        exit()
+
+    logging.debug(f"Setting VCOCapSelect value to {goodVCOCapValue}")
+    i2cClient.call(args_name='PLL_CBOvcoCapSelect',args_value=f'{goodVCOCapValue}')
+    logging.info('\n')
+
     # PRBS phase scan
     logging.info(f"Scan phase w PRBS err counters")
     err_counts, best_setting = scan_prbs(32,'ASIC',0.05,range(0,12),True,verbose=False,odir=odir,tag=tag)
     logging.info(f"Best phase settings found to be {str(best_setting)}")
+    logging.info('\n')
 
     # Other init steps
     set_phase(best_setting=','.join([str(i) for i in best_setting]))
@@ -111,35 +139,40 @@ def econt_qc(board,odir,voltage,tag=''):
     read_status()
 
     # Input word alignment
-    logging.info("Align input words")
+    logging.info(f"Align input words")
     set_fpga()
-    word_align(bx=None,emulator_delay=None)
-    
+    word_align(bx=None,emulator_delay=None)    
+    logging.info('\n')
+
     # Scan IO delay scan
-    logging.info('from IO delay scan')
+    logging.info('From IO delay scan')
     set_runbit(0)
     i2cClient.call(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
     set_runbit(1)
     logging.debug(f"Configured ASIC/emulator with all eTx")
     err_counts = delay_scan(odir,ioType='from',tag=tag)
     logging.debug("Error counts form IO delay scan: %s"%err_counts)
+    logging.info('\n')
 
     # Output alignment
-    logging.info("Outputting word alignment")
+    logging.info("Align output words")
     output_align(verbose=False)
-        
+    logging.info('\n')
+
     # Bypass alignment
-    logging.info("Bypassing alignment")
+    logging.info("Align bypass mode")
     bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=13)
+    logging.info('\n')
 
     # Compare for various configurations
-    logging.info("Comparing various configurations")
+    logging.info("Compare various configurations with bypass")
     dict = {}
     for idir in dirs:
-        dict[idir] = bypass_compare(idir, odir)
-    with open(f'{odir}/error_counts_{tag}.csv', 'w') as csvfile:
+        dict[idir] = bypass_compare(idir, odir, tag)
+    with open(f'{odir}/error_counts{tag}.csv', 'w') as csvfile:
         for key in dict.keys():
             csvfile.write("%s, %s\n"%(key, dict[key]))
+    logging.info('\n')
 
     # Test the different track modes and train channels   
     logging.info('Testing track modes')
@@ -155,6 +188,7 @@ def econt_qc(board,odir,voltage,tag=''):
         with open(f'{odir}/trackmode{trackmode}_phaseSelect_{board}board.csv', 'w') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(zip(*phaseSelect_vals))
+    logging.info('\n')
 
     # Soft reset
     logging.info(f"Soft reset")
@@ -196,4 +230,5 @@ if __name__ == "__main__":
     console.setFormatter(logging.Formatter(_f))
     logging.getLogger().addHandler(console)
 
+    print(_tag)
     econt_qc(args.board,args.odir,args.voltage,_tag)

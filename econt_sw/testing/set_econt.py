@@ -43,6 +43,7 @@ phase_by_board = {
     14: "7,7,7,7,7,7,7,7,7,7,7,7",
     15: "8,8,9,10,10,10,9,10,9,10,10,10",
 }
+
 def set_phase(board=None,best_setting=None,trackMode=0):
     if trackMode==0:
         i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c='ASIC')
@@ -92,6 +93,7 @@ def set_fpga():
     
 def word_align(bx,emulator_delay,bcr=0,verbose=False):
     from eRx import checkWordAlignment,statusLogging
+
 
     verbose=True
     def setAlignment(snapshotBX=None, delay=None):
@@ -280,13 +282,18 @@ def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emula
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     logging.debug(f"Num links {num_links}")
 
-    # then modify latency until we find pattern
+    # then modify emulators latency until we find pattern
     from latency import align
+
+    latency_ASIC =  lc.read_latency(['lc-ASIC'])['lc-ASIC']
     align(BX0_word=0xffffffff,
           neTx=10,
-          start_ASIC=start_ASIC,start_emulator=start_emulator)
+          start_ASIC=start_ASIC,start_emulator=start_emulator,
+          modify_ASIC=False
+    )
 
-def bypass_compare(idir,odir):
+
+def bypass_compare(idir,odir,ttag=""):
     # configure inputs
     tv.configure("",idir,fname="../testInput.csv",verbose=False)
 
@@ -305,12 +312,12 @@ def bypass_compare(idir,odir):
     num_links = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     x=i2cClient.call(args_name='MFC_ALGORITHM_SEL_DENSITY_algo_select',args_write=False)
     algo = x['ASIC']['RW']['MFC_ALGORITHM_SEL_DENSITY']['algo_select']
-    logging.debug(f"Num links {num_links} and algo {algo}")
+    logging.debug(f"ASIC: Num links {num_links} and algo {algo}")
 
     # modify latency
     latencies = lc.read_latency(['lc-ASIC','lc-emulator'])
-    logging.debug("Latencies asic %s"%latencies['lc-ASIC'])
-    logging.debug("Latencies emu %s"%latencies['lc-emulator'])
+    logging.debug("Read Latencies asic %s"%latencies['lc-ASIC'])
+    logging.debug("Read Latencies emu %s"%latencies['lc-emulator'])
     new_latencies = [(lat + latency_dict[algo]) for lat in latencies['lc-emulator']]
     logging.debug("New Latencies emu %s"%new_latencies)
 
@@ -318,11 +325,11 @@ def bypass_compare(idir,odir):
     set_runbit(1)
 
     # compare words
-    tag = idir.split("/")[-1]
+    tag = idir.split("/")[-2]+ttag
     from eTx import compare_lc
     data,err_counts = compare_lc(nlinks=num_links,verbose=False,trigger=True,csv=True,odir=odir,fname=f"compare_{tag}")
     if err_counts:
-        logging.warning(f'eTx error count after bypass comparison: {err_counts}')
+        logging.warning(f'eTx error count: {err_counts}, for {idir} configuration')
     else:
         logging.info(f'eTx error count: {0}, for {idir} configuration')
 
