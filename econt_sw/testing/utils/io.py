@@ -4,8 +4,6 @@ from .uhal_config import *
 import time
 
 import logging
-logger = logging.getLogger('utils:IO')
-logger.setLevel(logging.INFO)
 
 class IOBlock:
     """ Class to handle IO blocks via uhal """
@@ -20,6 +18,8 @@ class IOBlock:
         self.io = io
         self.io_name = io_name
         self.nlinks = input_nlinks if io=='to' else output_nlinks
+
+        self.logger = logging.getLogger('utils:IO')
 
     def reset_counters(self):
         """Resets counters"""
@@ -75,9 +75,11 @@ class IOBlock:
             delay_out = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out").read()
             delay_out_N = self.dev.getNode(self.name+".link%i"%link+".reg3.delay_out_N").read()
             self.dev.dispatch()
-            logger.debug("link %i: delay_out %i delay_out_N %i"%(link,delay_out,delay_out_N))
             delay_P[link] = int(delay_out)
             delay_N[link] = int(delay_out_N)
+
+        self.logger.debug("P-side delay setting: %s, Eye width: %s"%(delay_P,delay_N))
+
         return delay_P,delay_N
 
     def set_delay(self,delay_P):
@@ -112,7 +114,7 @@ class IOBlock:
             # set delays
             delay = 0 if delay<0 else delay
             delay = 503 if delay>503 else delay # 503+8=511
-            logger.debug(f"Set delay to {delay}")
+            # self.logger.debug(f"Set delay to {delay}")
 
             self.set_delay([delay]*self.nlinks)
 
@@ -129,8 +131,15 @@ class IOBlock:
                 bitcounts[l].append(int(bit_counter))
                 errorcounts[l].append(int(error_counter))
 
+        self.align_delay_vals()
+
         return bitcounts,errorcounts
     
+    def align_delay_vals(self):
+        for l in range(self.nlinks):
+            self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_mode").write(1)
+        self.manual_IO()
+
     def print_IO(self):
         """Prints IO block configuration"""
         regs = ["reg0.reset_link","reg0.reset_counters","reg0.delay_mode","reg0.delay_set",
@@ -145,7 +154,7 @@ class IOBlock:
                 tmp = self.dev.getNode(self.name+".link"+str(l)+"."+reg).read()
                 self.dev.dispatch()
                 vals[reg] = int(tmp)
-            logger.info("%s-IO link%i: %s"%(self.io,l,vals))
+            self.logger.info("%s-IO link%i: %s"%(self.io,l,vals))
 
     def check_IO(self,nit=10,verbose=False):
         """ Checks whether IO block is aligned """
@@ -166,7 +175,7 @@ class IOBlock:
                 bit_counter = self.dev.getNode(self.name+".link"+str(l)+".bit_counter").read()
                 self.dev.dispatch()
                 if verbose or error_counter>0:
-                    logger.debug("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(self.io,l,bit_tr,delay_ready,error_counter,bit_counter))
+                    self.logger.debug("%s-IO link%i: bit_tr %d, delay ready %d, error counter %i, bit_counter %i"%(self.io,l,bit_tr,delay_ready,error_counter,bit_counter))
                 if delay_ready == 1:
                     break
             IO_delayready.append(delay_ready)
@@ -177,7 +186,7 @@ class IOBlock:
                 is_aligned = False
 
         if is_aligned:
-            logger.debug("Links %s-IO are aligned"%self.io)
+            self.logger.debug("Links %s-IO are aligned"%self.io)
         else:
-            logger.warning("Links %s-IO are not aligned"%self.io)
+            self.logger.warning("Links %s-IO are not aligned"%self.io)
         return is_aligned

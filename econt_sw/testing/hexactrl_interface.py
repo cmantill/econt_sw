@@ -35,8 +35,8 @@ class hexactrl_interface():
     def configure(self,trigger=True,nWords_input=511, nWords_output=4095, nlinks=13):
         self.fc.configure_fc()
         self.nlinks=nlinks
-        self.lc.configure_acquire(["lc-input"],'L1A',nwords=nWords_input,total_length=511,bx=0,verbose=True)
-        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=nWords_output,total_length=4095,bx=0,verbose=True)
+        self.lc.configure_acquire(["lc-input"],'L1A',nwords=nWords_input,total_length=511,bx=0)
+        self.lc.configure_acquire(["lc-ASIC","lc-emulator"],'L1A',nwords=nWords_output,total_length=4095,bx=0)
         self.lc.stop_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.lc.do_continous_capture(["lc-input","lc-ASIC","lc-emulator"])
         self.sc.configure_compare(self.nlinks,trigger)
@@ -52,6 +52,12 @@ class hexactrl_interface():
         self.sc.latch_counters()
         err_count = self.sc.read_counters(True)
         return err_count
+
+    def send_fc(self,fastCommand):
+        if fastCommand in ['link_reset_roct','link_reset_econt','orbit_count_reset','chipsync']:
+            self.fc.request(fastCommand)
+        else:
+            self._logger.error(f'Bad FC request {fastCommand}')
 
     def get_fifo_occupancy(self):
         occupancies = self.lc.get_fifo_occupancy()
@@ -70,8 +76,8 @@ class hexactrl_interface():
         daq_data = None
         if err_count>0 and capture:
             first_rows = {}
-            data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095,False)
-            data['lc-input'] = self.lc.get_captured_data(["lc-input"],511,False)['lc-input']
+            data = self.lc.get_captured_data(["lc-ASIC","lc-emulator"],4095)
+            data['lc-input'] = self.lc.get_captured_data(["lc-input"],511)['lc-input']
             for lcapture in data.keys():
                 filename = f"{odir}/{lcapture}_{timestamp}.csv"
                 self.tv.save_testvector(filename,data[lcapture])
@@ -82,6 +88,7 @@ class hexactrl_interface():
                  np.pad(first_rows['lc-input'], [(0, 0), (0, 1)])
              )
             )
+        self.empty_fifo()
         return err_count,daq_data
 
     def empty_fifo(self):
@@ -111,6 +118,6 @@ class hexactrl_interface():
                 args[arg]=val
             else:
                 return f'ERROR: Unknown argument {arg}'
-        print(args)
+
         self.tv.configure(**args)
         return 'Good Test Vector Config'

@@ -170,7 +170,7 @@ class LinkCapture:
             capture_dict[mode] = 1
             bx = 0
             
-        self.logger.debug("Configure acquire with bx %i and  %s"%(bx,capture_dict))
+        # self.logger.debug("Configure acquire with bx %i and  %s"%(bx,capture_dict))
 
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
@@ -224,7 +224,6 @@ class LinkCapture:
 
         return fifo_occupancies
 
-
     def empty_fifo(self,lcaptures):
         # sleep a bit in case there was an acquisition
         time.sleep(1)
@@ -233,7 +232,7 @@ class LinkCapture:
                 fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_occupancy").read()
                 self.dev.dispatch()
                 if int(fifo_occupancy)>0:
-                    self.logger.debug('reading words on %s for link %i'%(lcapture,l))
+                    #self.logger.debug('reading words on %s for link %i'%(lcapture,l))
                     data = self.dev.getNode(self.fifos[lcapture]+".link%i"%l).readBlock(int(fifo_occupancy))
                     self.dev.dispatch()
                 else:
@@ -277,8 +276,8 @@ class LinkCapture:
                 else:
                     self.logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
                     
-            if len(daq_data)>0:
-                self.logger.debug('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
+            # if len(daq_data)>0:
+            #     self.logger.debug('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
                     
             import numpy as np
             transpose = np.array(daq_data).T

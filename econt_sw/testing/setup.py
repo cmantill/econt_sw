@@ -1,8 +1,13 @@
 from set_econt import startup,set_phase,set_phase_of_enable,set_runbit,read_status,set_fpga,word_align,output_align,bypass_align,bypass_compare
+from PRBS import scan_prbs
 
 def init_action(args):
     startup()
-    set_phase(board=args.board,trackMode=0)
+    # set_phase(board=args.board,trackMode=0)
+    err,best_PhaseSetting=scan_prbs(32,'ASIC',0.01,range(12),True,verbose=True)
+    set_phase(best_setting=','.join([str(i) for i in best_PhaseSetting]))
+    set_fpga()
+
     set_phase_of_enable(0)
     set_runbit()
     read_status()

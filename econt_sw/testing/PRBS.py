@@ -52,8 +52,11 @@ def enable_prbschk(i2c='ASIC',prbs=32,channels=None,allch=True):
     """Enable prbs chck"""
     if allch:
         i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en,CH_ALIGNER_[0-11]_prbs28_en',args_value='[0]*12,[0]*12',args_i2c=i2c)
-        i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en,CH_ALIGNER_[0-11]_prbs28_en',args_value=f'[1]*12,[{1 if prbs==28 else 0}]*12',args_i2c=i2c)
-    else:
+        if prbs==28:
+            i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en,CH_ALIGNER_[0-11]_prbs28_en',args_value='1',args_i2c=i2c)
+        else:
+            i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='1',args_i2c=i2c)
+    else:        
         for channel in channels:
             i2cClient.call(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
             i2cClient.call(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='1',args_i2c=i2c)
@@ -94,11 +97,12 @@ def check_prbs(args,channels,allch):
     # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./',tag=""):
+def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir='./',tag=""):
     """Scan phaseSelect and read PRBS errors"""
 
     # reset things for PRBS
     i2cClient.call(args_yaml="configs/prbs.yaml",args_write=True,args_i2c=i2c)
+
     if prbs==28:
         tv.configure(dtype="PRBS28")
     else:
@@ -107,55 +111,61 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./',tag=""):
 
     err_counts = []
     i2cClient.call(args_name='EPRXGRP_TOP_trackMode',args_value=f'0',args_i2c=i2c)
+
+    enable_prbschk(i2c,prbs,channels,allch)
     for sel in range(0,15):
         # clear counters and hold
-        i2cClient.call(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=i2c)
+#        i2cClient.call(args_name=f'MISC_rw_ecc_err_clr',args_value='1',args_i2c=i2c)
 
         # change phaseSelect
         if allch:
-            i2cClient.call(args_name='CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'{sel}',args_i2c=i2c)
+            i2cClient.call(args_name='MISC_rw_ecc_err_clr,CH_EPRXGRP_[0-11]_phaseSelect',args_value=f'1,[{sel}]*12',args_i2c=i2c)
         else:
-            command=''
+            command='MISC_rw_ecc_err_clr,'
             for channel in channels:
                 command += f'CH_EPRXGRP_{channel}_phaseSelect,'
             command = command[:-1]
-            i2cClient.call(args_name=command,args_value=f'{sel}',args_i2c=i2c)
+            i2cClient.call(args_name=command,args_value=f'1,[{sel}]*{len(channels)}',args_i2c=i2c)
 
         # enable prbs chk
-        enable_prbschk(i2c,prbs,channels,allch)
+#        enable_prbschk(i2c,prbs,channels,allch)
         # now count again
         i2cClient.call(args_name=f'MISC_rw_ecc_err_clr',args_value='0',args_i2c=i2c)
         # wait for a time
         time.sleep(sleepTime)
 
-        # disable prbs check
-        if allch:
-            i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='0',args_i2c=i2c)
-        else:
-            for channel in channels:
-                i2cClient.call(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
         # record counts
         outputs_aligner = i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_err_cnt',args_i2c=i2c)[i2c]['RO']
         prbs_chk_err_cnt = [outputs_aligner[f'CH_ALIGNER_{channel}INPUT_ALL']['prbs_chk_err_cnt'] for channel in range(12)]
         # prbs_chk_err_cnt = print_error_and_counters(args,channels,verbose=False)
         err_counts.append(prbs_chk_err_cnt)#list(prbs_chk_err_cnt.values()))
-        
-        logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
+
+        if verbose:
+            logger.info(' phaseSelect: {:02n}, prbs_chk_err_cnt: {}'.format(sel,str(err_counts[-1])))
+            
+    # disable prbs check
+    if allch:
+        i2cClient.call(args_name=f'CH_ALIGNER_[0-11]_prbs_chk_en',args_value='0',args_i2c=i2c)
+    else:
+        for channel in channels:
+            i2cClient.call(args_name=f'CH_ALIGNER_{channel}_prbs_chk_en',args_value='0',args_i2c=i2c)
 
     err_counts = np.array(err_counts).astype(int)
-    logger.info(f'Error Array:\n{repr(err_counts)}')
+    if verbose:
+        logger.info(f'Error Array:\n{repr(err_counts)}')
     
     counts_window = []
     for i in range(15):
         # add counts over 3 setting window, summing i, i+1, and i-1 (mod 15)  
         counts_window.append( err_counts[i] + err_counts[(i-1)%15] + err_counts[(i+1)%15])
 
-    logger.debug('Error Counts over 3 setting window:')
-    logger.debug(" ".join(map(str,range(len(counts_window))))+" \n")
-    for c in counts_window:
-        logger.debug(" ".join(map(str,c)))
-    logger.debug('Minimum Arg:')
-    logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
+    if verbose:
+        logger.debug('Error Counts over 3 setting window:')
+        logger.debug(" ".join(map(str,range(len(counts_window))))+" \n")
+        for c in counts_window:
+            logger.debug(" ".join(map(str,c)))
+        logger.debug('Minimum Arg:')
+        logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     tag = f"{sleepTime}s{tag}"
     with open(f"{odir}/prbs_counters_scan_%s.csv"%tag, 'w') as f:
@@ -173,7 +183,8 @@ def scan_prbs(prbs,i2c,sleepTime,channels,allch,verbose=True,odir='./',tag=""):
         logger.info(f'Best phase settings: '+','.join(map(str,list(best_setting))))
         # logger.info(f'Best phase settings (!=0): '+','.join(map(str,list(np.array(counts_window[1:]).argmin(axis=0)))))
 
-    y=(err_counts[2:-2]+err_counts[1:-3]+err_counts[3:-1]+err_counts[4:] + err_counts[:-4])
+    y=(1*err_counts[:-4] + 3*err_counts[1:-3] + 5*err_counts[2:-2] + 3*err_counts[3:-1] + 1*err_counts[4:])
+
     y[ err_counts[2:-2]>0 ] += 2555
     x=y.argmin(axis=0)+2
     best_setting=x
@@ -200,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument('--link', default=-1, type=int, help='link to scan')
     parser.add_argument('--prbs', required=True, type=int, choices=[28,32], help='send 28/32 bit PRBS w headers')
     parser.add_argument('--i2c',  type=str, default='ASIC', help="keys of i2c addresses(ASIC,emulator)")
-    parser.add_argument('--sleep',dest='sleepTime',default=120,type=int,help='Time to wait between logging iterations')
+    parser.add_argument('--sleep',dest='sleepTime',default=0.1,type=float,help='Time to wait between logging iterations')
     parser.add_argument('--check', default=False, action='store_true', help='check that internal PRBS check works')
     parser.add_argument('--fixed', default=False, action='store_true', help='check that internal PRBS check gives error with fixed pattern')
     parser.add_argument('--opposite', default=False, action='store_true', help='check that internal PRBS check gives error with opposite PRBS')

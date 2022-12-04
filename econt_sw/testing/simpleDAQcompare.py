@@ -1,3 +1,8 @@
+import logging
+logger = logging.getLogger("daq")
+logger.setLevel(logging.INFO)
+logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
+
 from hexactrl_interface import hexactrl_interface
 hexactrl=hexactrl_interface()
 hexactrl.empty_fifo()
@@ -9,8 +14,8 @@ hexactrl.start_daq()
 try:
     while x_!='q':
         x_=input()
-        a=hexactrl.get_daq_counters()
-
+        n_err=hexactrl.get_daq_counters()
+        logger.info(f'{n_err} errors observed')
     err,data=hexactrl.stop_daq(frow=36,capture=(x_!=''))
     if int(err)>0:
         print('ASIC')

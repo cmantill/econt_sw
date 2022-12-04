@@ -35,8 +35,8 @@ phase_by_board = {
     3: "7,6,8,7,0,8,8,0,8,8,9,8",
     7: "5,4,5,5,6,6,6,6,5,6,6,6",
     8: "5,4,5,5,6,6,6,6,5,6,6,6",
-    9: "7,7,7,7,7,7,7,7,7,7,7,7",
-    10: "7,7,7,7,7,7,7,7,7,7,7,7",
+    9: "7,6,7,7,7,8,7,8,7,8,7,8",
+    10: "8,7,8,8,8,9,9,9,8,9,9,9",
     11: "7,6,8,8,8,9,8,9,7,8,8,8",
     12: "8,8,9,9,9,10,9,10,9,9,9,10",
     13: "8,8,8,8,8,8,8,8,8,8,8,8",
@@ -135,7 +135,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
                 break
         if not goodASIC:
             logger.error('Unable to find good snapshot bx')
-            exit()
+            #exit()
 
         goodEmulator = False
         for delay in [snapshotBX+1, snapshotBX, snapshotBX-1, snapshotBX+2, snapshotBX-2]:
@@ -146,7 +146,7 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
                 break
         if not goodEmulator:
             logger.error('Unable to find good delay setting')
-            exit()
+            #exit()
     else:
         # just set the parameters and check alignment
         setAlignment(snapshotBX,delay)
@@ -157,6 +157,39 @@ def word_align(bx,emulator_delay,bcr=0,verbose=False):
 
     statusLogging(sleepTime=2,N=1)
 
+def simple_output_align(verbose=False):
+    #find good delay settings
+    from_io.align_delay_vals()
+
+    # send link reset econt
+    fc.request("link_reset_econt")
+
+    # # check
+    # align = lc.check_links(['lc-ASIC'])
+
+    # # find latency
+    # from latency import align
+    # lc_emu_aligned = align()
+
+    # nwords = 4095
+    # lcaptures = ['lc-ASIC','lc-emulator']
+    # fc.configure_fc()
+    # lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
+    # lc.do_capture(lcaptures)
+    # sc.configure_compare(13,trigger=True)
+    # err_counts = sc.reset_log_counters(0.01,verbose=True)
+
+    # if err_counts>0:
+    #     logging.warning(f'eTx error count after alignment: {err_counts}')
+    #     data = lc.get_captured_data(lcaptures,nwords)
+    #     for lcapture in data.keys():
+    #         tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
+    # else:
+    #     logging.info('Links are aligned between ASIC and emulator')
+
+    # data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
+
+
 def output_align(verbose=False):
     tv.set_bypass(1)
     i2cClient.call(args_yaml="configs/alignOutput_TS.yaml",args_i2c='ASIC,emulator',args_write=True)
@@ -164,7 +197,8 @@ def output_align(verbose=False):
     x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    logging.debug(f"Num links {num_links_asic} {num_links_emu}")
+    if num_links_emu != num_links_asic:
+        logging.warning(f"Num links {num_links_asic} {num_links_emu}")
 
     for phase_of_enable in [0,4]:
         logging.debug(f'Aligning ASIC: Setting phase of enable to {phase_of_enable}')
@@ -175,6 +209,9 @@ def output_align(verbose=False):
         from_io.reset_counters()
         align = from_io.check_IO(verbose=False)
         if not align:
+            if phase_of_enable==4:
+                logging.warning(f'IO block not aligned, exit output alignment')
+                return
             continue
         else:
             from_io.manual_IO()
@@ -189,12 +226,14 @@ def output_align(verbose=False):
         # check
         align = lc.check_links(['lc-ASIC'])
         data = lc.get_captured_data(['lc-ASIC'])
-        # tv.save_testvector(f"asic_capture.csv",data['lc-ASIC'])
+        tv.save_testvector(f"asic_capture.csv",data['lc-ASIC'])
         if not align:
+            logging.warning(f'ASIC link capture not aligned')
             continue
         else:
             break
 
+    lc.empty_fifo(['lc-ASIC','lc-emulator','lc-input'])
     # find latency
     from latency import align
     lc_emu_aligned = align()
@@ -203,25 +242,28 @@ def output_align(verbose=False):
     x=i2cClient.call(args_name='FMTBUF_eporttx_numen',args_i2c="ASIC,emulator",args_write=False)
     num_links_asic = x['ASIC']['RW']['FMTBUF_ALL']['config_eporttx_numen']
     num_links_emu = x['emulator']['RW']['FMTBUF_ALL']['config_eporttx_numen']
-    logging.debug(f"Num links {num_links_asic} {num_links_emu}")
+    if num_links_emu != num_links_asic:
+        logging.warning(f"Num links {num_links_asic} {num_links_emu}")
 
+    lc.empty_fifo(['lc-ASIC','lc-emulator','lc-input'])
     nwords = 4095
     lcaptures = ['lc-ASIC','lc-emulator']
     fc.configure_fc()
     lc.configure_acquire(lcaptures,'L1A',nwords,nwords,0)
     lc.do_capture(lcaptures)
     sc.configure_compare(13,trigger=True)
-    err_counts = sc.reset_log_counters(0.01,verbose=False)
+    err_counts = sc.reset_log_counters(0.01,verbose=True)
 
     if err_counts>0:
         logging.warning(f'eTx error count after alignment: {err_counts}')
         data = lc.get_captured_data(lcaptures,nwords)
         for lcapture in data.keys():
             tv.save_testvector(f"{lcapture}_compare_sc_align.csv",data[lcapture])
-        exit()
     else:
         logging.info('Links are aligned between ASIC and emulator')
-        
+
+    data = lc.empty_fifo(["lc-ASIC","lc-emulator","lc-input"])
+
 def bypass_align(idir="configs/test_vectors/alignment/",start_ASIC=0,start_emulator=13):
     # configure alignment inputs
     tv.configure("",idir,fname="testInput.csv")
@@ -295,6 +337,20 @@ def bypass_compare(idir,odir,ttag=""):
     lc.set_latency(['lc-emulator'],latencies['lc-emulator'])
 
     return err_counts
+
+def delay_scan(odir,tag=''):
+    bitcounts,errorcounts = from_io.delay_scan(verbose=False)
+
+    if not odir is None:
+        import os
+        os.system(f'mkdir -p {odir}')
+        with open(f'{odir}/{ioType}_io_delayscan{tag}.csv','w') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow([f'CH_{ch}' for ch in errorcounts.keys()])
+            for j in range(len(errorcounts[0])):
+                writer.writerow([errorcounts[key][j] for key in errorcounts.keys()])
+
+    return errorcounts
 
 if __name__=='__main__':
     import argparse

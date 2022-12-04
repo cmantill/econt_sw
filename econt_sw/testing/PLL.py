@@ -11,6 +11,7 @@ from utils.pll_lock_count import PLLLockCount
 
 pll=PLLLockCount()
 i2cClient = I2C_Client()
+# i2cClient = I2C_Client('localhost',forceLocal=True)
 
 allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
                                  13,  14,  15,  24,  25,  26,  27,  28,  29,  30,  31,  56,  57,
@@ -18,7 +19,7 @@ allowedCapSelectVals=np.array([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
                                  127, 248, 249, 250, 251, 252, 253, 254, 255, 504, 505, 506, 507,
                                  508, 509, 510, 511])
 
-def scanCapSelect(verbose=False, odir='./', tag=''):
+def scanCapSelect(verbose=False, odir='./', tag='', saveToFile=True):
     goodVals=[]
     vals_pusm = {}
     for i in allowedCapSelectVals:
@@ -35,9 +36,10 @@ def scanCapSelect(verbose=False, odir='./', tag=''):
         
         vals_pusm[i] = pusm_state
              
-    with open(f'{odir}/pll_capSelect_scan{tag}.csv', 'w') as csvfile:
-        for key in vals_pusm.keys():
-            csvfile.write("%s,%s\n"%(key,vals_pusm[key]))
+    if saveToFile:
+        with open(f'{odir}/pll_capSelect_scan{tag}.csv', 'w') as csvfile:
+            for key in vals_pusm.keys():
+                csvfile.write("%s,%s\n"%(key,vals_pusm[key]))
 
     return goodVals
 
@@ -56,5 +58,7 @@ def get_count():
     logger.info('Loss of lock count %s'%pll.getCount())
 
 if __name__=='__main__':
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s')
     # get_count()
-    scanCapSelect(verbose=True)
+    goodVals=scanCapSelect(verbose=True)
+    

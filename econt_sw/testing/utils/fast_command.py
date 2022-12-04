@@ -32,7 +32,7 @@ class FastCommands:
             orb_sync = self.dev.getNode(self.name+".command.enable_orbit_sync").read()
             glob_l1a = self.dev.getNode(self.name+".command.global_l1a_enable").read()
             self.dev.dispatch()
-            self.logger.info('fc stream %i orb_sync %i glob_l1a %i '%(fc_stream,orb_sync,glob_l1a))
+            self.logger.info('FC status: fc stream %i orb_sync %i glob_l1a %i '%(fc_stream,orb_sync,glob_l1a))
         else:
             self.dev.getNode(self.name+".command.enable_fast_ctrl_stream").write(0x1);
             self.dev.getNode(self.name+".command.enable_orbit_sync").write(0x1);
@@ -43,13 +43,13 @@ class FastCommands:
         if read:
             r =  self.dev.getNode(self.name+".command.global_l1a_enable").read()
             self.dev.dispatch()
-            self.logger.info('glob_l1a %i '%r)
+            self.logger.info('Enable-L1A %i '%r)
         else:
             self.dev.getNode(self.name+".command.global_l1a_enable").write(1);
             self.dev.dispatch()
 
     def set_bx(self,fc,bx):
-        self.logger.debug(f'{fc}: {bx}')
+        # self.logger.debug(f'{fc}: {bx}')
         self.dev.getNode(self.name+".bx_"+fc).write(bx)
         self.dev.dispatch()
 
@@ -66,7 +66,7 @@ class FastCommands:
         self.dev.getNode(self.name+".request."+fc).write(1);
         self.dev.dispatch()
         if verbose:
-            self.logger.info(f'request {fc}')
+            self.logger.info(f'Request {fc}')
 
     def get_counter(self,fc,verbose=True):
         counter = self.dev.getNode(self.name_recv+".counters."+fc).read()
@@ -78,7 +78,7 @@ class FastCommands:
     def read_command_delay(self):
         d = self.dev.getNode(self.name+".command_delay").read();
         self.dev.dispatch()
-        self.logger.info('command_delay %i'%int(d))
+        self.logger.info('Command delay %i'%int(d))
 
     def set_command_delay(self):
         self.dev.getNode(self.name+".command_delay").write(1);
