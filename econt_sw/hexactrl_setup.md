@@ -181,6 +181,12 @@ To list the firmware image loaded:
 sudo fw-loader list
 ```
 
+If /dev/uio* files are not created, try:
+```
+sudo rmmod uio_pdrv_genirq
+sudo modprobe uio_pdrv_genirq of_id="linux,uio-pdrv-genirq"
+```
+
 
 ## @ ITA:
 - Address:
