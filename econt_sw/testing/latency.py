@@ -177,42 +177,91 @@ def scan_latency(
 
     return latency,BX0_position
 
+##
 def align(BX0_word=0xf922f922,
-          neTx=13,
-          start_ASIC=0,start_emulator=0,
-          modify_ASIC=True,modify_emulator=True):
+          neTx=13):
 
-    if modify_ASIC:
-        latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,starting_value=start_ASIC)
-        if BX0_ASIC is None:
-            logging.error('No BX0 word found for ASIC during latency alignment')
-            exit()
-        else:
-            logging.debug('Found latency and BX0 word for ASIC %s %i'%(latency_ASIC,BX0_ASIC))
+    """
+    New, simplified, latency alignment process.
+    Sets latency to 0 for both lc-ASIC and lc-emulator
+    Finds the BX0s locations in the
+    """
+    lc.set_latency(['lc-ASIC','lc-emulator'],[0]*neTx)
 
-    else:
-        BX0_rows = find_BX0('lc-ASIC',BX0_word)
-        _,_,BX0_ASIC = match_BX0(BX0_rows,neTx)
+    lcaptures=['lc-ASIC','lc-emulator']
+    lc.configure_acquire(lcaptures,"linkreset_ECONt")
+    lc.do_capture(lcaptures)
+    fc.request("link_reset_econt")
+    data = lc.get_captured_data(lcaptures)
 
-    if modify_emulator:
-        latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator)
+    # Find location of BX0 pattern
+    BX0_ASIC_idx=np.argwhere(data['lc-ASIC'][:3564]==0xf922f922)
+    BX0_emulator_idx=np.argwhere(data['lc-emulator'][:3564]==0xf922f922)
 
-        if(BX0_emulator != BX0_ASIC):
-            if modify_ASIC and 0 in latency_emulator:
-                logging.info('Found BX0 word for emulator at %i. Modifying ASICs latency now.'%(BX0_emulator))
-                latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,BX0_emulator,starting_value=0)
-            elif np.any(latency_emulator)>=0:
-                logging.info('Found BX0 word for emulator at %i. Need to do a reverse search starting from %i'%(BX0_emulator,start_emulator-1))
-                latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator-1,reverse=True)
-                if BX0_emulator == BX0_ASIC:
-                    logging.debug('Found latency and BX0 word: emulator %s %i'%(latency_emulator,BX0_emulator))
-                else:
-                    logging.warning('Did not find latency. Exiting')
-                    exit()
-            else:
-                minlatency_ASIC = min(lc.read_latency(['lc-ASIC'])['lc-ASIC'])
-                logging.warning('Found BX0 word for emulator at %i at the lowest latency. But, not able to modify ASICs latency since min is at %i.'%minlatency_ASIC)
-        else:
-            logging.debug('Found latency and BX0 word for emulator %s %i'%(latency_emulator,BX0_emulator))
+    BX0_ASIC=np.array([-1]*neTx,dtype=int)
+    BX0_emulator=np.array([-1]*neTx,dtype=int)
+
+    BX0_ASIC[BX0_ASIC_idx[:,1]]=BX0_ASIC_idx[:,0]
+    BX0_emulator[BX0_emulator_idx[:,1]]=BX0_emulator_idx[:,0]
+
+    #Check that BX0 pattern found in all eTx
+    try:
+        assert ((BX0_ASIC>-1).all())
+        assert ((BX0_emulator_idx>-1).all())
+    except:
+        logging.error(f"Unable to locate BX0 pattern ({BX0_word:08x})")
+        logging.error("    Locations in lc-ASIC     : %s"%list(BX0_ASIC))
+        logging.error("    Locations in lc-emulator : %s"%list(BX0_emulator))
+        return False
+
+    #Set latency, delaying all eTx to latest word from either emulator or ASIC
+    maxBX0=max(BX0_emulator.max(),BX0_ASIC.max())
+
+    newLat_ASIC=maxBX0-BX0_ASIC
+    newLat_emulator=maxBX0-BX0_emulator
+
+    lc.set_latency(['lc-ASIC'],newLat_ASIC)
+    lc.set_latency(['lc-emulator'],newLat_emulator)
 
     return True
+
+# def align(BX0_word=0xf922f922,
+#           neTx=13,
+#           start_ASIC=0,start_emulator=0,
+#           modify_ASIC=True,modify_emulator=True):
+
+#     if modify_ASIC:
+#         latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,starting_value=start_ASIC)
+#         if BX0_ASIC is None:
+#             logging.error('No BX0 word found for ASIC during latency alignment')
+#             exit()
+#         else:
+#             logging.debug('Found latency and BX0 word for ASIC %s %i'%(latency_ASIC,BX0_ASIC))
+#     else:
+#         BX0_rows = find_BX0('lc-ASIC',BX0_word)
+#         _,_,BX0_ASIC = match_BX0(BX0_rows,neTx)
+#     if modify_emulator:
+#         latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator)
+#         if(BX0_emulator != BX0_ASIC):
+#             if modify_ASIC and 0 in latency_emulator:
+#                 logging.info('Found BX0 word for emulator at %i. Modifying ASICs latency now.'%(BX0_emulator))
+#                 latency_ASIC,BX0_ASIC = scan_latency('lc-ASIC',BX0_word,neTx,BX0_emulator,starting_value=0)
+#             elif np.any(latency_emulator)>=0:
+#                 logging.info('Found BX0 word for emulator at %i. Need to do a reverse search starting from %i'%(BX0_emulator,start_emulator-1))
+#                 latency_emulator,BX0_emulator = scan_latency('lc-emulator',BX0_word,neTx,BX0_ASIC,starting_value=start_emulator-1,reverse=True)
+#                 if BX0_emulator == BX0_ASIC:
+#                     logging.debug('Found latency and BX0 word: emulator %s %i'%(latency_emulator,BX0_emulator))
+#                 else:
+#                     logging.warning('Did not find latency. Exiting')
+#                     exit()
+#             else:
+#                 minlatency_ASIC = min(lc.read_latency(['lc-ASIC'])['lc-ASIC'])
+#                 logging.warning('Found BX0 word for emulator at %i at the lowest latency. But, not able to modify ASICs latency since min is at %i.'%minlatency_ASIC)
+#         else:
+#             logging.debug('Found latency and BX0 word for emulator %s %i'%(latency_emulator,BX0_emulator))
+
+#     return True
+
+if __name__=='__main__':
+    align()
+

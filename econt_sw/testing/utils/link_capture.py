@@ -91,7 +91,6 @@ class LinkCapture:
         """Reset links and set latency for multiple lcs"""
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
-                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_resetb").write(0)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_latency").write(latency[l]);
             self.dev.dispatch()
             self.logger.debug(f'Written latencies in {lcapture}: %s',latency)
