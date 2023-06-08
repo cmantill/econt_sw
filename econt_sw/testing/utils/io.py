@@ -4,15 +4,16 @@ from .uhal_config import *
 import time
 
 import logging
-
 """ Function to prevent initializing over and over """
 def singleton(class_instance):
     instances = {}
+
     def get_instance(*args, **kwargs):
         key = (class_instance, tuple(args), tuple(kwargs.items()))
         if key not in instances:
             instances[key] = class_instance(*args, **kwargs)
         return instances[key]
+
     return get_instance
 
 @singleton
@@ -22,7 +23,7 @@ class IOBlock:
     def __init__(self,io,io_name='IO',logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
-
+        
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.name = names[io_name][io]
@@ -53,7 +54,7 @@ class IOBlock:
             "reg0.invert": 0,
             "reg0.reset_link": 0,
             "reg0.reset_counters": 1,
-            "reg0.delay_mode": 0,
+            "reg0.delay_mode": 0, 
         }
 
         # set delay mode to 1 to those blocks that need to be aligned
@@ -64,8 +65,8 @@ class IOBlock:
         # set invert to 1
         if invert:
             ioblock_settings["reg0.invert"] = 1
-
-        # set
+            
+        # set 
         for l in range(self.nlinks):
             for key,value in ioblock_settings.items():
                 self.dev.getNode(self.name+".link"+str(l)+"."+key).write(value)
@@ -101,7 +102,7 @@ class IOBlock:
             self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_offset").write(8) # fix this to 8
             self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_set").write(1)
         self.dev.dispatch()
-
+        
     def manual_IO(self):
         """Configures manual delay setting"""
         # read delays found by automatic delay setting
@@ -112,14 +113,14 @@ class IOBlock:
 
         # reset counters
         self.reset_counters()
-
+        
     def delay_scan(self,verbose=False):
         bitcounts = {}
         errorcounts = {}
         for l in range(self.nlinks):
             bitcounts[l] = []
             errorcounts[l] = []
-
+        
         # scan over P and N delays
         for delay in range(0,504,8):
             # set delays
@@ -145,7 +146,7 @@ class IOBlock:
         self.align_delay_vals()
 
         return bitcounts,errorcounts
-
+    
     def align_delay_vals(self):
         for l in range(self.nlinks):
             self.dev.getNode(self.name+".link"+str(l)+".reg0.delay_mode").write(1)
@@ -172,7 +173,7 @@ class IOBlock:
 
         # reset the counters
         self.reset_counters()
-
+        
         # check the counters
         IO_delayready = []
         for l in range(self.nlinks):
