@@ -7,6 +7,17 @@ logger = logging.getLogger('utils:pll_lock')
 logger.setLevel(logging.INFO)
 from time import sleep
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+    return get_instance
+
+@singleton
 class PLLLockCount:
     """Class to monitor PLL_LOCK_B transition counters on FPGA"""
 
@@ -32,7 +43,7 @@ class PLLLockCount:
             self.dev.getNode(self.name+".edge_select").write(int(val))
             self.dev.dispatch()
         return
-    
+
     def reset(self):
         self.dev.getNode(self.name+".clear_counter").write(1);
         self.dev.dispatch()

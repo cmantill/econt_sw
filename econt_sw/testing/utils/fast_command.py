@@ -4,18 +4,29 @@ from .uhal_config import names,set_logLevel
 
 import logging
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+    return get_instance
+
+@singleton
 class FastCommands:
     """Class to handle sending fast command signals over uhal"""
 
     def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
-        
+
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.name = names['fc']
         self.name_recv = names['fc-recv']
-        
+
         self.logger = logging.getLogger('utils:fc')
 
     def fc_stream(self,value=1):
@@ -38,7 +49,7 @@ class FastCommands:
             self.dev.getNode(self.name+".command.enable_orbit_sync").write(0x1);
             self.dev.getNode(self.name+".command.global_l1a_enable").write(0);
             self.dev.dispatch()
-    
+
     def enable_l1a(self,read=False):
         if read:
             r =  self.dev.getNode(self.name+".command.global_l1a_enable").read()
@@ -74,7 +85,7 @@ class FastCommands:
         if verbose:
             self.logger.info('%s counter %i'%(fc,int(counter)))
         return int(counter)
-        
+
     def read_command_delay(self):
         d = self.dev.getNode(self.name+".command_delay").read();
         self.dev.dispatch()
@@ -91,12 +102,12 @@ class FastCommands:
         self.dev.getNode(self.name+".command.global_l1a_enable").write(0x1);
         self.dev.getNode(self.name+".periodic0.enable").write(0x0); # to get a L1A once
         #self.dev.getNode(self.name+".periodic0.enable").write(0x1); # to get a L1A every orbit
-        self.dev.getNode(self.name+".periodic0.flavor").write(0); # 0 to get a L1A 
+        self.dev.getNode(self.name+".periodic0.flavor").write(0); # 0 to get a L1A
         self.dev.getNode(self.name+".periodic0.enable_follow").write(0); # does not depend on other generator
         self.dev.getNode(self.name+".periodic0.bx").write(3500);
         self.dev.getNode(self.name+".periodic0.request").write(0x1);
         self.dev.dispatch()
-    
+
         import time
         time.sleep(0.001)
         l1a_counter = self.dev.getNode(self.name_recv+".counters.l1a").read()

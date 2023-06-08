@@ -6,12 +6,23 @@ from .uhal_config import *
 
 import logging
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+    return get_instance
+
+@singleton
 class TestVectors():
     """ Class to handle test vectors """
     def __init__(self,tv='testvectors',logLevel="",logLevelLogger=20):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
-        
+
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.name_sw = names[tv]['switch']
@@ -23,7 +34,7 @@ class TestVectors():
             self.nlinks = input_nlinks
         else:
             self.nlinks = output_nlinks
-             
+
     def read_testvector(self,fname,nlinks=12):
         """Read input test vector"""
         import csv
@@ -31,7 +42,7 @@ class TestVectors():
         with open(fname) as f:
             csv_reader = csv.reader(f, delimiter=',')
             for i,row in enumerate(csv_reader):
-                if i==0: continue # skip header                                                                                                        
+                if i==0: continue # skip header
                 for l in range(nlinks):
                     data[l].append(row[l])
         return data
@@ -77,7 +88,7 @@ class TestVectors():
         if dtype == "PRBS":
             self.logger.debug('Sending 32 bit PRBS w header mask')
             # 32-bit PRBS, the headers should not be there
-            # ECON-T expects no headers when it is checking 32-bit PRBS. 
+            # ECON-T expects no headers when it is checking 32-bit PRBS.
             testvectors_settings["output_select"] = 0x1
             testvectors_settings["header_mask"] = 0x00000000
         elif dtype == "PRBS32":
@@ -85,7 +96,7 @@ class TestVectors():
             testvectors_settings["output_select"] = 0x1
         elif dtype == "PRBS28":
             # 28-bit PRBS, the headers should be there
-            # ECON-T expects headers when it is checking 28-bit PRBS. 
+            # ECON-T expects headers when it is checking 28-bit PRBS.
             self.logger.debug('Sending 28 bit PRBS w headers')
             testvectors_settings["output_select"] = 0x2
             testvectors_settings["header_mask"] = 0xf0000000
@@ -109,7 +120,7 @@ class TestVectors():
             out_brams = []
             for l in range(self.nlinks):
                 out_brams.append([None] * 4095)
-                
+
             if dtype == "zeros":
                 self.logger.debug('Writing zero data w headers in test vectors')
                 for l in range(self.nlinks):
@@ -119,8 +130,8 @@ class TestVectors():
                         else:
                             out_brams[l][i] = 0xa0000000
                     self.dev.getNode(self.name_bram.replace('00',"%02d"%l)).writeBlock(out_brams[l])
-                # import numpy as np  
-                # data = np.array(out_brams).T 
+                # import numpy as np
+                # data = np.array(out_brams).T
                 # self.save_testvector("zeros.csv",data,header=True)
             if dtype=="pattern" and not pattern is None:
                 data=np.array(pattern).reshape(12,-1)

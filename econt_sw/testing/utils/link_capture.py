@@ -5,6 +5,17 @@ from .uhal_config import *
 
 import logging
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+    return get_instance
+
+@singleton
 class LinkCapture:
     """Class to handle multiple link captures (lcs) over uhal. Always needs the link-capture name."""
 
@@ -48,7 +59,7 @@ class LinkCapture:
             'linkreset_ROCd': 'link_reset_rocd',
         }
         self.logger = logging.getLogger('utils:lc')
-        
+
     def reset(self,lcaptures,syncword=""):
         """Reset lcs and sync word"""
         for lcapture in lcaptures:
@@ -57,7 +68,7 @@ class LinkCapture:
             time.sleep(0.001)
             self.dev.getNode(self.lcs[lcapture]+".global.explicit_resetb").write(0x1)
             self.dev.dispatch()
-            
+
             for l in range(self.nlinks[lcapture]):
                 sync_pattern = self.sync[lcapture] if syncword=="" else syncword
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_pattern").write(sync_pattern)
@@ -78,8 +89,8 @@ class LinkCapture:
                 except:
                     self.logger.warning('Sync pattern already an int')
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_pattern").write(sync_pattern)
-            self.dev.dispatch()                                
-        
+            self.dev.dispatch()
+
     def disable_alignment(self,lcaptures):
         """Disable alignment in lcs"""
         for lcapture in lcaptures:
@@ -113,16 +124,16 @@ class LinkCapture:
         """Manual alignment for given links (if align position is given)"""
         if not links:
             links = range(self.nlinks[lcapture])
-            
+
         # disable alignment
         self.disable_alignment(lcaptures)
-        
+
         for lcapture in lcaptures:
             for l in links:
                 align_pos = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_position").read();
                 self.dev.dispatch()
                 self.logger.debug('Align position link %i: %i'%(l,int(align_pos)))
-                
+
                 if align_position and l in links:
                     self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".override_align_position").write(1);
                     self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".align_position").write(int(align_pos)+args.alignpos);
@@ -134,16 +145,16 @@ class LinkCapture:
 
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".explicit_align").write(1);
                 self.dev.dispatch()
-                
+
     def configure_acquire(self,lcaptures,mode,nwords=4095,total_length=4095,bx=0):
         """Set link captures to acquire with the same mode"""
         """
         mode (str): BX,linkreset_ECONt,linkreset_ECONd,linkreset_ROCt,linkreset_ROCd,L1A,orbitSync
-        mode: 0 (inmediate - writes data to BRAM) 
-        mode: 1 (writes data starting on a specific BX count) 
+        mode: 0 (inmediate - writes data to BRAM)
+        mode: 1 (writes data starting on a specific BX count)
         mode: 2 (writes data after receiving a fast command)
         mode: 3 (auto-daq mode)
-        """        
+        """
         capture_dict = {'mode_in': 0,
                         'L1A': 0,
                         'orbitSync': 0,
@@ -165,19 +176,19 @@ class LinkCapture:
         except:
             self.logger.warning("Not a valid capture mode!")
             return
-        
+
         if capture_dict["mode_in"] == 2:
             capture_dict[mode] = 1
             bx = 0
-            
+
         # self.logger.debug("Configure acquire with bx %i and  %s"%(bx,capture_dict))
 
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
                 # offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode
-                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".L1A_offset_or_BX").write(bx) 
+                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".L1A_offset_or_BX").write(bx)
                 # acquire length
-                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire_length").write(nwords)        
+                self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".aquire_length").write(nwords)
                 self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".total_length").write(nwords)
                 for key,val in capture_dict.items():
                     self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".capture_%s"%key).write(val)
@@ -186,7 +197,7 @@ class LinkCapture:
                 self.dev.dispatch()
             self.dev.getNode(self.lcs[lcapture]+".global.interrupt_enable").write(0)
             self.dev.dispatch()
-    
+
     def do_capture(self,lcaptures):
         """Set acquire to 1 for multiple lcs"""
         for lcapture in lcaptures:
@@ -214,12 +225,12 @@ class LinkCapture:
 
     def get_fifo_occupancy(self,lcaptures):
         for lcapture in lcaptures:
-            # wait some time until acquisition finishes 
+            # wait some time until acquisition finishes
             fifo_occupancies = [];
             for l in range(self.nlinks[lcapture]):
                 fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_occupancy").read()
                 self.dev.dispatch()
-                
+
                 fifo_occupancies.append(int(fifo_occupancy))
 
         return fifo_occupancies
@@ -243,14 +254,14 @@ class LinkCapture:
         time.sleep(1)
         captured_data = {}
         for lcapture in lcaptures:
-            # wait some time until acquisition finishes 
+            # wait some time until acquisition finishes
             fifo_occupancies = []; nodata=False
             for l in range(self.nlinks[lcapture]):
                 fifo_occupancy = self.dev.getNode(self.lcs[lcapture]+".link"+str(l)+".fifo_occupancy").read()
                 self.dev.dispatch()
-                
+
                 fifo_occupancies.append(int(fifo_occupancy))
-                if int(fifo_occupancy)==0: 
+                if int(fifo_occupancy)==0:
                     self.logger.warning('no data for %s on link %i'%(lcapture,l))
                     nodata = True
             if nodata: continue
@@ -259,7 +270,7 @@ class LinkCapture:
             try:
                 assert(int(fifo_occupancy) == fifo_occupancies[0])
                 # self.logger.debug('fifo occupancies %i %i'%(fifo_occupancies[0],int(fifo_occupancy)))
-            except:            
+            except:
                 self.logger.error('not same fifo occ for link %i or nwords %i'%(l,nwords),fifo_occupancies)
                 continue
 
@@ -275,10 +286,10 @@ class LinkCapture:
                     daq_data.append([int(d) for d in data])
                 else:
                     self.logger.warning('%s link-capture fifo occupancy link%i %d' %(lcapture,l,fifo_occupancy))
-                    
+
             # if len(daq_data)>0:
             #     self.logger.debug('Length of captured data for %s: %i',lcapture,len(daq_data[0]))
-                    
+
             import numpy as np
             transpose = np.array(daq_data).T
             captured_data[lcapture] = transpose
@@ -319,7 +330,7 @@ class LinkCapture:
                     self.logger.error('LINK-%i: is_aligned %d, aligned_counter %d, error_counter %d, bit err %i'%(l, is_aligned[l], aligned_counter[l], error_counter[l], bit_err))
                 return False
         return True
-    
+
     def check_lc(self,lcaptures):
         """Print the settings of lcs"""
         reg_links = ['delay.in','delay.idelay_error_offset','delay.set','delay.mode','delay.invert',
@@ -338,7 +349,7 @@ class LinkCapture:
                        'link_enable','invert_backpressure','inhibit_dump','aquire','continous_acquire',
                        'explicit_align','align_on','explicit_resetb','num_links','bram_size','modules_included','inter_link_locked'
                        ]
-                
+
         for lcapture in lcaptures:
             for l in range(self.nlinks[lcapture]):
                 reads = {}

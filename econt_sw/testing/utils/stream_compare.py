@@ -6,30 +6,41 @@ from .uhal_config import names,set_logLevel
 
 import logging
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+    return get_instance
+
+@singleton
 class StreamCompare():
     """Class to handle stream compare via uhal"""
     def __init__(self,logLevel="",logLevelLogger=10):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
-        
+
         self.man = uhal.ConnectionManager("file://connection.xml")
         self.dev = self.man.getDevice("mylittlememory")
         self.sc = names['stream_compare']
 
         self.logger = logging.getLogger('utils:sc')
         # self.logger.setLevel(logLevelLogger)
-        
+
     def set_trigger(self,trigger=False):
         """
-        - While trigger is 0, it will not generate L1A at all (but of course it will not impede other sources of L1A, either) 
-        - While trigger is 1, stream_compare will generate L1A (only for the link capture blocks) on every BX where it sees a mismatch 
+        - While trigger is 0, it will not generate L1A at all (but of course it will not impede other sources of L1A, either)
+        - While trigger is 1, stream_compare will generate L1A (only for the link capture blocks) on every BX where it sees a mismatch
         """
         if trigger:
             self.dev.getNode(self.sc+".trigger").write(0x1)
         else:
             self.dev.getNode(self.sc+".trigger").write(0x0)
         self.dev.dispatch()
-        
+
     def set_links(self,nlinks=13):
         self.dev.getNode(self.sc+".control.active_links").write(nlinks)
         self.dev.dispatch()
