@@ -4,21 +4,6 @@ from utils.uhal_config import set_logLevel,names
 
 import logging
 
-
-""" function to handle loading config multiple times"""
-
-def singleton(class_instance):
-    instances = {}
-
-    def get_instance(*args, **kwargs):
-        key = (class_instance, tuple(args), tuple(kwargs.items()))
-        if key not in instances:
-            instances[key] = class_instance(*args, **kwargs)
-        return instances[key]
-
-    return get_instance
-
-@singleton
 class ASICSignals:
     """
     Class for handling uhal ASIC signals
