@@ -5,6 +5,19 @@ from .uhal_config import *
 
 import logging
 
+""" Function to prevent initializing over and over """
+def singleton(class_instance):
+    instances = {}
+
+    def get_instance(*args, **kwargs):
+        key = (class_instance, tuple(args), tuple(kwargs.items()))
+        if key not in instances:
+            instances[key] = class_instance(*args, **kwargs)
+        return instances[key]
+
+    return get_instance
+
+@singleton
 class LinkCapture:
     """Class to handle multiple link captures (lcs) over uhal. Always needs the link-capture name."""
 
