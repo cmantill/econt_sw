@@ -82,11 +82,11 @@ ECON-T:
       fromMemToLJCDR_enableCapBankOverride:
        param_value: 1
       fromMemToLJCDR_lfLockThrCounter:
-       param_value: 3
+       param_value: 5
       fromMemToLJCDR_lfReLockThrCounter:
-       param_value: 3
+       param_value: 5
       fromMemToLJCDR_lfUnLockThrCounter:
-       param_value: 3
+       param_value: 2
     pll_bytes_24to22:
      params:
       toclkgen_disDES:
