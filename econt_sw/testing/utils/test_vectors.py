@@ -12,8 +12,8 @@ class TestVectors():
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.name_sw = names[tv]['switch']
         self.name_st = names[tv]['stream']
         self.name_bram = names[tv]['bram']

@@ -1,6 +1,6 @@
 import os
 import uhal
-from .uhal_config import names,set_logLevel
+from .uhal_config import names,set_logLevel,connection_filename,deviceName
 
 import logging
 
@@ -11,8 +11,8 @@ class FastCommands:
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.name = names['fc']
         self.name_recv = names['fc-recv']
         

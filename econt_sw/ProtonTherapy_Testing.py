@@ -1,7 +1,6 @@
 import sys
 sys.path.append( 'testing' )
-from i2c import call_i2c 
-
+from i2c import I2C_Client
 import argparse
 from datetime import datetime
 from time import sleep
@@ -9,6 +8,9 @@ from time import sleep
 from hexactrl_interface import hexactrl_interface
 import pprint
 
+
+
+i2cClient=I2C_Client(forceLocal=True)
 suppressBlocks=[]#['CH_ALIGNER_','INPUT_ALL'],
 #                ['CH_ERR_','INPUT_ALL']]
 
@@ -71,7 +73,7 @@ def RW_compare(previousStatus,i2c_status, fix=False):
         if fix:
             with open('configs/ITA/temp.yaml','w') as _f: 
                 yaml.dump(yamlfix,_f)
-            call_i2c(args_yaml='configs/ITA/temp.yaml',args_write=True)
+            i2cClient.call(args_yaml='configs/ITA/temp.yaml',args_write=True)
         return yamlfix
 
 if __name__=="__main__":
@@ -95,7 +97,7 @@ if __name__=="__main__":
     logging.getLogger().addHandler(console)
 
     logging.info(f'Starting')
-    initial_Reg_Status=call_i2c('ALL')
+    initial_Reg_Status=i2cClient.call('ALL')
     dateTimeObj=datetime.now()
     timestamp = dateTimeObj.strftime("%d%b_%H%M%S")
     if not args.tag=="":
@@ -131,7 +133,7 @@ if __name__=="__main__":
         for x in diff:
             print(','.join([str(y) for y in x]))
 
-    post_Reg_Status=call_i2c('ALL')
+    post_Reg_Status=i2cClient.call('ALL')
     RO_compare(initial_Reg_Status['ASIC']['RO'], post_Reg_Status)    
     RW_compare(initial_Reg_Status['ASIC']['RW'], post_Reg_Status)    
     with open(f'logs/PostBeam_I2C_{timestamp}.log','w') as _file:

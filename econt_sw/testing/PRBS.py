@@ -97,7 +97,7 @@ def check_prbs(args,channels,allch):
     # print counters
     print_error_and_counters(args,channels)
 
-def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir='./',tag=""):
+def scan_prbs(prbs,i2c,sleepTime,temp,vSet,channels=range(12),allch=True,verbose=True,odir='./',tag=""):
     """Scan phaseSelect and read PRBS errors"""
 
     # reset things for PRBS
@@ -168,7 +168,7 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
         logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     tag = f"{sleepTime}s{tag}"
-    with open(f"{odir}/prbs_counters_scan_%s.csv"%tag, 'w') as f:
+    with open(f"{odir}/{vSet}_{temp}_prbs_counters_scan_%s.csv"%tag, 'w') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([f'CH_{ch}' for ch in channels])
         for j in range(len(err_counts)):

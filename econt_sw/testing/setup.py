@@ -55,7 +55,7 @@ if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s - %(levelname)-6s %(message)s',
-                        datefmt='%m-%d-%y %H:%M:%S',
+                        datefmt='%m-%d-%y %H:%M:%S')
 
     if 'action' not in args:
         init_action(args)

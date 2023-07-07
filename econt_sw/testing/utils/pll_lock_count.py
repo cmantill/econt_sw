@@ -1,6 +1,6 @@
 import os
 import uhal
-from .uhal_config import set_logLevel
+from .uhal_config import set_logLevel,connection_filename,deviceName
 
 import logging
 logger = logging.getLogger('utils:pll_lock')
@@ -14,8 +14,8 @@ class PLLLockCount:
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
 
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.name = "ASIC-IO-Extra-IO-AXI-edge-counter-0"
 
     def getCount(self):

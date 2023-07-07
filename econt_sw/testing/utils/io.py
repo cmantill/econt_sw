@@ -12,8 +12,8 @@ class IOBlock:
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
         
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.name = names[io_name][io]
         self.io = io
         self.io_name = io_name
