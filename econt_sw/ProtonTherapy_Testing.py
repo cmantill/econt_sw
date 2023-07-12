@@ -113,11 +113,21 @@ if __name__=="__main__":
 
     logging.info(f'Starting stream compare (CTRL-C to stop and do capture and I2C compare)')
     hexactrl.start_daq()
-
+    counter = 0
     try:
         while True:
             a=hexactrl.get_daq_counters()
             sleep(1)
+            counter+=1
+            if (counter%10 == 0): 
+                var = (i2cClient.call('PLL_parallel_enable_intrA,PLL_parallel_enable_intrB,PLL_parallel_enable_intrC'))
+                A = var['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrA']
+                B = var['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrB']
+                C = var['ASIC']['RO']['PLL_ALL']['pll_read_bytes_4to3_parallel_enable_intrC']
+                if ( A != 0 or B!= 0 or C != 0):
+                       logging.info(f"PLL Parallel Enable Registers: {var['ASIC']['RO']['PLL_ALL']}")
+
+
     except KeyboardInterrupt:
         logging.info(f'Stopping')
     

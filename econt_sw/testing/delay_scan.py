@@ -1,7 +1,8 @@
 import time
 import argparse
 import csv
-
+import numpy as np
+import sys
 #import logging
 #logging.basicConfig()
 #logger = logging.getLogger("delayScan")
@@ -16,7 +17,7 @@ Usage:
    python testing/delay_scan.py --io from
 """
 
-def delay_scan(odir,ioType='from',tag=''):
+def delay_scan(odir,file_name,ioType='from',tag=''):
     io = IOBlock(ioType,'IO')
     io.configure_IO(invert=True)
     bitcounts,errorcounts = io.delay_scan(verbose=False)
@@ -30,7 +31,11 @@ def delay_scan(odir,ioType='from',tag=''):
             for j in range(len(errorcounts[0])):
                 writer.writerow([errorcounts[key][j] for key in errorcounts.keys()])
     
-    return errorcounts
+    if file_name:
+        with open(f"{odir}/{file_name}.npz", "wb") as f:
+            np.savez(f, bitcounts=bitcounts, errorcounts=errorcounts)
+
+    return bitcounts,  errorcounts
 
 if __name__ == "__main__":
 
