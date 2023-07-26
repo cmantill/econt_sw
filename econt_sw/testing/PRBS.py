@@ -168,11 +168,19 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
         logger.debug(" ".join(map(str,np.argmin(err_counts,axis=0))))
 
     tag = f"{sleepTime}s{tag}"
-    with open(f"{odir}/prbs_counters_scan_%s.csv"%tag, 'w') as f:
-        writer = csv.writer(f, delimiter=',')
-        writer.writerow([f'CH_{ch}' for ch in channels])
-        for j in range(len(err_counts)):
-            writer.writerow([int(err_counts[j][ch]) for ch in channels])
+  #  with open(f"{odir}/{vSet}_{temp}_prbs_counters_scan_%s.csv"%tag, 'w') as f:
+    #    writer = csv.writer(f, delimiter=',')
+     #   writer.writerow([f'CH_{ch}' for ch in channels])
+      #  for j in range(len(err_counts)):
+       #     writer.writerow([int(err_counts[j][ch]) for ch in channels])
+
+
+
+
+    with open(f"{odir}/prbs_counters_scan_%s.npy"%tag, 'wb') as \
+f:
+        np.save(f,err_counts)
+
 
     counts_window = np.array(counts_window)
     # print(counts_window)
@@ -192,6 +200,20 @@ def scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir
         logger.info(f'Best phase settings (5-setting window): '+','.join(map(str,list(x))))
 
     return err_counts, best_setting
+
+def repeat_scan(prbs,i2c,sleepTime,n,file_name,channels=range(12),allch=True,verbose=True,odir='./',tag=""):
+    tot_err_counts = []
+    for i in range(n):
+        err_counts, best_setting = scan_prbs(prbs,i2c,sleepTime,channels=range(12),allch=True,verbose=True,odir='./',tag="")
+        tot_err_counts.append(err_counts)
+    
+    if n == 1:
+        tot_err_counts = tot_err_counts[0]
+    
+    if file_name:
+        with open(f"{odir}/{file_name}.npy","wb") as f:
+            np.save(f, tot_err_counts)
+
 
 if __name__ == "__main__":
     """

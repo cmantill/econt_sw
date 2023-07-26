@@ -12,8 +12,8 @@ class LinkCapture:
         """Initialization class to setup connection manager and device"""
         set_logLevel("")
 
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.lcs = {
             'lc-ASIC': names['lc-ASIC']['lc'],
             'lc-input': names['lc-input']['lc'],

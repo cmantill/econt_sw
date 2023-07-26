@@ -68,8 +68,8 @@ def set_phase_of_enable(phase=0):
     i2cClient.call(args_name="PLL_phase_of_enable_1G28",args_value=phase,args_i2c='ASIC')
 
 def startup(write=True):
-    i2cClient.call(args_yaml="configs/startup.yaml",args_i2c='ASIC,emulator',args_write=write)
-
+#    i2cClient.call(args_yaml="configs/startup.yaml",args_i2c='ASIC,emulator',args_write=write)
+    i2cClient.call(args_yaml="configs/startup.yaml",args_i2c='ASIC',args_write=write)  
 def set_runbit(value=1):
     i2cClient.call(args_name="MISC_run",args_value=f'{value}',args_i2c='ASIC')
 

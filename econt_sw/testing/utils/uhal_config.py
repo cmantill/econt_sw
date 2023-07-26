@@ -1,3 +1,7 @@
+
+connection_filename = "file:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/connections.xml" 
+deviceName = "TOP"
+
 names = {
     'IO': {'to': "ASIC-IO-IO-to-ECONT-ASIC-IO-blocks-0",
            'from': "ASIC-IO-IO-from-ECONT-ASIC-IO-blocks-0"},

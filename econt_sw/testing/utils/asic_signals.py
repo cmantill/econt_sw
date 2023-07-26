@@ -1,6 +1,6 @@
 import uhal
 from time import sleep
-from utils.uhal_config import set_logLevel,names
+from utils.uhal_config import set_logLevel,names,connection_filename, deviceName
 
 import logging
 
@@ -12,8 +12,8 @@ class ASICSignals:
     def __init__(self,logLevel=""):
         """Initialization class to setup connection manager and device"""
         set_logLevel(logLevel)
-        self.man = uhal.ConnectionManager("file://connection.xml")
-        self.dev = self.man.getDevice("mylittlememory")
+        self.man = uhal.ConnectionManager(connection_filename)
+        self.dev = self.man.getDevice(deviceName)
         self.name = "ASIC-IO-I2C-I2C-fudge-0"
         self.name_delay = names['delay']
         self.name_clock = "housekeeping-AXI-mux-0"
@@ -61,7 +61,8 @@ class ASICSignals:
             # soft reset: same as hard reset but leaves i2c programmed
             reset_string = "ECONT_%s_SOFT_RESETB"%i2c
         else:
-            self.logger.Error('No reset signal provided')
+            self.logger.error('No reset signal provided')
+            return
 
         resetStatus = self.dev.getNode(self.name + ".resets." + reset_string).read()
         self.dev.dispatch()
