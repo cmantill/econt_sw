@@ -74,7 +74,7 @@ class I2C_Client():
         
         if args_name:
             import json
-            with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
+            with open("../zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
                 names_to_register = json.load(f)
             names = args_name.split(',')
             p = re.compile('^(\w*)\[(\d*)-(\d*)\](\w*)$') #match to find a range of channels
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     ### if '--name' argument is also supplied, it pattern matches to the name, printing only applicable registers
     if args.listRegisters:
         import json
-        with open("zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
+        with open("../zmq_i2c/reg_maps/ECON_I2C_dict.json") as f:
             names_to_register = json.load(f)
         if args.name:
             p2 = re.compile('^(\w*)\*(\w*)$')
